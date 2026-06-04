@@ -12,8 +12,10 @@
     "validate": "lumen-module validate"
   },
   "dependencies": {
+    "lucide-react": "^1.17.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@lumen-media/module-cli": "^0.3.1",
