@@ -1,5 +1,6 @@
 import { Play, Pause, Eye, ExternalLink } from "lucide-react"
 import { useCountdownStore, formatTime } from "../../store.js"
+import { Button } from "@lumen-media/module-sdk/ui"
 
 const STATUS_DOT: Record<string, string> = {
   idle: "#f59e0b",
@@ -21,8 +22,7 @@ export function PanelFooter() {
   const isRunning = status === "running"
 
   return (
-    <div className="border-t border-border px-4 py-3 flex flex-col gap-2.5 shrink-0 bg-background">
-      {/* Status row */}
+    <div className="w-full flex flex-col gap-2.5 shrink-0">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <span
@@ -38,26 +38,23 @@ export function PanelFooter() {
         </span>
       </div>
 
-      {/* Primary button */}
-      <button
+      <Button
         onClick={isRunning ? pauseTimer : startTimer}
         className="w-full py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 cursor-pointer border-none transition-opacity hover:opacity-90"
-        style={{ background: "#0dd9e8", color: "#000" }}
       >
         {isRunning ? <Pause size={14} /> : <Play size={14} />}
         {isRunning ? "Pause" : "Start Countdown"}
-      </button>
+      </Button>
 
-      {/* Secondary links */}
-      <div className="flex justify-center gap-5">
-        <button className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer bg-transparent border-none hover:text-foreground transition-colors p-0">
+      <div className="grid grid-cols-2 gap-5">
+        <Button variant="ghost" className="text-xs">
           <Eye size={13} />
           Preview
-        </button>
-        <button className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer bg-transparent border-none hover:text-foreground transition-colors p-0">
+        </Button>
+        <Button variant="ghost" className="text-xs">
           <ExternalLink size={13} />
           Overlay
-        </button>
+        </Button>
       </div>
     </div>
   )
