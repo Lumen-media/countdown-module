@@ -1,102 +1,41 @@
 import { Plus } from "lucide-react"
+import { Switch, Select } from "@lumen-media/module-sdk/ui"
 import { useCountdownStore } from "../../../store.js"
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        fontSize: "10px",
-        fontWeight: 600,
-        letterSpacing: "0.08em",
-        color: "var(--muted-foreground)",
-        textTransform: "uppercase",
-        marginBottom: "10px",
-      }}
-    >
+    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
       {children}
-    </div>
+    </p>
   )
+}
+
+function Divider() {
+  return <div className="h-px bg-border my-1" />
 }
 
 function SettingRow({
   label,
   description,
   checked,
-  onChange,
+  onCheckedChange,
 }: {
   label: string
   description?: string
   checked: boolean
-  onChange: (v: boolean) => void
+  onCheckedChange: (v: boolean) => void
 }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "10px 0",
-        gap: "12px",
-      }}
-    >
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: "13px", color: "var(--foreground)", fontWeight: 500 }}>
-          {label}
-        </div>
+    <div className="flex items-center justify-between py-2.5 gap-3">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-foreground">{label}</p>
         {description && (
-          <div style={{ fontSize: "11px", color: "var(--muted-foreground)", marginTop: "2px" }}>
-            {description}
-          </div>
+          <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{description}</p>
         )}
       </div>
-      <ToggleSwitch checked={checked} onChange={onChange} />
+      <Switch checked={checked} onCheckedChange={onCheckedChange} className="shrink-0" />
     </div>
   )
-}
-
-function ToggleSwitch({
-  checked,
-  onChange,
-}: {
-  checked: boolean
-  onChange: (v: boolean) => void
-}) {
-  return (
-    <button
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      style={{
-        width: "36px",
-        height: "20px",
-        borderRadius: "10px",
-        background: checked ? "#0ea5e9" : "var(--muted)",
-        border: "none",
-        cursor: "pointer",
-        position: "relative",
-        transition: "background 0.2s",
-        flexShrink: 0,
-        padding: 0,
-      }}
-    >
-      <span
-        style={{
-          position: "absolute",
-          top: "3px",
-          left: checked ? "19px" : "3px",
-          width: "14px",
-          height: "14px",
-          borderRadius: "50%",
-          background: "#fff",
-          transition: "left 0.2s",
-        }}
-      />
-    </button>
-  )
-}
-
-function Divider() {
-  return <div style={{ height: "1px", background: "var(--border)", margin: "4px 0" }} />
 }
 
 export function ActionsTab() {
@@ -105,7 +44,7 @@ export function ActionsTab() {
   const { hideOnCompletion } = config.behavior
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+    <div className="flex flex-col gap-5">
       {/* END ACTION */}
       <div>
         <SectionLabel>End Action</SectionLabel>
@@ -113,7 +52,7 @@ export function ActionsTab() {
           label="Auto-Advance"
           description="Automatically transition to the next item in the playlist when timer reaches zero."
           checked={autoAdvance.enabled}
-          onChange={(v) =>
+          onCheckedChange={(v) =>
             setConfig({
               actions: {
                 ...config.actions,
@@ -123,31 +62,24 @@ export function ActionsTab() {
           }
         />
         {autoAdvance.enabled && (
-          <select
-            style={{
-              width: "100%",
-              background: "var(--input)",
-              border: "1px solid var(--border)",
-              borderRadius: "8px",
-              padding: "8px 10px",
-              fontSize: "13px",
-              color: "var(--foreground)",
-              outline: "none",
-              marginTop: "4px",
-              cursor: "pointer",
-            }}
+          <Select
             value={autoAdvance.target}
-            onChange={(e) =>
+            onValueChange={(v) =>
               setConfig({
                 actions: {
                   ...config.actions,
-                  autoAdvance: { ...autoAdvance, target: e.target.value },
+                  autoAdvance: { ...autoAdvance, target: v },
                 },
               })
             }
           >
-            <option value="next">Go to Next Item</option>
-          </select>
+            <Select.SelectTrigger className="w-full mt-1">
+              <Select.SelectValue>Go to Next Item</Select.SelectValue>
+            </Select.SelectTrigger>
+            <Select.SelectContent>
+              <Select.SelectItem value="next">Go to Next Item</Select.SelectItem>
+            </Select.SelectContent>
+          </Select>
         )}
       </div>
 
@@ -155,32 +87,9 @@ export function ActionsTab() {
       <div>
         <SectionLabel>Time Triggers</SectionLabel>
         {config.actions.timeTriggers.length === 0 && (
-          <p
-            style={{
-              fontSize: "12px",
-              color: "var(--muted-foreground)",
-              margin: "0 0 10px",
-            }}
-          >
-            No triggers added yet.
-          </p>
+          <p className="text-xs text-muted-foreground mb-2">No triggers added yet.</p>
         )}
-        <button
-          style={{
-            width: "100%",
-            background: "transparent",
-            border: "1px dashed var(--border)",
-            borderRadius: "8px",
-            padding: "8px",
-            fontSize: "12px",
-            color: "var(--muted-foreground)",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "4px",
-          }}
-        >
+        <button className="w-full border border-dashed border-border rounded-lg py-2 text-xs text-muted-foreground cursor-pointer flex items-center justify-center gap-1.5 hover:text-foreground hover:border-foreground/30 transition-colors bg-transparent">
           <Plus size={12} />
           Add Time Trigger
         </button>
@@ -192,7 +101,7 @@ export function ActionsTab() {
         <SettingRow
           label="Hide on completion"
           checked={hideOnCompletion}
-          onChange={(v) =>
+          onCheckedChange={(v) =>
             setConfig({ behavior: { ...config.behavior, hideOnCompletion: v } })
           }
         />
@@ -200,7 +109,7 @@ export function ActionsTab() {
         <SettingRow
           label="Allow negative time (overrun)"
           checked={config.allowNegative}
-          onChange={(v) => setConfig({ allowNegative: v })}
+          onCheckedChange={(v) => setConfig({ allowNegative: v })}
         />
       </div>
     </div>

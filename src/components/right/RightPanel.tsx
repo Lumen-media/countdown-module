@@ -6,89 +6,33 @@ export function RightPanel() {
   const [isFullscreen, setIsFullscreen] = useState(false)
 
   return (
-    <div
-      style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        background: "var(--background)",
-        overflow: "hidden",
-      }}
-    >
+    <div className="flex-1 flex flex-col bg-background overflow-hidden">
       {/* Top bar */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "16px 20px 12px",
-          flexShrink: 0,
-        }}
-      >
-        <h3
-          style={{
-            margin: 0,
-            fontSize: "14px",
-            fontWeight: 600,
-            color: "var(--foreground)",
-          }}
-        >
-          Live Preview Stage
-        </h3>
+      <div className="flex items-center justify-between px-5 pt-4 pb-3 shrink-0">
+        <h3 className="text-sm font-semibold text-foreground">Live Preview Stage</h3>
         <button
           onClick={() => setIsFullscreen((v) => !v)}
-          style={{
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
-            color: "var(--muted-foreground)",
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-            fontSize: "12px",
-            padding: "4px 8px",
-            borderRadius: "6px",
-          }}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground bg-transparent border-none cursor-pointer px-2 py-1 rounded-md hover:text-foreground transition-colors"
         >
           <Maximize2 size={13} />
           {isFullscreen ? "Exit" : "Fullscreen"}
         </button>
       </div>
 
-      {/* Preview area */}
+      {/* Preview */}
       <div
-        style={{
-          flex: 1,
-          padding: isFullscreen ? "0" : "0 20px",
-          overflow: "hidden",
-          display: "flex",
-          alignItems: "stretch",
-          color: "var(--foreground)",
-        }}
+        className={[
+          "flex-1 flex items-stretch overflow-hidden",
+          isFullscreen ? "" : "px-5",
+        ].join(" ")}
       >
         <CountdownPreview />
       </div>
 
       {/* Info cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "12px",
-          padding: "12px 20px 16px",
-          flexShrink: 0,
-        }}
-      >
-        <InfoCard
-          icon={<Monitor size={15} />}
-          label="Current Output"
-          value="Main Hall Screen • 1920×1080"
-        />
-        <InfoCard
-          icon={<Zap size={15} />}
-          label="Next Action"
-          value='Auto-switch to "Welcome Video"'
-        />
+      <div className="grid grid-cols-2 gap-3 px-5 py-3 shrink-0">
+        <InfoCard icon={<Monitor size={15} />} label="Current Output" value="Main Hall Screen • 1920×1080" />
+        <InfoCard icon={<Zap size={15} />} label="Next Action" value='Auto-switch to "Welcome Video"' />
       </div>
     </div>
   )
@@ -104,27 +48,11 @@ function InfoCard({
   value: string
 }) {
   return (
-    <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--border)",
-        borderRadius: "10px",
-        padding: "12px 14px",
-        display: "flex",
-        alignItems: "flex-start",
-        gap: "10px",
-      }}
-    >
-      <span style={{ color: "var(--muted-foreground)", marginTop: "1px", flexShrink: 0 }}>
-        {icon}
-      </span>
-      <div>
-        <div style={{ fontSize: "10px", color: "var(--muted-foreground)", marginBottom: "3px" }}>
-          {label}
-        </div>
-        <div style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground)" }}>
-          {value}
-        </div>
+    <div className="bg-card border border-border rounded-xl px-3.5 py-3 flex items-start gap-2.5">
+      <span className="text-muted-foreground mt-0.5 shrink-0">{icon}</span>
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
+        <p className="text-xs font-semibold text-foreground truncate">{value}</p>
       </div>
     </div>
   )
