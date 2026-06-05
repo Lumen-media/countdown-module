@@ -1,2 +1,4 @@
 allowBuilds:
   esbuild: false
+minimumReleaseAgeExclude:
+  - '@lumen-media/module-sdk@0.6.0'

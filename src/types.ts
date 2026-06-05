@@ -3,12 +3,13 @@ export type TimeTrigger =
   | { enabled: boolean; atSeconds: number; type: "change-text"; preText: string; postText: string }
 
 export type BackgroundConfig =
+  | { type: "profile" }
   | { type: "solid"; color: string }
   | { type: "gradient"; value: string }
   | { type: "image"; value: string; opacity: number }
   | { type: "video"; value: string; opacity: number }
 
-export type BackgroundPreset = "dark-minimal" | "light-clean" | "vibrant-blur" | "custom-video"
+export type BackgroundPreset = "dark-minimal" | "light-clean" | "default" | "custom"
 
 export type CountdownConfig = {
   totalSeconds: number

@@ -9,15 +9,15 @@ export function CountdownDialog() {
   return (
     <div className="aspect-16/10 h-[80dvh] flex bg-background">
 
-      <Card className="basis-1/4 h-full rounded-r-none p-0 gap-0 border-0 bg-transparent overflow-hidden">
+      <Card className="basis-1/4 h-full rounded-r-none p-0 gap-0 border-0 overflow-hidden">
         <Tabs defaultValue="configure" className="flex flex-col h-full overflow-hidden">
           <Card.CardContent className="flex-1 flex flex-col p-0 overflow-hidden gap-0" style={{ minHeight: 0 }}>
             <div className="px-4 pt-4 pb-3 shrink-0">
               <h2 className="text-base font-bold text-foreground mb-3">Countdown</h2>
-              <Tabs.TabsList className="w-full">
-                <Tabs.TabsTrigger value="configure" className="flex-1">Configure</Tabs.TabsTrigger>
-                <Tabs.TabsTrigger value="appearance" className="flex-1">Appearance</Tabs.TabsTrigger>
-                <Tabs.TabsTrigger value="actions" className="flex-1">Actions</Tabs.TabsTrigger>
+              <Tabs.TabsList className="w-full gap-0.75 bg-background">
+                <Tabs.TabsTrigger value="configure" className="flex-1 bg-card">Configure</Tabs.TabsTrigger>
+                <Tabs.TabsTrigger value="appearance" className="flex-1 bg-card">Appearance</Tabs.TabsTrigger>
+                <Tabs.TabsTrigger value="actions" className="flex-1 bg-card">Actions</Tabs.TabsTrigger>
               </Tabs.TabsList>
             </div>
 

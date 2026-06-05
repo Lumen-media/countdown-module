@@ -1,5 +1,23 @@
 import { create } from "zustand"
-import type { CountdownConfig, CountdownState, CountdownStatus } from "./types.js"
+import type { BackgroundConfig, BackgroundPreset, CountdownConfig, CountdownState, CountdownStatus } from "./types.js"
+
+const PRESET_CONFIGS: Record<Exclude<BackgroundPreset, "custom">, Pick<CountdownConfig["appearance"], "background" | "timerColor" | "prePostColor">> = {
+  "default": {
+    background: { type: "profile" },
+    timerColor: "#FFFFFF",
+    prePostColor: "#FFFFFF",
+  },
+  "dark-minimal": {
+    background: { type: "solid", color: "#000000" },
+    timerColor: "#FFFFFF",
+    prePostColor: "#FFFFFF",
+  },
+  "light-clean": {
+    background: { type: "solid", color: "#FFFFFF" },
+    timerColor: "#000000",
+    prePostColor: "#000000",
+  },
+}
 
 const DEFAULT_CONFIG: CountdownConfig = {
   totalSeconds: 300,
@@ -16,8 +34,8 @@ const DEFAULT_CONFIG: CountdownConfig = {
     textShadowGlow: 0,
     overlayMode: "fullscreen",
     cornerPosition: "bottom-right",
-    background: { type: "solid", color: "#000000" },
-    preset: "dark-minimal",
+    background: { type: "profile" },
+    preset: "default",
   },
   actions: {
     autoAdvance: { enabled: true, target: "next" },
@@ -33,11 +51,18 @@ type CountdownStore = {
   timerState: CountdownState
   setConfig: (update: Partial<CountdownConfig>) => void
   updateAppearance: (update: Partial<CountdownConfig["appearance"]>) => void
+  applyPreset: (preset: BackgroundPreset, customBackground?: BackgroundConfig) => void
   setTotalSeconds: (seconds: number) => void
   startTimer: () => void
   pauseTimer: () => void
   resetTimer: () => void
   tick: () => void
+  _openBackgroundPicker: ((cb: (bg: { src: string; type: string; name: string }) => void) => void) | null
+  setOpenBackgroundPicker: (fn: (cb: (bg: { src: string; type: string; name: string }) => void) => void) => void
+  profileBackground: { src: string; type: "theme" | "image" | "video" } | null
+  setProfileBackground: (bg: { src: string; type: "theme" | "image" | "video" } | null) => void
+  _hostFs: { read: (path: string) => Promise<Uint8Array> } | null
+  setHostFs: (fs: { read: (path: string) => Promise<Uint8Array> }) => void
 }
 
 export const useCountdownStore = create<CountdownStore>((set, get) => ({
@@ -49,6 +74,13 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     pausedAt: null,
   },
 
+  _openBackgroundPicker: null as CountdownStore["_openBackgroundPicker"],
+  setOpenBackgroundPicker: (fn) => set({ _openBackgroundPicker: fn }),
+  profileBackground: null,
+  setProfileBackground: (bg) => set({ profileBackground: bg }),
+  _hostFs: null,
+  setHostFs: (fs) => set({ _hostFs: fs }),
+
   setConfig: (update) =>
     set((s) => ({ config: { ...s.config, ...update } })),
 
@@ -59,6 +91,54 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
         appearance: { ...s.config.appearance, ...update },
       },
     })),
+
+  applyPreset: (preset, customBackground) => {
+    if (preset === "custom") {
+      const { _openBackgroundPicker, _hostFs } = get()
+      if (!_openBackgroundPicker) return
+      _openBackgroundPicker((bg) => {
+        const rawSrc = bg.src ?? ""
+        const needsConvert = bg.type !== "theme" && rawSrc && !rawSrc.startsWith("blob:") && !rawSrc.startsWith("http") && !rawSrc.startsWith("data:")
+        const srcPromise = needsConvert && _hostFs
+          ? _hostFs.read(rawSrc).then((bytes) => URL.createObjectURL(new Blob([bytes as unknown as BlobPart]))).catch(() => rawSrc)
+          : Promise.resolve(rawSrc)
+
+        srcPromise.then((src) => {
+          let background: BackgroundConfig
+          if (bg.type === "theme") {
+            background = { type: "profile" }
+          } else if (bg.type === "video") {
+            background = { type: "video", value: src, opacity: 0.5 }
+          } else {
+            background = { type: "image", value: src, opacity: 0.5 }
+          }
+          set((s) => ({
+            config: {
+              ...s.config,
+              appearance: {
+                ...s.config.appearance,
+                preset: "custom",
+                background: customBackground ?? background,
+              },
+            },
+          }))
+        })
+      })
+      return
+    }
+
+    const presetConfig = PRESET_CONFIGS[preset]
+    set((s) => ({
+      config: {
+        ...s.config,
+        appearance: {
+          ...s.config.appearance,
+          preset,
+          ...presetConfig,
+        },
+      },
+    }))
+  },
 
   setTotalSeconds: (seconds) =>
     set((s) => ({

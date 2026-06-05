@@ -2,7 +2,15 @@ import css from "./styles.css?inline"
 import { type LumenHost, LumenPlugin } from "@lumen-media/module-sdk"
 import { createElement } from "react"
 import { CountdownDialog } from "./components/CountdownDialog.js"
+import { useCountdownStore } from "./store.js"
 import { setupI18n } from "./i18n.js"
+
+type HostExt = {
+  fs?: { read: (path: string) => Promise<Uint8Array> }
+  themes: {
+    onDefaultBackgroundChange?: (handler: (bg: { src: string; type: string; name: string } | null) => void) => { dispose(): void }
+  }
+}
 
 export default class CountdownPlugin extends LumenPlugin {
   private styleEl: HTMLStyleElement | null = null
@@ -34,6 +42,25 @@ export default class CountdownPlugin extends LumenPlugin {
       title: "Open Countdown Timer",
       run: () => host.ui.openDialog("countdown.dialog"),
     })
+
+    const hostExt = host as unknown as HostExt
+    if (hostExt.fs) useCountdownStore.getState().setHostFs(hostExt.fs)
+
+    const applyProfileBg = (bg: { src: string; type: string; name: string } | null) => {
+      if (!bg) {
+        useCountdownStore.getState().setProfileBackground(null)
+        return
+      }
+      useCountdownStore.getState().setProfileBackground(
+        bg as { src: string; type: "theme" | "image" | "video"; name: string }
+      )
+    }
+
+    hostExt.themes.onDefaultBackgroundChange?.(applyProfileBg)
+
+    useCountdownStore.getState().setOpenBackgroundPicker(
+      (cb) => host.ui.openBackgroundPicker(cb)
+    )
   }
 
   async onunload(): Promise<void> {
