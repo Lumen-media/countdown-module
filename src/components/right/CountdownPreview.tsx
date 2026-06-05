@@ -1,24 +1,15 @@
 import { useCountdownStore, formatTime } from "../../store.js"
 
-function getPreviewBackground(config: ReturnType<typeof useCountdownStore.getState>["config"]): React.CSSProperties {
+function getPreviewBg(config: ReturnType<typeof useCountdownStore.getState>["config"]): string {
   const { background, preset } = config.appearance
 
-  if (background.type === "gradient") {
-    return { background: background.value }
-  }
-  if (background.type === "solid") {
-    return { background: background.color }
-  }
+  if (background.type === "solid") return background.color
+  if (background.type === "gradient") return background.value
 
   switch (preset) {
-    case "light-clean":
-      return { background: "#ffffff" }
-    case "vibrant-blur":
-      return {
-        background: "linear-gradient(135deg, #7c3aed 0%, #2563eb 50%, #06b6d4 100%)",
-      }
-    default:
-      return { background: "#000000" }
+    case "light-clean": return "#ffffff"
+    case "vibrant-blur": return "linear-gradient(135deg, #7c3aed 0%, #2563eb 50%, #06b6d4 100%)"
+    default: return "#000000"
   }
 }
 
@@ -27,10 +18,26 @@ export function CountdownPreview() {
   const { appearance, preText, postText } = config
   const { remainingSeconds } = timerState
 
-  const bgStyle = getPreviewBackground(config)
   const isLight = appearance.preset === "light-clean"
-  const textColor = appearance.timerColor || (isLight ? "#000000" : "#ffffff")
-  const subColor = `rgba(${isLight ? "0,0,0" : "255,255,255"}, ${appearance.prePostOpacity})`
+  const timerColor = appearance.timerColor || (isLight ? "#000000" : "#ffffff")
+  const subTextColor = isLight
+    ? `rgba(0,0,0,${appearance.prePostOpacity})`
+    : `rgba(255,255,255,${appearance.prePostOpacity})`
+  const bg = getPreviewBg(config)
+  const isGradientOrSolid = !bg.startsWith("linear") || true
+  const bgStyle = bg.startsWith("linear-gradient") ? { backgroundImage: bg } : { backgroundColor: bg }
+
+  const textStyle: React.CSSProperties = {
+    margin: 0,
+    padding: 0,
+    lineHeight: 1.3,
+    textAlign: "center" as const,
+    display: "block",
+  }
+
+  const glowValue = appearance.textShadowGlow ?? 0
+  const timerGlow = glowValue > 0 ? `0 0 ${glowValue * 40}px rgba(255,255,255,0.8)` : "none"
+  const subGlow = glowValue > 0 ? `0 0 ${glowValue * 24}px rgba(255,255,255,0.5)` : "none"
 
   return (
     <div
@@ -44,54 +51,56 @@ export function CountdownPreview() {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: "8px",
+        gap: "10px",
         position: "relative",
+        isolation: "isolate",
       }}
     >
-      {preText && (
-        <p
+      {preText ? (
+        <span
           style={{
-            margin: 0,
+            ...textStyle,
             fontSize: "18px",
-            color: subColor,
             fontWeight: 500,
-            textAlign: "center",
-            textShadow: appearance.textShadowGlow > 0 ? `0 0 ${appearance.textShadowGlow * 30}px currentColor` : "none",
+            color: subTextColor,
+            textShadow: subGlow,
           }}
         >
           {preText}
-        </p>
-      )}
+        </span>
+      ) : null}
 
-      <p
+      <span
         style={{
-          margin: 0,
+          ...textStyle,
           fontSize: "80px",
           fontWeight: 900,
-          color: textColor,
-          fontFamily: appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font,
+          color: timerColor,
+          fontFamily:
+            appearance.font === "Inter (System Default)"
+              ? "system-ui, -apple-system, sans-serif"
+              : appearance.font,
           fontVariantNumeric: "tabular-nums",
-          lineHeight: 1,
           letterSpacing: "-2px",
-          textShadow: appearance.textShadowGlow > 0 ? `0 0 ${appearance.textShadowGlow * 40}px currentColor` : "none",
+          textShadow: timerGlow,
         }}
       >
         {formatTime(remainingSeconds)}
-      </p>
+      </span>
 
-      {postText && (
-        <p
+      {postText ? (
+        <span
           style={{
-            margin: 0,
+            ...textStyle,
             fontSize: "16px",
-            color: subColor,
             fontWeight: 400,
-            textAlign: "center",
+            color: subTextColor,
+            textShadow: subGlow,
           }}
         >
           {postText}
-        </p>
-      )}
+        </span>
+      ) : null}
     </div>
   )
 }

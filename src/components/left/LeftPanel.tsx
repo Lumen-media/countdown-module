@@ -28,29 +28,24 @@ export function LeftPanel() {
       }}
     >
       {/* Header */}
-      <div
-        style={{
-          padding: "16px 16px 0",
-          flexShrink: 0,
-        }}
-      >
+      <div style={{ padding: "16px 16px 12px", flexShrink: 0 }}>
         <h2
           style={{
             fontSize: "16px",
-            fontWeight: 600,
+            fontWeight: 700,
             color: "var(--foreground)",
-            margin: "0 0 14px",
+            margin: "0 0 12px",
           }}
         >
           Countdown
         </h2>
 
-        {/* Tab bar */}
+        {/* Tab bar — active tab has solid card-like background */}
         <div
           style={{
             display: "flex",
             gap: "2px",
-            background: "var(--muted)",
+            background: "rgba(255,255,255,0.06)",
             borderRadius: "8px",
             padding: "3px",
           }}
@@ -67,12 +62,13 @@ export function LeftPanel() {
                   fontSize: "12px",
                   fontWeight: isActive ? 600 : 400,
                   color: isActive ? "var(--foreground)" : "var(--muted-foreground)",
-                  background: isActive ? "var(--card)" : "transparent",
-                  border: isActive ? "1px solid var(--border)" : "1px solid transparent",
+                  background: isActive ? "rgba(255,255,255,0.14)" : "transparent",
+                  border: isActive ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
                   borderRadius: "6px",
                   cursor: "pointer",
-                  transition: "all 0.15s",
-                  boxShadow: isActive ? "0 1px 2px rgba(0,0,0,0.3)" : "none",
+                  transition: "all 0.12s",
+                  boxShadow: isActive ? "0 1px 3px rgba(0,0,0,0.35)" : "none",
+                  outline: "none",
                 }}
               >
                 {tab.label}
@@ -87,7 +83,7 @@ export function LeftPanel() {
         style={{
           flex: 1,
           overflowY: "auto",
-          padding: "16px",
+          padding: "4px 16px 16px",
           scrollbarWidth: "thin",
         }}
       >
@@ -96,7 +92,6 @@ export function LeftPanel() {
         {activeTab === "actions" && <ActionsTab />}
       </div>
 
-      {/* Fixed footer */}
       <PanelFooter />
     </div>
   )

@@ -63,6 +63,7 @@ export function RightPanel() {
           overflow: "hidden",
           display: "flex",
           alignItems: "stretch",
+          color: "var(--foreground)",
         }}
       >
         <CountdownPreview />

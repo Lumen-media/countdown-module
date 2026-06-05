@@ -6,10 +6,12 @@ export function CountdownDialog() {
     <div
       style={{
         display: "flex",
-        width: "100%",
-        height: "100%",
+        width: "min(90vw, 1200px)",
+        height: "min(88vh, 800px)",
+        minWidth: "800px",
         overflow: "hidden",
         background: "var(--background)",
+        color: "var(--foreground)",
       }}
     >
       <LeftPanel />
