@@ -67,12 +67,12 @@ export function LeftPanel() {
                   fontSize: "12px",
                   fontWeight: isActive ? 600 : 400,
                   color: isActive ? "var(--foreground)" : "var(--muted-foreground)",
-                  background: isActive ? "var(--background)" : "transparent",
-                  border: "none",
+                  background: isActive ? "var(--card)" : "transparent",
+                  border: isActive ? "1px solid var(--border)" : "1px solid transparent",
                   borderRadius: "6px",
                   cursor: "pointer",
                   transition: "all 0.15s",
-                  boxShadow: isActive ? "0 1px 3px rgba(0,0,0,0.25)" : "none",
+                  boxShadow: isActive ? "0 1px 2px rgba(0,0,0,0.3)" : "none",
                 }}
               >
                 {tab.label}

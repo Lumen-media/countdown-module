@@ -147,15 +147,6 @@ export function ConfigureTab() {
             Reset
           </AdjustButton>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "12px" }}>
-          <ToggleSwitch
-            checked={config.allowNegative}
-            onChange={(v) => setConfig({ allowNegative: v })}
-          />
-          <span style={{ fontSize: "12px", color: "var(--muted-foreground)" }}>
-            Allow negative time
-          </span>
-        </div>
       </div>
 
       {/* DISPLAY TEXT */}
@@ -228,7 +219,7 @@ export function ConfigureTab() {
                 onClick={() => updateAppearance({ preset: p.id })}
                 style={{
                   background: "transparent",
-                  border: `2px solid ${isSelected ? "var(--primary)" : "var(--border)"}`,
+                  border: `2px solid ${isSelected ? "#0dd9e8" : "var(--border)"}`,
                   borderRadius: "10px",
                   padding: "6px",
                   cursor: "pointer",
