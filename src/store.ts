@@ -94,35 +94,23 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
 
   applyPreset: (preset, customBackground) => {
     if (preset === "custom") {
-      const { _openBackgroundPicker, _hostFs } = get()
+      const { _openBackgroundPicker } = get()
       if (!_openBackgroundPicker) return
       _openBackgroundPicker((bg) => {
-        const rawSrc = bg.src ?? ""
-        const needsConvert = bg.type !== "theme" && rawSrc && !rawSrc.startsWith("blob:") && !rawSrc.startsWith("http") && !rawSrc.startsWith("data:")
-        const srcPromise = needsConvert && _hostFs
-          ? _hostFs.read(rawSrc).then((bytes) => URL.createObjectURL(new Blob([bytes as unknown as BlobPart]))).catch(() => rawSrc)
-          : Promise.resolve(rawSrc)
-
-        srcPromise.then((src) => {
-          let background: BackgroundConfig
-          if (bg.type === "theme") {
-            background = { type: "profile" }
-          } else if (bg.type === "video") {
-            background = { type: "video", value: src, opacity: 0.5 }
-          } else {
-            background = { type: "image", value: src, opacity: 0.5 }
-          }
-          set((s) => ({
-            config: {
-              ...s.config,
-              appearance: {
-                ...s.config.appearance,
-                preset: "custom",
-                background: customBackground ?? background,
-              },
+        const src = bg.src ?? ""
+        const background: BackgroundConfig = bg.type === "video"
+          ? { type: "video", value: src, opacity: 0.5 }
+          : { type: "image", value: src, opacity: 0.5 }
+        set((s) => ({
+          config: {
+            ...s.config,
+            appearance: {
+              ...s.config.appearance,
+              preset: "custom",
+              background: customBackground ?? background,
             },
-          }))
-        })
+          },
+        }))
       })
       return
     }
