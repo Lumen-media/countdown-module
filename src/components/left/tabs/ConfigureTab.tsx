@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react"
 import { RotateCcw, Video } from "lucide-react"
 import { useDebounceValue } from "usehooks-ts"
-import { Input, Select } from "@lumen-media/module-sdk/ui"
+import { Button, Input, ScrollArea, Select, TextEditor } from "@lumen-media/module-sdk/ui"
+import { cn } from "../../../lib/cn.js"
 import { useCountdownStore } from "../../../store.js"
 import type { BackgroundPreset } from "../../../types.js"
 
@@ -20,26 +21,58 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
+const PRESET_STYLES: Record<BackgroundPreset, string> = {
+  "default": "bg-background text-foreground border border-border",
+  "dark-minimal": "bg-black text-white",
+  "light-clean": "bg-white text-black",
+  "custom": "bg-card text-muted-foreground flex-col gap-1 border border-dashed border-border",
+}
+
 function PresetThumbnail({ preset }: { preset: BackgroundPreset }) {
-  const base = "w-full h-14 rounded-md flex items-center justify-center text-xs font-extrabold tracking-tight overflow-hidden"
+  const profileBackground = useCountdownStore((s) => s.profileBackground)
+  const customBackground = useCountdownStore((s) =>
+    s.config.appearance.preset === "custom" ? s.config.appearance.background : null
+  )
+  const base = "w-full rounded-md overflow-hidden aspect-video flex items-center justify-center text-xs font-extrabold tracking-tight relative"
 
   if (preset === "default") {
+    const isReady = profileBackground?.src && (
+      profileBackground.src.startsWith("blob:") ||
+      profileBackground.src.startsWith("http") ||
+      profileBackground.src.startsWith("data:")
+    )
     return (
-      <div className={`${base}`} style={{ background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)" }}>
-        05:00
+      <div className={cn(base, !isReady && PRESET_STYLES["default"])}>
+        {isReady && (
+          profileBackground!.type === "video"
+            ? <video src={profileBackground!.src} className="absolute inset-0 w-full h-full object-cover" muted />
+            : <img src={profileBackground!.thumb ?? profileBackground!.src} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        )}
+        <span className="relative drop-shadow text-white">05:00</span>
       </div>
     )
   }
-  if (preset === "dark-minimal") {
-    return <div className={`${base} bg-black text-white`}>05:00</div>
+
+  if (preset === "custom") {
+    const hasMedia = customBackground && (customBackground.type === "image" || customBackground.type === "video")
+    return (
+      <div className={cn(base, !hasMedia && PRESET_STYLES["custom"])}>
+        {hasMedia && (
+          customBackground.type === "video"
+            ? <video src={customBackground.value} className="absolute inset-0 w-full h-full object-cover" muted />
+            : <img src={customBackground.value} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        )}
+        {hasMedia
+          ? <span className="relative drop-shadow text-white">05:00</span>
+          : <><Video size={14} /><span className="text-[9px]">Custom</span></>
+        }
+      </div>
+    )
   }
-  if (preset === "light-clean") {
-    return <div className={`${base} bg-white text-black`}>05:00</div>
-  }
+
   return (
-    <div className={`${base} bg-zinc-900 text-muted-foreground flex-col gap-1 border border-dashed border-border`}>
-      <Video size={14} />
-      <span style={{ fontSize: 9 }}>Custom</span>
+    <div className={cn(base, PRESET_STYLES[preset])}>
+      05:00
     </div>
   )
 }
@@ -102,7 +135,7 @@ export function ConfigureTab() {
           ).map(({ label, value, set }) => (
             <div
               key={label}
-              className="flex-1 bg-card border border-border rounded-xl py-3 px-2 flex flex-col items-center gap-1"
+              className="flex-1 bg-background border border-border rounded-xl py-4 px-2 flex flex-col items-center gap-1.5"
             >
               <input
                 type="text"
@@ -110,34 +143,38 @@ export function ConfigureTab() {
                 value={value}
                 onChange={(e) => set(e.target.value)}
                 maxLength={2}
-                className="bg-transparent border-none outline-none font-bold text-foreground w-full text-center p-0 tabular-nums"
-                style={{ fontSize: 32 }}
+                className="bg-transparent border-none outline-none font-extrabold text-foreground w-full text-center p-0 tabular-nums"
+                style={{ fontSize: 36 }}
               />
-              <span className="text-xs font-medium" style={{ color: "var(--primary)" }}>{label}</span>
+              <span className="text-xs font-semibold" style={{ color: "var(--primary)" }}>{label}</span>
             </div>
           ))}
         </div>
 
-        <div className="flex gap-1.5 mt-2.5">
+        <div className="flex justify-between gap-1.5 mt-2.5">
           {[
             { label: "+ 10s", delta: 10 },
             { label: "− 10s", delta: -10 },
           ].map(({ label, delta }) => (
-            <button
+            <Button
               key={label}
+              variant="outline"
+              size="xs"
               onClick={() => addSeconds(delta)}
-              className="border border-border rounded-md px-2.5 py-1 text-xs text-muted-foreground bg-transparent cursor-pointer hover:text-foreground transition-colors"
+              className="text-muted-foreground hover:text-foreground flex-1"
             >
               {label}
-            </button>
+            </Button>
           ))}
-          <button
+          <Button
+            variant="outline"
+            size="xs"
             onClick={handleReset}
-            className="border border-border rounded-md px-2.5 py-1 text-xs text-muted-foreground bg-transparent cursor-pointer hover:text-foreground transition-colors flex items-center gap-1"
+            className="text-muted-foreground hover:text-foreground gap-1 flex-1"
           >
             <RotateCcw size={11} />
             Reset
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -148,14 +185,18 @@ export function ConfigureTab() {
             placeholder="Pre text"
             value={config.preText}
             onChange={(e) => setConfig({ preText: e.target.value })}
+            className="bg-background"
           />
-          <textarea
-            placeholder="Post text"
-            value={config.postText}
-            onChange={(e) => setConfig({ postText: e.target.value })}
-            rows={2}
-            className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground outline-none resize-none leading-relaxed placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring"
-          />
+          <label className="max-h-[4.1lh] p-1 overflow-hidden rounded-md border border-input bg-background">
+            <ScrollArea className="h-full max-h-[4.1lh]">
+              <TextEditor
+                placeholder="Post text"
+                defaultValue={config.postText}
+                onChange={(e) => setConfig({ postText: e })}
+                className="[&_.tiptap]:p-1"
+              />
+            </ScrollArea>
+          </label>
         </div>
       </div>
 
@@ -176,7 +217,7 @@ export function ConfigureTab() {
             })
           }
         >
-          <Select.SelectTrigger className="w-full">
+          <Select.SelectTrigger className="w-full bg-background">
             <Select.SelectValue>
               {config.actions.autoAdvance.enabled ? "Auto-switch to next Scene" : "None"}
             </Select.SelectValue>
@@ -199,7 +240,7 @@ export function ConfigureTab() {
                 onClick={() => applyPreset(p.id)}
                 className="bg-transparent rounded-xl p-1.5 cursor-pointer flex flex-col gap-1.5 transition-colors border-2"
                 style={{
-                  borderColor: isSelected ? "#0dd9e8" : "var(--border)",
+                  borderColor: isSelected ? "var(--primary)" : "var(--border)",
                   borderStyle: p.id === "custom" && !isSelected ? "dashed" : "solid",
                 }}
               >

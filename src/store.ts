@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import type { BackgroundConfig, BackgroundPreset, CountdownConfig, CountdownState, CountdownStatus } from "./types.js"
+import type { BackgroundConfig, BackgroundPreset, CountdownConfig, CountdownState } from "./types.js"
 
 const PRESET_CONFIGS: Record<Exclude<BackgroundPreset, "custom">, Pick<CountdownConfig["appearance"], "background" | "timerColor" | "prePostColor">> = {
   "default": {
@@ -59,8 +59,8 @@ type CountdownStore = {
   tick: () => void
   _openBackgroundPicker: ((cb: (bg: { src: string; type: string; name: string }) => void) => void) | null
   setOpenBackgroundPicker: (fn: (cb: (bg: { src: string; type: string; name: string }) => void) => void) => void
-  profileBackground: { src: string; type: "theme" | "image" | "video" } | null
-  setProfileBackground: (bg: { src: string; type: "theme" | "image" | "video" } | null) => void
+  profileBackground: { src: string; thumb?: string; type: "theme" | "image" | "video" } | null
+  setProfileBackground: (bg: { src: string; thumb?: string; type: "theme" | "image" | "video" } | null) => void
   _hostFs: { read: (path: string) => Promise<Uint8Array> } | null
   setHostFs: (fs: { read: (path: string) => Promise<Uint8Array> }) => void
 }

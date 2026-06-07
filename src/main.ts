@@ -46,13 +46,13 @@ export default class CountdownPlugin extends LumenPlugin {
     const hostExt = host as unknown as HostExt
     if (hostExt.fs) useCountdownStore.getState().setHostFs(hostExt.fs)
 
-    const applyProfileBg = (bg: { src: string; type: string; name: string } | null) => {
+    const applyProfileBg = (bg: { src: string; thumb?: string; type: string; name: string } | null) => {
       if (!bg) {
         useCountdownStore.getState().setProfileBackground(null)
         return
       }
       useCountdownStore.getState().setProfileBackground(
-        bg as { src: string; type: "theme" | "image" | "video"; name: string }
+        bg as { src: string; thumb?: string; type: "theme" | "image" | "video"; name: string }
       )
     }
 
