@@ -143,7 +143,7 @@ export function ConfigureTab() {
                 value={value}
                 onChange={(e) => set(e.target.value)}
                 maxLength={2}
-                className="bg-transparent border-none outline-none font-extrabold text-foreground w-full text-center p-0 tabular-nums"
+                className="bg-background dark:bg-background border-none outline-none font-extrabold text-foreground w-full text-center p-0 tabular-nums"
                 style={{ fontSize: 36 }}
               />
               <span className="text-xs font-semibold" style={{ color: "var(--primary)" }}>{label}</span>
@@ -185,7 +185,7 @@ export function ConfigureTab() {
             placeholder="Pre text"
             value={config.preText}
             onChange={(e) => setConfig({ preText: e.target.value })}
-            className="bg-background"
+            className="bg-background dark:bg-background"
           />
           <label className="max-h-[4.1lh] p-1 overflow-hidden rounded-md border border-input bg-background">
             <ScrollArea className="h-full max-h-[4.1lh]">
@@ -217,7 +217,7 @@ export function ConfigureTab() {
             })
           }
         >
-          <Select.SelectTrigger className="w-full bg-background">
+          <Select.SelectTrigger className="w-full bg-background dark:bg-background">
             <Select.SelectValue>
               {config.actions.autoAdvance.enabled ? "Auto-switch to next Scene" : "None"}
             </Select.SelectValue>
