@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { useEventListener } from "usehooks-ts"
 import { HexColorPicker } from "react-colorful"
 import { Combobox, Input, Popover, Select, Slider, ToggleGroup } from "@lumen-media/module-sdk/ui"
 import { cn } from "../../../lib/cn.js"
@@ -8,7 +9,7 @@ import type { BackgroundConfig } from "../../../types.js"
 
 const FONT_WEIGHTS = ["Thin", "Light", "Regular", "Medium", "Semi Bold", "Bold", "Extra Bold", "Black"]
 
-const BG_TYPES = ["solid", "gradient", "image", "video"] as const
+const BG_TYPES = ["solid", "gradient"] as const
 type EditableBgType = (typeof BG_TYPES)[number]
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -163,16 +164,81 @@ function SliderRow({
   )
 }
 
+function parseGradient(value: string): { angle: number; color1: string; color2: string } {
+  const match = value.match(/linear-gradient\((\d+)deg,\s*(#[0-9a-fA-F]{6}),\s*(#[0-9a-fA-F]{6})\)/)
+  if (match) return { angle: parseInt(match[1]), color1: match[2], color2: match[3] }
+  return { angle: 90, color1: "#000000", color2: "#ffffff" }
+}
+
+function buildGradient(angle: number, color1: string, color2: string): string {
+  return `linear-gradient(${angle}deg, ${color1}, ${color2})`
+}
+
 function switchBgType(prev: BackgroundConfig, type: EditableBgType): BackgroundConfig {
   if (type === "solid") {
     return { type: "solid", color: prev.type === "solid" ? prev.color : "#000000" }
   }
-  if (type === "gradient") {
-    return { type: "gradient", value: prev.type === "gradient" ? prev.value : "linear-gradient(to right, #000000, #ffffff)" }
+  return { type: "gradient", value: prev.type === "gradient" ? prev.value : "linear-gradient(90deg, #000000, #ffffff)" }
+}
+
+function RotationKnob({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [dragging, setDragging] = useState(false)
+
+  function getAngle(e: MouseEvent) {
+    if (!ref.current) return 0
+    const rect = ref.current.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top + rect.height / 2
+    let angle = Math.atan2(e.clientX - cx, -(e.clientY - cy)) * (180 / Math.PI)
+    if (angle < 0) angle += 360
+    return Math.round(angle)
   }
-  const val = prev.type === "image" || prev.type === "video" ? prev.value : ""
-  const op = prev.type === "image" || prev.type === "video" ? prev.opacity : 0.5
-  return { type, value: val, opacity: op }
+
+  useEventListener("mousemove", (e) => { if (dragging) onChange(getAngle(e)) })
+  useEventListener("mouseup", () => setDragging(false))
+
+  function handleMouseDown(e: React.MouseEvent) {
+    e.preventDefault()
+    setDragging(true)
+    onChange(getAngle(e.nativeEvent))
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <div
+        ref={ref}
+        onMouseDown={handleMouseDown}
+        className="relative w-8 h-8 rounded-full bg-card border border-border cursor-grab select-none shrink-0"
+      >
+        <div
+          className="absolute inset-0 flex justify-center pt-1 pointer-events-none"
+          style={{ transform: `rotate(${value}deg)` }}
+        >
+          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+        </div>
+      </div>
+      <span className="text-xs w-7 font-mono text-muted-foreground">{value}°</span>
+    </div>
+  )
+}
+
+function GradientEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { angle, color1, color2 } = parseGradient(value)
+  function update(patch: Partial<{ angle: number; color1: string; color2: string }>) {
+    const next = { angle, color1, color2, ...patch }
+    onChange(buildGradient(next.angle, next.color1, next.color2))
+  }
+  return (
+    <div className="flex flex-col gap-2">
+      <ColorRow label="Color 1" color={color1} onChange={(c) => update({ color1: c })} />
+      <ColorRow label="Color 2" color={color2} onChange={(c) => update({ color2: c })} />
+      <div className="flex items-center justify-between bg-background rounded-md px-3 py-2.5">
+        <span className="text-sm text-foreground">Angle</span>
+        <RotationKnob value={angle} onChange={(v) => update({ angle: v })} />
+      </div>
+    </div>
+  )
 }
 
 export function AppearanceTab() {
@@ -244,56 +310,44 @@ export function AppearanceTab() {
         </div>
       </div>
 
-      {bg.type !== "profile" && (
-        <div>
-          <SectionLabel>Background Layer</SectionLabel>
-          <div className="flex flex-col gap-3">
-            <ToggleGroup
-              value={bgType ? [bgType] : []}
-              onValueChange={(vals) => {
-                const v = vals[vals.length - 1] as EditableBgType | undefined
-                if (v) updateAppearance({ background: switchBgType(bg, v) })
-              }}
-              className="w-full bg-background rounded-lg p-1"
-            >
-              {BG_TYPES.map((t) => (
-                <ToggleGroup.ToggleGroupItem
-                  key={t}
-                  value={t}
-                  className={cn("flex-1 text-xs capitalize data-[state=on]:bg-card data-[state=on]:shadow-sm")}
-                >
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
-                </ToggleGroup.ToggleGroupItem>
-              ))}
-            </ToggleGroup>
+      <div>
+        <SectionLabel>Background Layer</SectionLabel>
+        <div className="flex flex-col gap-3">
+          <ToggleGroup
+            value={bgType ? [bgType] : []}
+            onValueChange={(vals) => {
+              const v = vals[vals.length - 1] as EditableBgType | undefined
+              if (v) updateAppearance({ background: switchBgType(bg, v) })
+            }}
+            className="w-full bg-background rounded-lg p-1"
+          >
+            {BG_TYPES.map((t) => (
+              <ToggleGroup.ToggleGroupItem
+                key={t}
+                value={t}
+                className={cn("flex-1 text-xs capitalize aria-pressed:bg-card", bgType === t && "bg-card shadow-sm")}
+              >
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </ToggleGroup.ToggleGroupItem>
+            ))}
+          </ToggleGroup>
 
-            {bg.type === "solid" && (
-              <ColorRow
-                label="Color"
-                color={bg.color}
-                onChange={(c) => updateAppearance({ background: { ...bg, color: c } })}
-              />
-            )}
+          {bg.type === "solid" && (
+            <ColorRow
+              label="Color"
+              color={bg.color}
+              onChange={(c) => updateAppearance({ background: { ...bg, color: c } })}
+            />
+          )}
 
-            {bg.type === "gradient" && (
-              <Input
-                value={bg.value}
-                onChange={(e) => updateAppearance({ background: { ...bg, value: e.target.value } })}
-                placeholder="linear-gradient(to right, #000000, #ffffff)"
-                className="bg-background text-xs"
-              />
-            )}
-
-            {(bg.type === "image" || bg.type === "video") && (
-              <SliderRow
-                label="Opacity Overlay"
-                value={bg.opacity * 100}
-                onChange={(v) => updateAppearance({ background: { ...bg, opacity: v / 100 } })}
-              />
-            )}
-          </div>
+          {bg.type === "gradient" && (
+            <GradientEditor
+              value={bg.value}
+              onChange={(v) => updateAppearance({ background: { ...bg, value: v } })}
+            />
+          )}
         </div>
-      )}
+      </div>
 
       <div>
         <SectionLabel>Visual Effects</SectionLabel>
