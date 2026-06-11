@@ -122,7 +122,6 @@ export function ActionsTab() {
               className="shrink-0"
             />
           </Label>
-
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { Play, Pause, Eye, ExternalLink } from "lucide-react"
+import { Play, Pause, RotateCcw, Eye, ExternalLink } from "lucide-react"
 import { useCountdownStore, formatTime } from "../../store.js"
 import { Button } from "@lumen-media/module-sdk/ui"
 
@@ -17,9 +17,13 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 export function PanelFooter() {
-  const { timerState, startTimer, pauseTimer } = useCountdownStore()
+  const { config, timerState, startTimer, pauseTimer, resetTimer } = useCountdownStore()
   const { status, remainingSeconds } = timerState
   const isRunning = status === "running"
+  const isPaused = status === "paused"
+  const isFinished = status === "finished"
+  const isNegative = config.allowNegative && remainingSeconds < 0
+  const handlePause = isNegative ? resetTimer : pauseTimer
 
   return (
     <div className="w-full flex flex-col gap-2.5 shrink-0">
@@ -38,13 +42,36 @@ export function PanelFooter() {
         </span>
       </div>
 
-      <Button
-        onClick={isRunning ? pauseTimer : startTimer}
-        className="w-full py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 cursor-pointer border-none transition-opacity hover:opacity-90"
-      >
-        {isRunning ? <Pause size={14} /> : <Play size={14} />}
-        {isRunning ? "Pause" : "Start Countdown"}
-      </Button>
+      <div className="flex gap-2">
+        {isFinished ? (
+          <Button
+            onClick={resetTimer}
+            className="flex-1 py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 cursor-pointer border-none transition-opacity hover:opacity-90"
+          >
+            <RotateCcw size={14} />
+            Reset
+          </Button>
+        ) : (
+          <>
+            <Button
+              onClick={isRunning ? handlePause : startTimer}
+              className="flex-1 py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 cursor-pointer border-none transition-opacity hover:opacity-90"
+            >
+              {isRunning ? <Pause size={14} /> : <Play size={14} />}
+              {isRunning ? "Pause" : isPaused ? "Resume" : "Start Countdown"}
+            </Button>
+            {isPaused && (
+              <Button
+                variant="outline"
+                onClick={resetTimer}
+                className="px-3 py-2.5 rounded-lg cursor-pointer shrink-0"
+              >
+                <RotateCcw size={14} />
+              </Button>
+            )}
+          </>
+        )}
+      </div>
 
       <div className="grid grid-cols-2 gap-5">
         <Button variant="ghost" className="text-xs">

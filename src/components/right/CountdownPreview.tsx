@@ -2,6 +2,17 @@ import { useEffect, useRef, useState } from "react"
 import { useCountdownStore, formatTime } from "../../store.js"
 import type { BackgroundConfig } from "../../types.js"
 
+function useTimerInterval() {
+  const tick = useCountdownStore((s) => s.tick)
+  const status = useCountdownStore((s) => s.timerState.status)
+
+  useEffect(() => {
+    if (status !== "running") return
+    const id = setInterval(tick, 100)
+    return () => clearInterval(id)
+  }, [status, tick])
+}
+
 function useFileBlobSrc(path: string | null | undefined): string | undefined {
   const [src, setSrc] = useState<string | undefined>()
   const urlRef = useRef<string | undefined>()
@@ -69,6 +80,7 @@ function ProfileBg() {
 }
 
 export function CountdownPreview() {
+  useTimerInterval()
   const { config, timerState } = useCountdownStore()
   const { appearance, preText, postText } = config
   const { remainingSeconds } = timerState
