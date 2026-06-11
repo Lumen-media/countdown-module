@@ -39,7 +39,10 @@ const DEFAULT_CONFIG: CountdownConfig = {
   },
   actions: {
     autoAdvance: { enabled: true, target: "next" },
-    timeTriggers: [],
+    timeTriggers: [
+      { enabled: false, atSeconds: 60, type: "warning-chime", sound: "" },
+      { enabled: false, atSeconds: 30, type: "change-text", preText: "", postText: "" },
+    ],
   },
   behavior: {
     hideOnCompletion: true,

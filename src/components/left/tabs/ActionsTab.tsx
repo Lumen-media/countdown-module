@@ -1,6 +1,7 @@
-import { Plus } from "lucide-react"
-import { Switch, Select } from "@lumen-media/module-sdk/ui"
+import { Bell, ChevronsRight, Music, Plus, Type } from "lucide-react"
+import { Label, Select, Switch } from "@lumen-media/module-sdk/ui"
 import { useCountdownStore } from "../../../store.js"
+import type { TimeTrigger } from "../../../types.js"
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -10,30 +11,32 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-function Divider() {
-  return <div className="h-px bg-border my-1" />
+function formatTime(seconds: number) {
+  const m = String(Math.floor(seconds / 60)).padStart(2, "0")
+  const s = String(seconds % 60).padStart(2, "0")
+  return `${m}:${s}`
 }
 
-function SettingRow({
-  label,
-  description,
-  checked,
-  onCheckedChange,
-}: {
-  label: string
-  description?: string
-  checked: boolean
-  onCheckedChange: (v: boolean) => void
-}) {
+function TriggerCard({ trigger }: { trigger: TimeTrigger }) {
+  const isChime = trigger.type === "warning-chime"
+  const label = isChime ? "Warning Chime" : "Change Pre/Post Text"
+  const Icon = isChime ? Bell : Type
+
   return (
-    <div className="flex items-center justify-between py-2.5 gap-3">
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground">{label}</p>
-        {description && (
-          <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{description}</p>
-        )}
+    <div className="bg-background rounded-xl px-3 pt-3 pb-2.5 flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <Icon size={13} className="text-muted-foreground shrink-0" />
+        <span className="text-sm font-semibold text-foreground flex-1">{label}</span>
+        <Switch checked={trigger.enabled} onCheckedChange={() => { }} className="shrink-0" />
       </div>
-      <Switch checked={checked} onCheckedChange={onCheckedChange} className="shrink-0" />
+      {isChime && (
+        <div className="flex items-center justify-between px-0.5">
+          <span className="text-sm font-mono font-bold" style={{ color: "var(--primary)" }}>
+            {formatTime(trigger.atSeconds)}
+          </span>
+          <Music size={13} className="text-muted-foreground" />
+        </div>
+      )}
     </div>
   )
 }
@@ -45,72 +48,82 @@ export function ActionsTab() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* END ACTION */}
       <div>
         <SectionLabel>End Action</SectionLabel>
-        <SettingRow
-          label="Auto-Advance"
-          description="Automatically transition to the next item in the playlist when timer reaches zero."
-          checked={autoAdvance.enabled}
-          onCheckedChange={(v) =>
-            setConfig({
-              actions: {
-                ...config.actions,
-                autoAdvance: { ...autoAdvance, enabled: v },
-              },
-            })
-          }
-        />
-        {autoAdvance.enabled && (
+        <div className="bg-background rounded-xl px-3 pt-3 pb-2.5 flex flex-col gap-2.5">
+          <div className="flex items-center gap-2">
+            <div
+              className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+              style={{ background: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
+            >
+              <ChevronsRight size={13} style={{ color: "var(--primary)" }} />
+            </div>
+            <span className="text-sm font-semibold text-foreground flex-1">Auto-Advance</span>
+            <Switch
+              checked={autoAdvance.enabled}
+              onCheckedChange={(v) =>
+                setConfig({ actions: { ...config.actions, autoAdvance: { ...autoAdvance, enabled: v } } })
+              }
+              className="shrink-0"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground leading-snug">
+            Automatically transition to the next item in the playlist when timer reaches zero.
+          </p>
           <Select
             value={autoAdvance.target}
             onValueChange={(v) =>
-              setConfig({
-                actions: {
-                  ...config.actions,
-                  autoAdvance: { ...autoAdvance, target: v },
-                },
-              })
+              setConfig({ actions: { ...config.actions, autoAdvance: { ...autoAdvance, target: v } } })
             }
           >
-            <Select.SelectTrigger className="w-full mt-1">
+            <Select.SelectTrigger className="w-full bg-background dark:bg-background">
               <Select.SelectValue>Go to Next Item</Select.SelectValue>
             </Select.SelectTrigger>
             <Select.SelectContent>
               <Select.SelectItem value="next">Go to Next Item</Select.SelectItem>
             </Select.SelectContent>
           </Select>
-        )}
+        </div>
       </div>
 
-      {/* TIME TRIGGERS */}
       <div>
         <SectionLabel>Time Triggers</SectionLabel>
-        {config.actions.timeTriggers.length === 0 && (
-          <p className="text-xs text-muted-foreground mb-2">No triggers added yet.</p>
-        )}
-        <button className="w-full border border-dashed border-border rounded-lg py-2 text-xs text-muted-foreground cursor-pointer flex items-center justify-center gap-1.5 hover:text-foreground hover:border-foreground/30 transition-colors bg-transparent">
-          <Plus size={12} />
-          Add Time Trigger
-        </button>
+        <div className="flex flex-col gap-2">
+          {config.actions.timeTriggers.map((trigger, i) => (
+            <TriggerCard key={i} trigger={trigger} />
+          ))}
+          <button
+            type="button"
+            className="w-full border border-dashed border-border rounded-xl py-2.5 text-xs text-muted-foreground cursor-pointer flex items-center justify-center gap-1.5 hover:text-foreground hover:border-foreground/30 transition-colors bg-transparent"
+          >
+            <Plus size={12} />
+            Add Time Trigger
+          </button>
+        </div>
       </div>
 
-      {/* BEHAVIOR */}
       <div>
         <SectionLabel>Behavior</SectionLabel>
-        <SettingRow
-          label="Hide on completion"
-          checked={hideOnCompletion}
-          onCheckedChange={(v) =>
-            setConfig({ behavior: { ...config.behavior, hideOnCompletion: v } })
-          }
-        />
-        <Divider />
-        <SettingRow
-          label="Allow negative time (overrun)"
-          checked={config.allowNegative}
-          onCheckedChange={(v) => setConfig({ allowNegative: v })}
-        />
+        <div className="space-y-2">
+          <Label className="flex w-full items-center justify-between text-sm text-foreground">
+            Hide on completion
+            <Switch
+              checked={hideOnCompletion}
+              onCheckedChange={(v) => setConfig({ behavior: { ...config.behavior, hideOnCompletion: v } })}
+              className="shrink-0"
+            />
+          </Label>
+
+          <Label className="flex w-full items-center justify-between text-sm text-foreground">
+            Allow negative time (overrun)
+            <Switch
+              checked={config.allowNegative}
+              onCheckedChange={(v) => setConfig({ allowNegative: v })}
+              className="shrink-0"
+            />
+          </Label>
+
+        </div>
       </div>
     </div>
   )
