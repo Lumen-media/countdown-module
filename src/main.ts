@@ -2,7 +2,9 @@ import css from "./styles.css?inline"
 import { type LumenHost, LumenPlugin } from "@lumen-media/module-sdk"
 import { createElement } from "react"
 import { CountdownDialog } from "./components/CountdownDialog.js"
+import { CountdownDisplay } from "./components/presenter/CountdownDisplay.js"
 import { useCountdownStore } from "./store.js"
+import type { CountdownConfig } from "./types.js"
 import { setupI18n } from "./i18n.js"
 
 type HostExt = {
@@ -24,6 +26,14 @@ export default class CountdownPlugin extends LumenPlugin {
     setupI18n(host.app.locale)
 
     host.panels.add({
+      id: "countdown.presenter",
+      slot: "presenter.content",
+      component: () => createElement(CountdownDisplay),
+    })
+
+    if (host.window === "presenter") return
+
+    host.panels.add({
       id: "countdown.dialog",
       slot: "dialog",
       title: "Countdown",
@@ -43,8 +53,21 @@ export default class CountdownPlugin extends LumenPlugin {
       run: () => host.ui.openDialog("countdown.dialog"),
     })
 
+    useCountdownStore.getState().setPresenter(host.presentation)
+
     const hostExt = host as unknown as HostExt
     if (hostExt.fs) useCountdownStore.getState().setHostFs(hostExt.fs)
+
+    const saved = await host.data.json.get<Partial<CountdownConfig> | undefined>("config")
+    if (saved) useCountdownStore.getState().setConfig(saved)
+
+    let saveTimer: ReturnType<typeof setTimeout> | null = null
+    useCountdownStore.subscribe(() => {
+      if (saveTimer) clearTimeout(saveTimer)
+      saveTimer = setTimeout(() => {
+        host.data.json.set("config", useCountdownStore.getState().config).catch(() => {})
+      }, 800)
+    })
 
     const applyProfileBg = (bg: { src: string; thumb?: string; type: string; name: string } | null) => {
       if (!bg) {

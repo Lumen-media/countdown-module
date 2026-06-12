@@ -45,4 +45,5 @@ export type CountdownState = {
   remainingSeconds: number
   startedAt: number | null
   pausedAt: number | null
+  firedTriggers: number[]
 }

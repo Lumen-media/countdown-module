@@ -1,5 +1,10 @@
+import { emit } from "@tauri-apps/api/event"
 import { create } from "zustand"
 import type { BackgroundConfig, BackgroundPreset, CountdownConfig, CountdownState } from "./types.js"
+
+type PresenterAPI = { project: (viewId: string, props?: unknown) => void; clear: () => void }
+
+const PRESENTER_PANEL_ID = "countdown.presenter"
 
 const PRESET_CONFIGS: Record<Exclude<BackgroundPreset, "custom">, Pick<CountdownConfig["appearance"], "background" | "timerColor" | "prePostColor">> = {
   "default": {
@@ -49,9 +54,15 @@ const DEFAULT_CONFIG: CountdownConfig = {
   },
 }
 
+function emitTick(remaining: number, status: CountdownState["status"], config: CountdownConfig) {
+  emit("countdown:tick", { remaining, status, config }).catch(() => {})
+}
+
 type CountdownStore = {
   config: CountdownConfig
   timerState: CountdownState
+  isPreviewExpanded: boolean
+  setPreviewExpanded: (v: boolean) => void
   setConfig: (update: Partial<CountdownConfig>) => void
   updateAppearance: (update: Partial<CountdownConfig["appearance"]>) => void
   applyPreset: (preset: BackgroundPreset, customBackground?: BackgroundConfig) => void
@@ -66,6 +77,9 @@ type CountdownStore = {
   setProfileBackground: (bg: { src: string; thumb?: string; type: "theme" | "image" | "video" } | null) => void
   _hostFs: { read: (path: string) => Promise<Uint8Array> } | null
   setHostFs: (fs: { read: (path: string) => Promise<Uint8Array> }) => void
+  _presenter: PresenterAPI | null
+  setPresenter: (p: PresenterAPI) => void
+  sendToPresenter: () => void
 }
 
 export const useCountdownStore = create<CountdownStore>((set, get) => ({
@@ -75,7 +89,10 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     remainingSeconds: DEFAULT_CONFIG.totalSeconds,
     startedAt: null,
     pausedAt: null,
+    firedTriggers: [],
   },
+  isPreviewExpanded: false,
+  setPreviewExpanded: (v) => set({ isPreviewExpanded: v }),
 
   _openBackgroundPicker: null as CountdownStore["_openBackgroundPicker"],
   setOpenBackgroundPicker: (fn) => set({ _openBackgroundPicker: fn }),
@@ -83,6 +100,14 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
   setProfileBackground: (bg) => set({ profileBackground: bg }),
   _hostFs: null,
   setHostFs: (fs) => set({ _hostFs: fs }),
+  _presenter: null,
+  setPresenter: (p) => set({ _presenter: p }),
+
+  sendToPresenter: () => {
+    const { _presenter, timerState, config } = get()
+    _presenter?.project(PRESENTER_PANEL_ID)
+    emitTick(timerState.remainingSeconds, timerState.status, config)
+  },
 
   setConfig: (update) =>
     set((s) => ({ config: { ...s.config, ...update } })),
@@ -141,49 +166,54 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     })),
 
   startTimer: () => {
-    const { timerState, config } = get()
+    const { timerState, config, _presenter } = get()
     if (timerState.status === "running") return
+
+    _presenter?.project(PRESENTER_PANEL_ID)
 
     if (timerState.status === "paused" && timerState.pausedAt !== null && timerState.startedAt !== null) {
       const pausedDuration = Date.now() - timerState.pausedAt
-      set((s) => ({
-        timerState: {
-          ...s.timerState,
-          status: "running",
-          startedAt: (s.timerState.startedAt ?? 0) + pausedDuration,
-          pausedAt: null,
-        },
-      }))
+      const newState = {
+        ...timerState,
+        status: "running" as const,
+        startedAt: (timerState.startedAt ?? 0) + pausedDuration,
+        pausedAt: null,
+        firedTriggers: [],
+      }
+      set({ timerState: newState })
+      emitTick(newState.remainingSeconds, "running", config)
     } else {
-      set({
-        timerState: {
-          status: "running",
-          remainingSeconds: config.totalSeconds,
-          startedAt: Date.now(),
-          pausedAt: null,
-        },
-      })
+      const newState = {
+        status: "running" as const,
+        remainingSeconds: config.totalSeconds,
+        startedAt: Date.now(),
+        pausedAt: null,
+        firedTriggers: [],
+      }
+      set({ timerState: newState })
+      emitTick(newState.remainingSeconds, "running", config)
     }
   },
 
-  pauseTimer: () =>
-    set((s) => ({
-      timerState: {
-        ...s.timerState,
-        status: "paused",
-        pausedAt: Date.now(),
-      },
-    })),
+  pauseTimer: () => {
+    const { timerState, config } = get()
+    const newState = { ...timerState, status: "paused" as const, pausedAt: Date.now() }
+    set({ timerState: newState })
+    emitTick(newState.remainingSeconds, "paused", config)
+  },
 
-  resetTimer: () =>
-    set((s) => ({
-      timerState: {
-        status: "idle",
-        remainingSeconds: s.config.totalSeconds,
-        startedAt: null,
-        pausedAt: null,
-      },
-    })),
+  resetTimer: () => {
+    const { config } = get()
+    const newState = {
+      status: "idle" as const,
+      remainingSeconds: config.totalSeconds,
+      startedAt: null,
+      pausedAt: null,
+      firedTriggers: [],
+    }
+    set({ timerState: newState })
+    emitTick(newState.remainingSeconds, "idle", config)
+  },
 
   tick: () => {
     const { timerState, config } = get()
@@ -197,10 +227,45 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
       set((s) => ({
         timerState: { ...s.timerState, status: "finished", remainingSeconds: 0 },
       }))
+      emitTick(0, "finished", config)
+      if (config.behavior.hideOnCompletion) {
+        get()._presenter?.clear()
+      }
       return
     }
 
-    set((s) => ({ timerState: { ...s.timerState, remainingSeconds: remaining } }))
+    let updatedConfig = config
+    const newFiredTriggers = [...timerState.firedTriggers]
+
+    for (const trigger of config.actions.timeTriggers) {
+      if (
+        trigger.enabled &&
+        !newFiredTriggers.includes(trigger.atSeconds) &&
+        remaining <= trigger.atSeconds
+      ) {
+        if (trigger.type === "change-text") {
+          updatedConfig = {
+            ...updatedConfig,
+            preText: trigger.preText,
+            postText: trigger.postText,
+          }
+        }
+        newFiredTriggers.push(trigger.atSeconds)
+      }
+    }
+
+    if (updatedConfig !== config) {
+      set((s) => ({
+        config: updatedConfig,
+        timerState: { ...s.timerState, remainingSeconds: remaining, firedTriggers: newFiredTriggers },
+      }))
+    } else {
+      set((s) => ({
+        timerState: { ...s.timerState, remainingSeconds: remaining, firedTriggers: newFiredTriggers },
+      }))
+    }
+
+    emitTick(remaining, "running", updatedConfig)
   },
 }))
 
