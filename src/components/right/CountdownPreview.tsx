@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useCountdownStore, formatTime } from "../../store.js"
 import type { BackgroundConfig } from "../../types.js"
+import { TextCarousel } from "../TextCarousel.js"
 
 function useTimerInterval() {
   const tick = useCountdownStore((s) => s.tick)
@@ -123,12 +124,11 @@ export function CountdownPreview() {
         </span>
 
         {postText && (
-          <span
-            className="text-base font-normal text-center block leading-snug"
+          <TextCarousel
+            text={postText}
             style={{ color: subColor, textShadow: subShadow }}
-          >
-            {postText}
-          </span>
+            className="text-base font-normal text-center block leading-snug"
+          />
         )}
       </div>
     </div>
