@@ -5,7 +5,7 @@ import { Combobox, Input, Popover, Select, Slider, ToggleGroup } from "@lumen-me
 import { cn } from "../../../lib/cn.js"
 import { useLocalFonts } from "../../../hooks/useLocalFonts.js"
 import { useCountdownStore } from "../../../store.js"
-import type { BackgroundConfig } from "../../../types.js"
+import type { BackgroundConfig, CountdownConfig } from "../../../types.js"
 
 const FONT_WEIGHTS = ["Thin", "Light", "Regular", "Medium", "Semi Bold", "Bold", "Extra Bold", "Black"]
 
@@ -356,6 +356,50 @@ export function AppearanceTab() {
           value={appearance.textShadowGlow * 100}
           onChange={(v) => updateAppearance({ textShadowGlow: v / 100 })}
         />
+      </div>
+
+      <div>
+        <SectionLabel>Display Mode</SectionLabel>
+        <div className="flex flex-col gap-2">
+          <ToggleGroup
+            value={[appearance.overlayMode]}
+            onValueChange={(vals) => {
+              const v = vals[vals.length - 1] as CountdownConfig["appearance"]["overlayMode"] | undefined
+              if (v) updateAppearance({ overlayMode: v })
+            }}
+            className="w-full bg-background rounded-lg p-1"
+          >
+            <ToggleGroup.ToggleGroupItem
+              value="fullscreen"
+              className={cn("flex-1 text-xs aria-pressed:bg-card", appearance.overlayMode === "fullscreen" && "bg-card shadow-sm")}
+            >
+              Fullscreen
+            </ToggleGroup.ToggleGroupItem>
+            <ToggleGroup.ToggleGroupItem
+              value="corner"
+              className={cn("flex-1 text-xs aria-pressed:bg-card", appearance.overlayMode === "corner" && "bg-card shadow-sm")}
+            >
+              Corner
+            </ToggleGroup.ToggleGroupItem>
+          </ToggleGroup>
+
+          {appearance.overlayMode === "corner" && (
+            <Select
+              value={appearance.cornerPosition}
+              onValueChange={(v) => updateAppearance({ cornerPosition: v as CountdownConfig["appearance"]["cornerPosition"] })}
+            >
+              <Select.SelectTrigger className="bg-background dark:bg-background">
+                <Select.SelectValue>{appearance.cornerPosition}</Select.SelectValue>
+              </Select.SelectTrigger>
+              <Select.SelectContent>
+                <Select.SelectItem value="top-left">Top-left</Select.SelectItem>
+                <Select.SelectItem value="top-right">Top-right</Select.SelectItem>
+                <Select.SelectItem value="bottom-left">Bottom-left</Select.SelectItem>
+                <Select.SelectItem value="bottom-right">Bottom-right</Select.SelectItem>
+              </Select.SelectContent>
+            </Select>
+          )}
+        </div>
       </div>
     </div>
   )

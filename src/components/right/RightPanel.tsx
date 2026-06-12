@@ -1,25 +1,26 @@
-import { useState } from "react"
 import { Maximize2, Monitor, Zap } from "lucide-react"
 import { Card } from "@lumen-media/module-sdk/ui"
+import { useCountdownStore } from "../../store.js"
 import { CountdownPreview } from "./CountdownPreview.js"
 
 export function RightPanel() {
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const isPreviewExpanded = useCountdownStore((s) => s.isPreviewExpanded)
+  const setPreviewExpanded = useCountdownStore((s) => s.setPreviewExpanded)
 
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between px-5 pt-4 pb-3 shrink-0">
         <h3 className="text-sm font-semibold text-foreground">Live Preview Stage</h3>
         <button
-          onClick={() => setIsFullscreen((v) => !v)}
+          onClick={() => setPreviewExpanded(!isPreviewExpanded)}
           className="flex items-center gap-1.5 text-xs text-muted-foreground bg-transparent border-none cursor-pointer px-2 py-1 rounded-md hover:text-foreground transition-colors"
         >
           <Maximize2 size={13} />
-          {isFullscreen ? "Exit" : "Fullscreen"}
+          {isPreviewExpanded ? "Exit" : "Fullscreen"}
         </button>
       </div>
 
-      <div className={["flex-1 flex items-stretch overflow-hidden min-h-0", isFullscreen ? "" : "px-5"].join(" ")}>
+      <div className={["flex-1 flex items-stretch overflow-hidden min-h-0", isPreviewExpanded ? "" : "px-5"].join(" ")}>
         <CountdownPreview />
       </div>
 
