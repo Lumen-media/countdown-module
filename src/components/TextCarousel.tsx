@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { animate } from "animejs"
 
 type TextCarouselProps = {
   text: string
@@ -8,20 +9,38 @@ type TextCarouselProps = {
 
 export function TextCarousel({ text, style, className }: TextCarouselProps) {
   const lines = text.split("\n").filter((l) => l.length > 0)
-
   const [index, setIndex] = useState(0)
-  const [visible, setVisible] = useState(true)
+  const spanRef = useRef<HTMLSpanElement>(null)
+
+  useEffect(() => {
+    setIndex(0)
+  }, [text])
 
   useEffect(() => {
     if (lines.length <= 1) return
 
     const id = setInterval(() => {
-      setVisible(false)
-      const timeout = setTimeout(() => {
-        setIndex((i) => (i + 1) % lines.length)
-        setVisible(true)
-      }, 400)
-      return () => clearTimeout(timeout)
+      const el = spanRef.current
+      if (!el) return
+
+      animate(el, {
+        rotateX: [0, -90],
+        opacity: [1, 0],
+        duration: 300,
+        ease: "inSine",
+        onComplete: () => {
+          setIndex((i) => (i + 1) % lines.length)
+          setTimeout(() => {
+            if (!spanRef.current) return
+            animate(spanRef.current, {
+              rotateX: [90, 0],
+              opacity: [0, 1],
+              duration: 400,
+              ease: "outSine",
+            })
+          }, 20)
+        },
+      })
     }, 10000)
 
     return () => clearInterval(id)
@@ -38,11 +57,14 @@ export function TextCarousel({ text, style, className }: TextCarouselProps) {
   }
 
   return (
-    <span
-      style={{ ...style, opacity: visible ? 1 : 0, transition: "opacity 0.4s ease" }}
-      className={className}
-    >
-      {lines[index]}
+    <span style={{ display: "inline-block", perspective: "600px" }}>
+      <span
+        ref={spanRef}
+        style={{ ...style, display: "inline-block", transformOrigin: "50% 50%" }}
+        className={className}
+      >
+        {lines[index]}
+      </span>
     </span>
   )
 }

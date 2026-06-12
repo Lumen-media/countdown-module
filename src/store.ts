@@ -58,6 +58,30 @@ function emitTick(remaining: number, status: CountdownState["status"], config: C
   emit("countdown:tick", { remaining, status, config }).catch(() => {})
 }
 
+let _tickTimer: ReturnType<typeof setTimeout> | null = null
+
+function clearTick() {
+  if (_tickTimer !== null) {
+    clearTimeout(_tickTimer)
+    _tickTimer = null
+  }
+}
+
+function scheduleTick(get: () => CountdownStore) {
+  const { timerState, config } = get()
+  if (timerState.status !== "running" || timerState.startedAt === null) return
+
+  const elapsed = (Date.now() - timerState.startedAt) / 1000
+  const trueRemaining = config.totalSeconds - elapsed
+  const drift = Math.abs(trueRemaining - timerState.remainingSeconds)
+  const interval = drift > 3 ? 100 : 1000
+
+  _tickTimer = setTimeout(() => {
+    get().tick()
+    scheduleTick(get)
+  }, interval)
+}
+
 type CountdownStore = {
   config: CountdownConfig
   timerState: CountdownState
@@ -187,6 +211,8 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     const { timerState, config, _presenter } = get()
     if (timerState.status === "running") return
 
+    clearTick()
+
     const isCorner = config.appearance.overlayMode === "corner"
     const bgProps = !isCorner && config.appearance.background.type === "profile" ? { background: "default" } : undefined
     _presenter?.project(PRESENTER_PANEL_ID, bgProps)
@@ -214,9 +240,12 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
       set({ timerState: newState })
       emitTick(newState.remainingSeconds, "running", config)
     }
+
+    scheduleTick(get)
   },
 
   pauseTimer: () => {
+    clearTick()
     const { timerState, config } = get()
     const newState = { ...timerState, status: "paused" as const, pausedAt: Date.now() }
     set({ timerState: newState })
@@ -224,6 +253,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
   },
 
   resetTimer: () => {
+    clearTick()
     const { config } = get()
     const newState = {
       status: "idle" as const,

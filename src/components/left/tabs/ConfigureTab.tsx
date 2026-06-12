@@ -190,7 +190,7 @@ export function ConfigureTab() {
           <label className="max-h-[4.1lh] p-1 overflow-hidden rounded-md border border-input bg-background">
             <ScrollArea className="h-full max-h-[4.1lh]">
               <TextEditor
-                placeholder="Post text"
+                placeholder="Each line rotates as a carousel every 10s"
                 defaultValue={config.postText}
                 onChange={(e) => setConfig({ postText: e })}
                 className="[&_.tiptap]:p-1"

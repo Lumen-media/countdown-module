@@ -3,16 +3,6 @@ import { useCountdownStore, formatTime } from "../../store.js"
 import type { BackgroundConfig } from "../../types.js"
 import { TextCarousel } from "../TextCarousel.js"
 
-function useTimerInterval() {
-  const tick = useCountdownStore((s) => s.tick)
-  const status = useCountdownStore((s) => s.timerState.status)
-
-  useEffect(() => {
-    if (status !== "running") return
-    const id = setInterval(tick, 100)
-    return () => clearInterval(id)
-  }, [status, tick])
-}
 
 function useFileBlobSrc(path: string | null | undefined): string | undefined {
   const [src, setSrc] = useState<string | undefined>()
@@ -88,10 +78,9 @@ function ProfileBg() {
 }
 
 export function CountdownPreview() {
-  useTimerInterval()
-  const { config, timerState } = useCountdownStore()
+  const config = useCountdownStore((s) => s.config)
   const { appearance, preText, postText } = config
-  const { remainingSeconds } = timerState
+  const remainingSeconds = config.totalSeconds
 
   const glow = appearance.textShadowGlow ?? 0
   const timerShadow = glow > 0 ? `0 0 ${glow * 40}px rgba(255,255,255,0.8)` : undefined
