@@ -17,7 +17,7 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 export function PanelFooter() {
-  const { config, timerState, startTimer, pauseTimer, resetTimer } = useCountdownStore()
+  const { config, timerState, startTimer, pauseTimer, resetTimer, sendToPresenter } = useCountdownStore()
   const { status, remainingSeconds } = timerState
   const isRunning = status === "running"
   const isPaused = status === "paused"
@@ -74,7 +74,7 @@ export function PanelFooter() {
       </div>
 
       <div className="grid grid-cols-2 gap-5">
-        <Button variant="ghost" className="text-xs">
+        <Button variant="ghost" className="text-xs" onClick={sendToPresenter}>
           <Eye size={13} />
           Preview
         </Button>
