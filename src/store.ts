@@ -63,6 +63,7 @@ type CountdownStore = {
   timerState: CountdownState
   isPreviewExpanded: boolean
   setPreviewExpanded: (v: boolean) => void
+  isPresenterActive: boolean
   setConfig: (update: Partial<CountdownConfig>) => void
   updateAppearance: (update: Partial<CountdownConfig["appearance"]>) => void
   applyPreset: (preset: BackgroundPreset, customBackground?: BackgroundConfig) => void
@@ -80,6 +81,8 @@ type CountdownStore = {
   _presenter: PresenterAPI | null
   setPresenter: (p: PresenterAPI) => void
   sendToPresenter: () => void
+  clearPresenter: () => void
+  rebroadcast: () => void
 }
 
 export const useCountdownStore = create<CountdownStore>((set, get) => ({
@@ -93,6 +96,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
   },
   isPreviewExpanded: false,
   setPreviewExpanded: (v) => set({ isPreviewExpanded: v }),
+  isPresenterActive: false,
 
   _openBackgroundPicker: null as CountdownStore["_openBackgroundPicker"],
   setOpenBackgroundPicker: (fn) => set({ _openBackgroundPicker: fn }),
@@ -105,7 +109,21 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
 
   sendToPresenter: () => {
     const { _presenter, timerState, config } = get()
-    _presenter?.project(PRESENTER_PANEL_ID)
+    const isCorner = config.appearance.overlayMode === "corner"
+    const bgProps = !isCorner && config.appearance.background.type === "profile" ? { background: "default" } : undefined
+    _presenter?.project(PRESENTER_PANEL_ID, bgProps)
+    set({ isPresenterActive: true })
+    emitTick(timerState.remainingSeconds, timerState.status, config)
+  },
+
+  clearPresenter: () => {
+    const { _presenter } = get()
+    _presenter?.clear()
+    set({ isPresenterActive: false })
+  },
+
+  rebroadcast: () => {
+    const { timerState, config } = get()
     emitTick(timerState.remainingSeconds, timerState.status, config)
   },
 
@@ -169,7 +187,10 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     const { timerState, config, _presenter } = get()
     if (timerState.status === "running") return
 
-    _presenter?.project(PRESENTER_PANEL_ID)
+    const isCorner = config.appearance.overlayMode === "corner"
+    const bgProps = !isCorner && config.appearance.background.type === "profile" ? { background: "default" } : undefined
+    _presenter?.project(PRESENTER_PANEL_ID, bgProps)
+    set({ isPresenterActive: true })
 
     if (timerState.status === "paused" && timerState.pausedAt !== null && timerState.startedAt !== null) {
       const pausedDuration = Date.now() - timerState.pausedAt
@@ -230,6 +251,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
       emitTick(0, "finished", config)
       if (config.behavior.hideOnCompletion) {
         get()._presenter?.clear()
+        set({ isPresenterActive: false })
       }
       return
     }

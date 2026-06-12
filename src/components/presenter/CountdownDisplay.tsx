@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { listen } from "@tauri-apps/api/event"
+import { emit, listen } from "@tauri-apps/api/event"
 import { formatTime } from "../../store.js"
 import type { CountdownConfig, CountdownStatus } from "../../types.js"
 import { TextCarousel } from "../TextCarousel.js"
@@ -33,6 +33,7 @@ export function CountdownDisplay() {
     const unlisten = listen<TickPayload>("countdown:tick", (e) => {
       setTick(e.payload)
     })
+    emit("countdown:display-ready").catch(() => {})
     return () => { unlisten.then((f) => f()).catch(() => {}) }
   }, [])
 
@@ -56,7 +57,7 @@ export function CountdownDisplay() {
           ...cornerInset(appearance.cornerPosition),
           display: "flex",
           flexDirection: "column",
-          alignItems: "flex-start",
+          alignItems: "center",
           gap: "4px",
         }}
       >
@@ -85,6 +86,7 @@ export function CountdownDisplay() {
             textShadow: timerShadow,
             lineHeight: 1,
             fontVariantNumeric: "tabular-nums",
+            textAlign: "center",
           }}
         >
           {formatTime(remaining)}

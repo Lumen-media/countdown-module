@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useEventListener } from "usehooks-ts"
 import { HexColorPicker } from "react-colorful"
+import { MoveUpLeft, MoveUpRight, MoveDownLeft, MoveDownRight } from "lucide-react"
 import { Combobox, Input, Popover, Select, Slider, ToggleGroup } from "@lumen-media/module-sdk/ui"
 import { cn } from "../../../lib/cn.js"
 import { useLocalFonts } from "../../../hooks/useLocalFonts.js"
@@ -384,20 +385,31 @@ export function AppearanceTab() {
           </ToggleGroup>
 
           {appearance.overlayMode === "corner" && (
-            <Select
-              value={appearance.cornerPosition}
-              onValueChange={(v) => updateAppearance({ cornerPosition: v as CountdownConfig["appearance"]["cornerPosition"] })}
+            <ToggleGroup
+              value={[appearance.cornerPosition]}
+              onValueChange={(vals) => {
+                const v = vals[vals.length - 1] as CountdownConfig["appearance"]["cornerPosition"] | undefined
+                if (v) updateAppearance({ cornerPosition: v })
+              }}
+              className="grid w-full grid-cols-2 gap-1 bg-background rounded-lg p-1"
             >
-              <Select.SelectTrigger className="bg-background dark:bg-background">
-                <Select.SelectValue>{appearance.cornerPosition}</Select.SelectValue>
-              </Select.SelectTrigger>
-              <Select.SelectContent>
-                <Select.SelectItem value="top-left">Top-left</Select.SelectItem>
-                <Select.SelectItem value="top-right">Top-right</Select.SelectItem>
-                <Select.SelectItem value="bottom-left">Bottom-left</Select.SelectItem>
-                <Select.SelectItem value="bottom-right">Bottom-right</Select.SelectItem>
-              </Select.SelectContent>
-            </Select>
+              {(["top-left", "top-right", "bottom-left", "bottom-right"] as const).map((pos) => (
+                <ToggleGroup.ToggleGroupItem
+                  key={pos}
+                  value={pos}
+                  className={cn(
+                    "text-xs rounded-md py-1.5 aria-pressed:bg-card",
+                    appearance.cornerPosition === pos && "bg-card shadow-sm",
+                    pos === "top-left" || pos === "bottom-left" ? "justify-start pl-3" : "justify-end pr-3"
+                  )}
+                >
+                  {pos === "top-left" && <><MoveUpLeft size={13} /> Top Left</>}
+                  {pos === "top-right" && <>Top Right <MoveUpRight size={13} /></>}
+                  {pos === "bottom-left" && <><MoveDownLeft size={13} /> Bottom Left</>}
+                  {pos === "bottom-right" && <>Bottom Right <MoveDownRight size={13} /></>}
+                </ToggleGroup.ToggleGroupItem>
+              ))}
+            </ToggleGroup>
           )}
         </div>
       </div>

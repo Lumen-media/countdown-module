@@ -1,4 +1,4 @@
-import { Play, Pause, RotateCcw, Eye, ExternalLink } from "lucide-react"
+import { Play, Pause, RotateCcw, Eye, EyeOff, ExternalLink } from "lucide-react"
 import { useCountdownStore, formatTime } from "../../store.js"
 import { Button } from "@lumen-media/module-sdk/ui"
 
@@ -17,7 +17,7 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 export function PanelFooter() {
-  const { config, timerState, startTimer, pauseTimer, resetTimer, sendToPresenter } = useCountdownStore()
+  const { config, timerState, startTimer, pauseTimer, resetTimer, sendToPresenter, clearPresenter, isPresenterActive } = useCountdownStore()
   const { status, remainingSeconds } = timerState
   const isRunning = status === "running"
   const isPaused = status === "paused"
@@ -74,9 +74,9 @@ export function PanelFooter() {
       </div>
 
       <div className="grid grid-cols-2 gap-5">
-        <Button variant="ghost" className="text-xs" onClick={sendToPresenter}>
-          <Eye size={13} />
-          Preview
+        <Button variant="ghost" className="text-xs" onClick={isPresenterActive ? clearPresenter : sendToPresenter}>
+          {isPresenterActive ? <EyeOff size={13} /> : <Eye size={13} />}
+          {isPresenterActive ? "Exit" : "Preview"}
         </Button>
         <Button variant="ghost" className="text-xs">
           <ExternalLink size={13} />

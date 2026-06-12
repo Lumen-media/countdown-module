@@ -1,6 +1,7 @@
 import css from "./styles.css?inline"
 import { type LumenHost, LumenPlugin } from "@lumen-media/module-sdk"
 import { createElement } from "react"
+import { listen } from "@tauri-apps/api/event"
 import { CountdownDialog } from "./components/CountdownDialog.js"
 import { CountdownDisplay } from "./components/presenter/CountdownDisplay.js"
 import { useCountdownStore } from "./store.js"
@@ -16,6 +17,7 @@ type HostExt = {
 
 export default class CountdownPlugin extends LumenPlugin {
   private styleEl: HTMLStyleElement | null = null
+  private displayReadyUnlisten: (() => void) | null = null
 
   async onload(host: LumenHost): Promise<void> {
     this.styleEl = document.createElement("style")
@@ -32,6 +34,10 @@ export default class CountdownPlugin extends LumenPlugin {
     })
 
     if (host.window === "presenter") return
+
+    this.displayReadyUnlisten = await listen("countdown:display-ready", () => {
+      useCountdownStore.getState().rebroadcast()
+    })
 
     host.panels.add({
       id: "countdown.dialog",
@@ -89,5 +95,7 @@ export default class CountdownPlugin extends LumenPlugin {
   async onunload(): Promise<void> {
     this.styleEl?.remove()
     this.styleEl = null
+    this.displayReadyUnlisten?.()
+    this.displayReadyUnlisten = null
   }
 }

@@ -50,6 +50,13 @@ function bgToStyle(bg: BackgroundConfig): React.CSSProperties {
   return {}
 }
 
+function cornerInset(position: string): React.CSSProperties {
+  if (position === "top-left") return { top: 12, left: 12 }
+  if (position === "top-right") return { top: 12, right: 12 }
+  if (position === "bottom-left") return { bottom: 12, left: 12 }
+  return { bottom: 12, right: 12 }
+}
+
 function ProfileBg() {
   const profileBackground = useCountdownStore((s) => s.profileBackground)
 
@@ -91,6 +98,54 @@ export function CountdownPreview() {
   const subColor = `${appearance.prePostColor ?? "#ffffff"}${Math.round((appearance.prePostOpacity ?? 0.8) * 255).toString(16).padStart(2, "0")}`
   const subShadow = glow > 0 ? `0 0 ${glow * 24}px rgba(255,255,255,0.5)` : undefined
   const isProfile = appearance.background.type === "profile"
+  const isCorner = appearance.overlayMode === "corner"
+
+  const textBlock = (
+    <div className="flex flex-col items-center gap-1">
+      {preText && (
+        <span
+          className="text-xs font-medium text-center block leading-snug"
+          style={{ color: subColor, textShadow: subShadow }}
+        >
+          {preText}
+        </span>
+      )}
+      <span
+        className="block text-center leading-none tabular-nums"
+        style={{
+          fontSize: isCorner ? "28px" : "80px",
+          fontWeight: 900,
+          color: appearance.timerColor,
+          letterSpacing: "-2px",
+          fontFamily: appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font,
+          textShadow: timerShadow,
+        }}
+      >
+        {formatTime(remainingSeconds)}
+      </span>
+      {postText && (
+        <TextCarousel
+          text={postText}
+          style={{ color: subColor, textShadow: subShadow }}
+          className="text-xs font-normal text-center block leading-snug"
+        />
+      )}
+    </div>
+  )
+
+  if (isCorner) {
+    return (
+      <div
+        className="w-full h-full rounded-xl overflow-hidden relative isolate"
+        style={isProfile ? {} : bgToStyle(appearance.background)}
+      >
+        {isProfile && <ProfileBg />}
+        <div className="absolute z-10" style={cornerInset(appearance.cornerPosition)}>
+          {textBlock}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -98,38 +153,8 @@ export function CountdownPreview() {
       style={isProfile ? {} : bgToStyle(appearance.background)}
     >
       {isProfile && <ProfileBg />}
-
-      <div className="relative z-10 flex flex-col items-center gap-2.5">
-        {preText && (
-          <span
-            className="text-lg font-medium text-center block leading-snug"
-            style={{ color: subColor, textShadow: subShadow }}
-          >
-            {preText}
-          </span>
-        )}
-
-        <span
-          className="block text-center leading-none tabular-nums tracking-tight"
-          style={{
-            fontSize: "80px",
-            fontWeight: 900,
-            color: appearance.timerColor,
-            letterSpacing: "-2px",
-            fontFamily: appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font,
-            textShadow: timerShadow,
-          }}
-        >
-          {formatTime(remainingSeconds)}
-        </span>
-
-        {postText && (
-          <TextCarousel
-            text={postText}
-            style={{ color: subColor, textShadow: subShadow }}
-            className="text-base font-normal text-center block leading-snug"
-          />
-        )}
+      <div className="relative z-10">
+        {textBlock}
       </div>
     </div>
   )
