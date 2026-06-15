@@ -1,6 +1,10 @@
 export type TimeTrigger =
   | { enabled: boolean; atSeconds: number; type: "warning-chime"; sound: string }
   | { enabled: boolean; atSeconds: number; type: "change-text"; preText: string; postText: string }
+  | { enabled: boolean; atSeconds: number; type: "queue.next" }
+  | { enabled: boolean; atSeconds: number; type: "queue.previous" }
+  | { enabled: boolean; atSeconds: number; type: "player.next-slide" }
+  | { enabled: boolean; atSeconds: number; type: "player.play"; itemId: string; itemTitle: string }
 
 export type BackgroundConfig =
   | { type: "profile" }
@@ -10,6 +14,12 @@ export type BackgroundConfig =
   | { type: "video"; value: string; opacity: number }
 
 export type BackgroundPreset = "dark-minimal" | "light-clean" | "default" | "custom"
+
+export type EndAction =
+  | { type: "queue.next" }
+  | { type: "queue.previous" }
+  | { type: "player.next-slide" }
+  | { type: "player.play"; itemId: string; itemTitle: string }
 
 export type CountdownConfig = {
   totalSeconds: number
@@ -30,7 +40,7 @@ export type CountdownConfig = {
     preset: BackgroundPreset | null
   }
   actions: {
-    autoAdvance: { enabled: boolean; target: string }
+    autoAdvance: { enabled: boolean; action: EndAction }
     timeTriggers: TimeTrigger[]
   }
   behavior: {

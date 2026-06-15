@@ -157,9 +157,19 @@ The module opens via the **Tools menu** or **Commander** as a dialog occupying ~
 ### 5.2 Data Types
 
 ```ts
+type EndAction =
+  | { type: "queue.next" }
+  | { type: "queue.previous" }
+  | { type: "player.next-slide" }
+  | { type: "player.play"; itemId: string; itemTitle: string }
+
 type TimeTrigger =
   | { enabled: boolean; atSeconds: number; type: "warning-chime"; sound: string }
   | { enabled: boolean; atSeconds: number; type: "change-text"; preText: string; postText: string }
+  | { enabled: boolean; atSeconds: number; type: "queue.next" }
+  | { enabled: boolean; atSeconds: number; type: "queue.previous" }
+  | { enabled: boolean; atSeconds: number; type: "player.next-slide" }
+  | { enabled: boolean; atSeconds: number; type: "player.play"; itemId: string; itemTitle: string }
 
 type CountdownConfig = {
   totalSeconds: number
@@ -168,23 +178,24 @@ type CountdownConfig = {
   postText: string            // lines separated by \n → 10s carousel each
   appearance: {
     font: string
-    fontWeight: string        // e.g. "extra-bold"
+    fontWeight: string
     fontSize: number          // px
-    timerColor: string        // hex — defaults to auto-contrast via polished
+    timerColor: string        // hex
     prePostColor: string      // hex
     prePostOpacity: number    // 0–1
-    invertDigits: boolean
+    textShadowGlow: number    // 0–1
     overlayMode: "fullscreen" | "corner"
     cornerPosition: "top-left" | "top-right" | "bottom-left" | "bottom-right"
     background:
+      | { type: "profile" }
       | { type: "solid"; color: string }
       | { type: "gradient"; value: string }
       | { type: "image"; value: string; opacity: number }
       | { type: "video"; value: string; opacity: number }
-    textShadowGlow: number    // 0–1
+    preset: "dark-minimal" | "light-clean" | "default" | "custom" | null
   }
   actions: {
-    autoAdvance: { enabled: boolean; target: string }
+    autoAdvance: { enabled: boolean; action: EndAction }
     timeTriggers: TimeTrigger[]
   }
   behavior: {
@@ -197,6 +208,7 @@ type CountdownState = {
   remainingSeconds: number
   startedAt: number | null    // Date.now() — precision anchor
   pausedAt: number | null
+  firedTriggers: number[]     // atSeconds values already fired this run
 }
 ```
 
@@ -209,37 +221,50 @@ data.json
 
 ### 5.4 Main ↔ Presenter Communication
 
-Timer runs in the main window. On each tick, emits via bus:
+Timer runs in the main window. On each tick emits via **Tauri IPC** (not `host.bus`, which is a no-op in the presenter window):
 
 ```ts
-host.bus.emit("countdown:tick", {
-  remaining: number,
-  status: CountdownState["status"],
-  config: CountdownConfig
-})
+emit("countdown:tick", { remaining, status, config })
 ```
 
-`CountdownDisplay` on the presenter listens to `countdown:tick` and re-renders.
+`CountdownDisplay` on the presenter listens via `listen("countdown:tick")` and re-renders.
+
+**Timing race fix**: `CountdownDisplay` emits `countdown:display-ready` on mount. The main window listens and calls `rebroadcast()` (re-emits current state). Solves the case where the tick arrives before the component mounts on first open.
 
 ### 5.5 Precision Timer & Resync
 
-Uses `startedAt` as an anchor — never accumulates `setInterval` drift.
+The timer loop lives at **module level** (outside React) via `scheduleTick` / `clearTick`. This means closing the config dialog does not stop the timer.
+
+Uses `startedAt` as wall-clock anchor — never accumulates `setTimeout` drift.
 
 ```ts
-function getRemainingSeconds(state: CountdownState): number {
-  if (state.status !== "running") return state.remainingSeconds
-  const elapsed = (Date.now() - state.startedAt!) / 1000
-  return state.totalSeconds - elapsed  // negative if allowNegative
-}
+elapsed = (Date.now() - startedAt) / 1000
+remaining = totalSeconds - elapsed
+drift = |remaining - timerState.remainingSeconds|
+
+interval = drift > 3s ? 100ms : 1000ms
 ```
 
-**Resync by acceleration** — avoids abrupt jumps on the display:
-```
-drift ≤ 3s  → normal tick (1000ms)
-drift > 3s  → fast tick (100ms) until synced → back to 1000ms
-```
+- Normal operation: 1 tick/s
+- Catching up: 10 ticks/s until drift ≤ 3s, then back to 1000ms
+- No jump cuts — drift is absorbed gradually
 
-### 5.6 Automatic Text Color Detection
+### 5.6 Actions system
+
+**End Actions** — fire when timer reaches zero. Discriminated union stored in `config.actions.autoAdvance.action`:
+
+| type | behavior |
+|---|---|
+| `queue.next` | `host.queue.next()` |
+| `queue.previous` | `host.queue.previous()` |
+| `player.next-slide` | `host.player.nextSlide()` |
+| `player.play` | `host.player.play(itemId)` |
+
+**Time Triggers** — fire when `remainingSeconds ≤ atSeconds`. Same action types plus `warning-chime` and `change-text`. Once fired, the `atSeconds` value is pushed to `firedTriggers[]` and will not fire again in the same run.
+
+---
+
+### 5.7 Automatic Text Color Detection
 
 Samples a pixel zone of the background in the region where the text is rendered and uses `polished` (`readableColor`) to pick black or white with the highest contrast. The lib implements relative luminance per WCAG.
 
@@ -290,7 +315,70 @@ polished
 
 ---
 
-## 8. Implementation Order
+## 8. Queue Trigger integration
+
+### Goal
+
+Register the module as a queue trigger provider so users can attach a countdown to a queue item. When the item plays, the countdown starts automatically with the configured duration.
+
+### User flow
+
+1. Right-click a queue item in the Queue tab
+2. Context menu → "Triggers" submenu (shown when modules have registered triggers)
+3. Select "Countdown Timer" → popover opens with duration picker (`CountdownTriggerConfig`)
+4. Confirm → trigger instance saved on that queue item
+5. Queue item plays → Lumen calls `onFire({ totalSeconds })` → timer starts
+
+### Module implementation (pending SDK support)
+
+```ts
+host.queue.registerTrigger<{ totalSeconds: number }>({
+  id: 'countdown.timer',
+  label: 'Countdown Timer',
+  icon: Timer,
+  ConfigComponent: CountdownTriggerConfig,
+  defaultConfig: { totalSeconds: 300 },
+  onFire({ totalSeconds }) {
+    const store = useCountdownStore.getState()
+    store.setTotalSeconds(totalSeconds)
+    store.startTimer()
+  },
+})
+```
+
+`CountdownTriggerConfig` is a small component with just a duration input (minutes + seconds).
+
+### SDK dependency
+
+`host.queue.registerTrigger` requires a new SDK minor. Types needed:
+
+```ts
+interface QueueTriggerSpec<T = unknown> {
+  id: string
+  label: string
+  icon?: ComponentType<{ size?: number; className?: string }>
+  ConfigComponent: ComponentType<{ value: T; onChange: (value: T) => void }>
+  defaultConfig: T
+  onFire(config: T): void
+}
+
+// QueueHostAPI addition:
+registerTrigger<T = unknown>(spec: QueueTriggerSpec<T>): Disposable
+```
+
+The Lumen-side implementation (module store, aside-panel context menu, trigger instance persistence) is tracked separately in the main Lumen repo.
+
+---
+
+## 9. Pending
+
+- [ ] Queue trigger: wait for SDK + Lumen implementation, then add `CountdownTriggerConfig` and register in `main.ts`
+- [ ] Warning chime: sound picker UI and audio playback
+- [ ] Publish SDK to npm before integration testing
+
+---
+
+## 10. Implementation Order
 
 1. Install dependencies
 2. Create `store.ts` (Zustand — config + state)

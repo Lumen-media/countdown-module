@@ -1,7 +1,7 @@
-import { Bell, ChevronsRight, Music, Plus, Type } from "lucide-react"
+import { Bell, ChevronRight, ChevronsRight, ExternalLink, Image, Music, Plus, SkipForward, SkipBack, Type, X } from "lucide-react"
 import { Label, Select, Switch } from "@lumen-media/module-sdk/ui"
 import { useCountdownStore } from "../../../store.js"
-import type { TimeTrigger } from "../../../types.js"
+import type { EndAction, TimeTrigger } from "../../../types.js"
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -11,31 +11,247 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-function formatTime(seconds: number) {
+function formatAtSeconds(seconds: number) {
   const m = String(Math.floor(seconds / 60)).padStart(2, "0")
   const s = String(seconds % 60).padStart(2, "0")
   return `${m}:${s}`
 }
 
-function TriggerCard({ trigger }: { trigger: TimeTrigger }) {
-  const isChime = trigger.type === "warning-chime"
-  const label = isChime ? "Warning Chime" : "Change Pre/Post Text"
-  const Icon = isChime ? Bell : Type
+type ActionOption = { value: EndAction["type"] | "warning-chime" | "change-text"; label: string; icon: React.ReactNode }
+
+const ACTION_OPTIONS: ActionOption[] = [
+  { value: "change-text", label: "Change Text", icon: <Type size={13} /> },
+  { value: "warning-chime", label: "Warning Chime", icon: <Bell size={13} /> },
+  { value: "queue.next", label: "Next in Queue", icon: <ChevronsRight size={13} /> },
+  { value: "queue.previous", label: "Previous in Queue", icon: <SkipBack size={13} /> },
+  { value: "player.next-slide", label: "Next Slide", icon: <ChevronRight size={13} /> },
+  { value: "player.play", label: "Play Specific Media", icon: <Image size={13} /> },
+]
+
+const END_ACTION_OPTIONS = ACTION_OPTIONS.filter(
+  (o) => o.value !== "warning-chime" && o.value !== "change-text"
+) as { value: EndAction["type"]; label: string; icon: React.ReactNode }[]
+
+function EndActionSelector() {
+  const { config, setConfig, _openMediaPicker } = useCountdownStore()
+  const { autoAdvance } = config.actions
+  const action = autoAdvance.action
+
+  function updateAction(patch: EndAction) {
+    setConfig({ actions: { ...config.actions, autoAdvance: { ...autoAdvance, action: patch } } })
+  }
+
+  function handleTypeChange(type: EndAction["type"]) {
+    if (type === "player.play") {
+      updateAction({ type: "player.play", itemId: "", itemTitle: "" })
+    } else {
+      updateAction({ type } as EndAction)
+    }
+  }
+
+  function handlePickMedia() {
+    if (!_openMediaPicker) return
+    _openMediaPicker((item) => {
+      updateAction({ type: "player.play", itemId: item.id, itemTitle: item.title })
+    })
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Select value={action.type} onValueChange={(v) => handleTypeChange(v as EndAction["type"])}>
+        <Select.SelectTrigger className="w-full bg-background dark:bg-background">
+          <Select.SelectValue>
+            <span className="flex items-center gap-1.5">
+              {END_ACTION_OPTIONS.find((o) => o.value === action.type)?.icon}
+              {END_ACTION_OPTIONS.find((o) => o.value === action.type)?.label}
+            </span>
+          </Select.SelectValue>
+        </Select.SelectTrigger>
+        <Select.SelectContent>
+          {END_ACTION_OPTIONS.map((opt) => (
+            <Select.SelectItem key={opt.value} value={opt.value}>
+              <span className="flex items-center gap-1.5">
+                {opt.icon}
+                {opt.label}
+              </span>
+            </Select.SelectItem>
+          ))}
+        </Select.SelectContent>
+      </Select>
+
+      {action.type === "player.play" && (
+        <div className="flex items-center gap-2">
+          {action.itemTitle ? (
+            <div className="flex-1 flex items-center gap-2 bg-background rounded-md px-3 py-2 min-w-0">
+              <Image size={12} className="text-muted-foreground shrink-0" />
+              <span className="text-xs text-foreground truncate flex-1">{action.itemTitle}</span>
+              <button
+                type="button"
+                onClick={() => updateAction({ type: "player.play", itemId: "", itemTitle: "" })}
+                className="text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0 shrink-0"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handlePickMedia}
+              className="flex-1 flex items-center justify-center gap-1.5 bg-background rounded-md px-3 py-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-foreground/30 cursor-pointer transition-colors"
+            >
+              <ExternalLink size={12} />
+              Choose media…
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }) {
+  const { config, setConfig, _openMediaPicker } = useCountdownStore()
+
+  function replaceTrigger(next: TimeTrigger) {
+    const updated = config.actions.timeTriggers.map((t, i) => i === index ? next : t)
+    setConfig({ actions: { ...config.actions, timeTriggers: updated as TimeTrigger[] } })
+  }
+
+  function updateTrigger(patch: Partial<TimeTrigger>) {
+    replaceTrigger({ ...trigger, ...patch } as TimeTrigger)
+  }
+
+  function changeType(newType: TimeTrigger["type"]) {
+    const base = { enabled: trigger.enabled, atSeconds: trigger.atSeconds }
+    if (newType === "warning-chime") replaceTrigger({ ...base, type: "warning-chime", sound: "" })
+    else if (newType === "change-text") replaceTrigger({ ...base, type: "change-text", preText: "", postText: "" })
+    else if (newType === "player.play") replaceTrigger({ ...base, type: "player.play", itemId: "", itemTitle: "" })
+    else replaceTrigger({ ...base, type: newType } as TimeTrigger)
+  }
+
+  function removeTrigger() {
+    const updated = config.actions.timeTriggers.filter((_, i) => i !== index)
+    setConfig({ actions: { ...config.actions, timeTriggers: updated } })
+  }
+
+  function handlePickMedia() {
+    if (!_openMediaPicker) return
+    _openMediaPicker((item) => {
+      replaceTrigger({ ...trigger, type: "player.play", itemId: item.id, itemTitle: item.title } as TimeTrigger)
+    })
+  }
+
+  const currentOption = ACTION_OPTIONS.find((o) => o.value === trigger.type)
 
   return (
     <div className="bg-background rounded-xl px-3 pt-3 pb-2.5 flex flex-col gap-2">
       <div className="flex items-center gap-2">
-        <Icon size={13} className="text-muted-foreground shrink-0" />
-        <span className="text-sm font-semibold text-foreground flex-1">{label}</span>
-        <Switch checked={trigger.enabled} onCheckedChange={() => { }} className="shrink-0" />
+        <Switch
+          checked={trigger.enabled}
+          onCheckedChange={(v) => updateTrigger({ enabled: v })}
+          className="shrink-0"
+        />
+        <div className="flex items-center gap-1.5 flex-1 min-w-0 text-xs text-muted-foreground">
+          {currentOption?.icon}
+          <span className="truncate">{currentOption?.label}</span>
+        </div>
+        <button
+          type="button"
+          onClick={removeTrigger}
+          className="text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0 shrink-0"
+        >
+          <X size={13} />
+        </button>
       </div>
-      {isChime && (
-        <div className="flex items-center justify-between px-0.5">
-          <span className="text-sm font-mono font-bold" style={{ color: "var(--primary)" }}>
-            {formatTime(trigger.atSeconds)}
-          </span>
+
+      <Select value={trigger.type} onValueChange={(v) => changeType(v as TimeTrigger["type"])}>
+        <Select.SelectTrigger className="w-full bg-card dark:bg-card text-xs">
+          <Select.SelectValue>
+            <span className="flex items-center gap-1.5">
+              {currentOption?.icon}
+              {currentOption?.label}
+            </span>
+          </Select.SelectValue>
+        </Select.SelectTrigger>
+        <Select.SelectContent>
+          {ACTION_OPTIONS.map((opt) => (
+            <Select.SelectItem key={opt.value} value={opt.value}>
+              <span className="flex items-center gap-1.5">
+                {opt.icon}
+                {opt.label}
+              </span>
+            </Select.SelectItem>
+          ))}
+        </Select.SelectContent>
+      </Select>
+
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">At</span>
+        <input
+          type="text"
+          value={formatAtSeconds(trigger.atSeconds)}
+          onChange={(e) => {
+            const parts = e.target.value.split(":")
+            if (parts.length === 2) {
+              const m = parseInt(parts[0]) || 0
+              const s = Math.min(59, parseInt(parts[1]) || 0)
+              updateTrigger({ atSeconds: m * 60 + s })
+            }
+          }}
+          className="w-14 text-right bg-transparent border-none outline-none text-sm font-mono font-bold tabular-nums"
+          style={{ color: "var(--primary)" }}
+        />
+      </div>
+
+      {trigger.type === "change-text" && (
+        <div className="flex flex-col gap-1.5">
+          <input
+            type="text"
+            placeholder="Pre text"
+            value={trigger.preText}
+            onChange={(e) => updateTrigger({ preText: e.target.value })}
+            className="w-full bg-card rounded-md px-2 py-1.5 text-xs border-none outline-none text-foreground placeholder:text-muted-foreground"
+          />
+          <input
+            type="text"
+            placeholder="Post text"
+            value={trigger.postText}
+            onChange={(e) => updateTrigger({ postText: e.target.value })}
+            className="w-full bg-card rounded-md px-2 py-1.5 text-xs border-none outline-none text-foreground placeholder:text-muted-foreground"
+          />
+        </div>
+      )}
+
+      {trigger.type === "warning-chime" && (
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">Sound</span>
           <Music size={13} className="text-muted-foreground" />
         </div>
+      )}
+
+      {trigger.type === "player.play" && (
+        trigger.itemTitle ? (
+          <div className="flex items-center gap-2 bg-card rounded-md px-3 py-2 min-w-0">
+            <Image size={12} className="text-muted-foreground shrink-0" />
+            <span className="text-xs text-foreground truncate flex-1">{trigger.itemTitle}</span>
+            <button
+              type="button"
+              onClick={() => replaceTrigger({ ...trigger, type: "player.play", itemId: "", itemTitle: "" })}
+              className="text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0 shrink-0"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handlePickMedia}
+            className="flex items-center justify-center gap-1.5 bg-card rounded-md px-3 py-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-foreground/30 cursor-pointer transition-colors w-full"
+          >
+            <ExternalLink size={12} />
+            Choose media…
+          </button>
+        )
       )}
     </div>
   )
@@ -45,6 +261,11 @@ export function ActionsTab() {
   const { config, setConfig } = useCountdownStore()
   const { autoAdvance } = config.actions
   const { hideOnCompletion } = config.behavior
+
+  function addTrigger() {
+    const newTrigger: TimeTrigger = { enabled: true, atSeconds: 60, type: "change-text", preText: "", postText: "" }
+    setConfig({ actions: { ...config.actions, timeTriggers: [...config.actions.timeTriggers, newTrigger] } })
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -56,7 +277,7 @@ export function ActionsTab() {
               className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
               style={{ background: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
             >
-              <ChevronsRight size={13} style={{ color: "var(--primary)" }} />
+              <SkipForward size={13} style={{ color: "var(--primary)" }} />
             </div>
             <span className="text-sm font-semibold text-foreground flex-1">Auto-Advance</span>
             <Switch
@@ -68,21 +289,9 @@ export function ActionsTab() {
             />
           </div>
           <p className="text-xs text-muted-foreground leading-snug">
-            Automatically transition to the next item in the playlist when timer reaches zero.
+            Automatically trigger an action when the timer reaches zero.
           </p>
-          <Select
-            value={autoAdvance.target}
-            onValueChange={(v) =>
-              setConfig({ actions: { ...config.actions, autoAdvance: { ...autoAdvance, target: v } } })
-            }
-          >
-            <Select.SelectTrigger className="w-full bg-background dark:bg-background">
-              <Select.SelectValue>Go to Next Item</Select.SelectValue>
-            </Select.SelectTrigger>
-            <Select.SelectContent>
-              <Select.SelectItem value="next">Go to Next Item</Select.SelectItem>
-            </Select.SelectContent>
-          </Select>
+          {autoAdvance.enabled && <EndActionSelector />}
         </div>
       </div>
 
@@ -90,14 +299,15 @@ export function ActionsTab() {
         <SectionLabel>Time Triggers</SectionLabel>
         <div className="flex flex-col gap-2">
           {config.actions.timeTriggers.map((trigger, i) => (
-            <TriggerCard key={i} trigger={trigger} />
+            <TriggerCard key={i} trigger={trigger} index={i} />
           ))}
           <button
             type="button"
-            className="w-full border border-dashed border-border rounded-xl py-2.5 text-xs text-muted-foreground cursor-pointer flex items-center justify-center gap-1.5 hover:text-foreground hover:border-foreground/30 transition-colors bg-transparent"
+            onClick={() => addTrigger()}
+            className="border border-dashed border-border rounded-xl py-2.5 text-xs text-muted-foreground cursor-pointer flex items-center justify-center gap-1.5 hover:text-foreground hover:border-foreground/30 transition-colors bg-transparent w-full"
           >
             <Plus size={12} />
-            Add Time Trigger
+            Add Trigger
           </button>
         </div>
       </div>
@@ -113,7 +323,6 @@ export function ActionsTab() {
               className="shrink-0"
             />
           </Label>
-
           <Label className="flex w-full items-center justify-between text-sm text-foreground">
             Allow negative time (overrun)
             <Switch

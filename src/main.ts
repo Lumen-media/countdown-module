@@ -60,6 +60,9 @@ export default class CountdownPlugin extends LumenPlugin {
     })
 
     useCountdownStore.getState().setPresenter(host.presentation)
+    useCountdownStore.getState().setQueue(host.queue)
+    useCountdownStore.getState().setPlayer(host.player)
+    useCountdownStore.getState().setOpenMediaPicker((cb) => host.ui.openMediaPicker(cb))
 
     const hostExt = host as unknown as HostExt
     if (hostExt.fs) useCountdownStore.getState().setHostFs(hostExt.fs)

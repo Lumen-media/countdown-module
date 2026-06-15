@@ -1,8 +1,11 @@
 import { emit } from "@tauri-apps/api/event"
 import { create } from "zustand"
-import type { BackgroundConfig, BackgroundPreset, CountdownConfig, CountdownState } from "./types.js"
+import type { BackgroundConfig, BackgroundPreset, CountdownConfig, CountdownState, EndAction } from "./types.js"
 
 type PresenterAPI = { project: (viewId: string, props?: unknown) => void; clear: () => void }
+type QueueAPI = { next: () => void; previous: () => void; goTo: (index: number) => void }
+type PlayerAPI = { nextSlide: () => void; play: (itemId: string) => void }
+type LibraryItem = { id: string; title: string; type: string; thumbnail?: string }
 
 const PRESENTER_PANEL_ID = "countdown.presenter"
 
@@ -43,7 +46,7 @@ const DEFAULT_CONFIG: CountdownConfig = {
     preset: "default",
   },
   actions: {
-    autoAdvance: { enabled: true, target: "next" },
+    autoAdvance: { enabled: true, action: { type: "queue.next" } as EndAction },
     timeTriggers: [
       { enabled: false, atSeconds: 60, type: "warning-chime", sound: "" },
       { enabled: false, atSeconds: 30, type: "change-text", preText: "", postText: "" },
@@ -107,6 +110,12 @@ type CountdownStore = {
   sendToPresenter: () => void
   clearPresenter: () => void
   rebroadcast: () => void
+  _queue: QueueAPI | null
+  setQueue: (q: QueueAPI) => void
+  _player: PlayerAPI | null
+  setPlayer: (p: PlayerAPI) => void
+  _openMediaPicker: ((cb: (item: LibraryItem) => void) => void) | null
+  setOpenMediaPicker: (fn: (cb: (item: LibraryItem) => void) => void) => void
 }
 
 export const useCountdownStore = create<CountdownStore>((set, get) => ({
@@ -130,6 +139,12 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
   setHostFs: (fs) => set({ _hostFs: fs }),
   _presenter: null,
   setPresenter: (p) => set({ _presenter: p }),
+  _queue: null,
+  setQueue: (q) => set({ _queue: q }),
+  _player: null,
+  setPlayer: (p) => set({ _player: p }),
+  _openMediaPicker: null as CountdownStore["_openMediaPicker"],
+  setOpenMediaPicker: (fn) => set({ _openMediaPicker: fn }),
 
   sendToPresenter: () => {
     const { _presenter, timerState, config } = get()
@@ -283,12 +298,21 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
         get()._presenter?.clear()
         set({ isPresenterActive: false })
       }
+      if (config.actions.autoAdvance.enabled) {
+        const { _queue, _player } = get()
+        const action = config.actions.autoAdvance.action
+        if (action.type === "queue.next") _queue?.next()
+        else if (action.type === "queue.previous") _queue?.previous()
+        else if (action.type === "player.next-slide") _player?.nextSlide()
+        else if (action.type === "player.play") _player?.play(action.itemId)
+      }
       return
     }
 
     let updatedConfig = config
     const newFiredTriggers = [...timerState.firedTriggers]
 
+    const { _queue, _player } = get()
     for (const trigger of config.actions.timeTriggers) {
       if (
         trigger.enabled &&
@@ -296,11 +320,15 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
         remaining <= trigger.atSeconds
       ) {
         if (trigger.type === "change-text") {
-          updatedConfig = {
-            ...updatedConfig,
-            preText: trigger.preText,
-            postText: trigger.postText,
-          }
+          updatedConfig = { ...updatedConfig, preText: trigger.preText, postText: trigger.postText }
+        } else if (trigger.type === "queue.next") {
+          _queue?.next()
+        } else if (trigger.type === "queue.previous") {
+          _queue?.previous()
+        } else if (trigger.type === "player.next-slide") {
+          _player?.nextSlide()
+        } else if (trigger.type === "player.play") {
+          _player?.play(trigger.itemId)
         }
         newFiredTriggers.push(trigger.atSeconds)
       }

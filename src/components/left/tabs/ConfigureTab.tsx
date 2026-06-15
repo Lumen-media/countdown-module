@@ -211,7 +211,6 @@ export function ConfigureTab() {
                 autoAdvance: {
                   ...config.actions.autoAdvance,
                   enabled: v !== "none",
-                  target: "next",
                 },
               },
             })
