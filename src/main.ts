@@ -4,6 +4,7 @@ import { createElement } from "react"
 import { listen } from "@tauri-apps/api/event"
 import { CountdownDialog } from "./components/CountdownDialog.js"
 import { CountdownDisplay } from "./components/presenter/CountdownDisplay.js"
+import { QueueTriggerConfigComponent, type QueueTriggerConfig } from "./components/QueueTriggerConfig.js"
 import { useCountdownStore } from "./store.js"
 import type { CountdownConfig } from "./types.js"
 import { setupI18n } from "./i18n.js"
@@ -93,6 +94,24 @@ export default class CountdownPlugin extends LumenPlugin {
     useCountdownStore.getState().setOpenBackgroundPicker(
       (cb) => host.ui.openBackgroundPicker(cb)
     )
+
+    host.queue.registerTrigger<QueueTriggerConfig>({
+      id: "countdown.wait",
+      label: "Wait (Countdown)",
+      ConfigComponent: QueueTriggerConfigComponent,
+      defaultConfig: { seconds: 300 },
+      onFire(config) {
+        const store = useCountdownStore.getState()
+        store.setTotalSeconds(config.seconds)
+        store.setConfig({
+          actions: {
+            ...store.config.actions,
+            autoAdvance: { enabled: true, action: { type: "queue.next" } },
+          },
+        })
+        store.startTimer()
+      },
+    })
   }
 
   async onunload(): Promise<void> {
