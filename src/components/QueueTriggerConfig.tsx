@@ -2,6 +2,26 @@ import { Input } from "@lumen-media/module-sdk/ui"
 
 export type QueueTriggerConfig = { seconds: number }
 
+export function CountdownSummary({
+  value,
+  onEdit,
+}: {
+  value: QueueTriggerConfig
+  onEdit: () => void
+}) {
+  const mins = Math.floor(value.seconds / 60)
+  const secs = value.seconds % 60
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onEdit() }}
+      className="text-sm font-mono font-semibold text-primary tabular-nums hover:underline cursor-pointer bg-transparent border-none p-0"
+    >
+      {mins}:{String(secs).padStart(2, '0')}
+    </button>
+  )
+}
+
 export function QueueTriggerConfigComponent({
   value,
   onChange,
