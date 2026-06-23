@@ -3,6 +3,7 @@ import { create } from "zustand"
 import type { BackgroundConfig, BackgroundPreset, CountdownConfig, CountdownState, EndAction } from "./types.js"
 
 type PresenterAPI = { project: (viewId: string, props?: unknown) => void; clear: () => void }
+type OverlayAPI = { project: (viewId: string, props?: unknown) => void; clear: () => void; onStateChange?: (handler: (state: "idle" | "live") => void) => { dispose(): void } }
 type QueueAPI = { next: () => void; previous: () => void; goTo: (index: number) => void }
 type PlayerAPI = { nextSlide: () => void; play: (itemId: string) => void }
 type LibraryItem = { id: string; title: string; type: string; thumbnail?: string }
@@ -61,6 +62,11 @@ function emitTick(remaining: number, status: CountdownState["status"], config: C
   emit("countdown:tick", { remaining, status, config }).catch(() => {})
 }
 
+function projectionProps(config: CountdownConfig) {
+  const isCorner = config.appearance.overlayMode === "corner"
+  return !isCorner && config.appearance.background.type === "profile" ? { background: "default" } : undefined
+}
+
 let _tickTimer: ReturnType<typeof setTimeout> | null = null
 
 function clearTick() {
@@ -91,6 +97,8 @@ type CountdownStore = {
   isPreviewExpanded: boolean
   setPreviewExpanded: (v: boolean) => void
   isPresenterActive: boolean
+  isOverlayActive: boolean
+  setOverlayActive: (v: boolean) => void
   setConfig: (update: Partial<CountdownConfig>) => void
   updateAppearance: (update: Partial<CountdownConfig["appearance"]>) => void
   applyPreset: (preset: BackgroundPreset, customBackground?: BackgroundConfig) => void
@@ -107,8 +115,12 @@ type CountdownStore = {
   setHostFs: (fs: { read: (path: string) => Promise<Uint8Array> }) => void
   _presenter: PresenterAPI | null
   setPresenter: (p: PresenterAPI) => void
+  _overlay: OverlayAPI | null
+  setOverlay: (p: OverlayAPI) => void
   sendToPresenter: () => void
   clearPresenter: () => void
+  sendToOverlay: () => void
+  clearOverlay: () => void
   rebroadcast: () => void
   _queue: QueueAPI | null
   setQueue: (q: QueueAPI) => void
@@ -130,6 +142,8 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
   isPreviewExpanded: false,
   setPreviewExpanded: (v) => set({ isPreviewExpanded: v }),
   isPresenterActive: false,
+  isOverlayActive: false,
+  setOverlayActive: (v) => set({ isOverlayActive: v }),
 
   _openBackgroundPicker: null as CountdownStore["_openBackgroundPicker"],
   setOpenBackgroundPicker: (fn) => set({ _openBackgroundPicker: fn }),
@@ -139,6 +153,8 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
   setHostFs: (fs) => set({ _hostFs: fs }),
   _presenter: null,
   setPresenter: (p) => set({ _presenter: p }),
+  _overlay: null,
+  setOverlay: (p) => set({ _overlay: p }),
   _queue: null,
   setQueue: (q) => set({ _queue: q }),
   _player: null,
@@ -148,9 +164,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
 
   sendToPresenter: () => {
     const { _presenter, timerState, config } = get()
-    const isCorner = config.appearance.overlayMode === "corner"
-    const bgProps = !isCorner && config.appearance.background.type === "profile" ? { background: "default" } : undefined
-    _presenter?.project(PRESENTER_PANEL_ID, bgProps)
+    _presenter?.project(PRESENTER_PANEL_ID, projectionProps(config))
     set({ isPresenterActive: true })
     emitTick(timerState.remainingSeconds, timerState.status, config)
   },
@@ -159,6 +173,20 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     const { _presenter } = get()
     _presenter?.clear()
     set({ isPresenterActive: false })
+  },
+
+  sendToOverlay: () => {
+    const { _overlay, timerState, config } = get()
+    if (!_overlay) return
+    _overlay.project(PRESENTER_PANEL_ID, projectionProps(config))
+    set({ isOverlayActive: true })
+    emitTick(timerState.remainingSeconds, timerState.status, config)
+  },
+
+  clearOverlay: () => {
+    const { _overlay } = get()
+    _overlay?.clear()
+    set({ isOverlayActive: false })
   },
 
   rebroadcast: () => {
@@ -223,16 +251,17 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     })),
 
   startTimer: () => {
-    const { timerState, config, _presenter } = get()
+    const { timerState, config, _presenter, _overlay, isOverlayActive } = get()
     if (timerState.status === "running") return
 
     clearTick()
 
-    const isCorner = config.appearance.overlayMode === "corner"
-    const bgProps = !isCorner && config.appearance.background.type === "profile" ? { background: "default" } : undefined
-    _presenter?.project(PRESENTER_PANEL_ID, bgProps)
-    set({ isPresenterActive: true })
-
+    if (isOverlayActive) {
+      _overlay?.project(PRESENTER_PANEL_ID, projectionProps(config))
+    } else {
+      _presenter?.project(PRESENTER_PANEL_ID, projectionProps(config))
+      set({ isPresenterActive: true })
+    }
     if (timerState.status === "paused" && timerState.pausedAt !== null && timerState.startedAt !== null) {
       const pausedDuration = Date.now() - timerState.pausedAt
       const newState = {
@@ -295,8 +324,14 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
       }))
       emitTick(0, "finished", config)
       if (config.behavior.hideOnCompletion) {
-        get()._presenter?.clear()
-        set({ isPresenterActive: false })
+        const { _presenter, _overlay, isOverlayActive } = get()
+        if (isOverlayActive) {
+          _overlay?.clear()
+          set({ isOverlayActive: false })
+        } else {
+          _presenter?.clear()
+          set({ isPresenterActive: false })
+        }
       }
       if (config.actions.autoAdvance.enabled) {
         const { _queue, _player } = get()

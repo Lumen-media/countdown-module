@@ -11,6 +11,7 @@ import { setupI18n } from "./i18n.js"
 
 type HostExt = {
   fs?: { read: (path: string) => Promise<Uint8Array> }
+  overlay?: { project: (viewId: string, props?: unknown) => void; clear: () => void; onStateChange?: (handler: (state: "idle" | "live") => void) => { dispose(): void } }
   themes: {
     onDefaultBackgroundChange?: (handler: (bg: { src: string; type: string; name: string } | null) => void) => { dispose(): void }
   }
@@ -19,6 +20,7 @@ type HostExt = {
 export default class CountdownPlugin extends LumenPlugin {
   private styleEl: HTMLStyleElement | null = null
   private displayReadyUnlisten: (() => void) | null = null
+  private overlayStateDispose: (() => void) | null = null
 
   async onload(host: LumenHost): Promise<void> {
     this.styleEl = document.createElement("style")
@@ -67,6 +69,13 @@ export default class CountdownPlugin extends LumenPlugin {
 
     const hostExt = host as unknown as HostExt
     if (hostExt.fs) useCountdownStore.getState().setHostFs(hostExt.fs)
+    if (hostExt.overlay) {
+      useCountdownStore.getState().setOverlay(hostExt.overlay)
+      const overlayState = hostExt.overlay.onStateChange?.((state) => {
+        useCountdownStore.getState().setOverlayActive(state === "live")
+      })
+      this.overlayStateDispose = overlayState ? () => overlayState.dispose() : null
+    }
 
     const saved = await host.data.json.get<Partial<CountdownConfig> | undefined>("config")
     if (saved) useCountdownStore.getState().setConfig(saved)
@@ -120,5 +129,7 @@ export default class CountdownPlugin extends LumenPlugin {
     this.styleEl = null
     this.displayReadyUnlisten?.()
     this.displayReadyUnlisten = null
+    this.overlayStateDispose?.()
+    this.overlayStateDispose = null
   }
 }

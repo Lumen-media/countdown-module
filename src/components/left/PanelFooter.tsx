@@ -17,7 +17,7 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 export function PanelFooter() {
-  const { config, timerState, startTimer, pauseTimer, resetTimer, sendToPresenter, clearPresenter, isPresenterActive } = useCountdownStore()
+  const { config, timerState, startTimer, pauseTimer, resetTimer, sendToPresenter, clearPresenter, isPresenterActive, sendToOverlay, clearOverlay, isOverlayActive } = useCountdownStore()
   const { status, remainingSeconds } = timerState
   const isRunning = status === "running"
   const isPaused = status === "paused"
@@ -78,9 +78,9 @@ export function PanelFooter() {
           {isPresenterActive ? <EyeOff size={13} /> : <Eye size={13} />}
           {isPresenterActive ? "Exit" : "Preview"}
         </Button>
-        <Button variant="ghost" className="text-xs">
+        <Button variant="ghost" className="text-xs" onClick={isOverlayActive ? clearOverlay : sendToOverlay}>
           <ExternalLink size={13} />
-          Overlay
+          {isOverlayActive ? "Close Overlay" : "Overlay"}
         </Button>
       </div>
     </div>
