@@ -3,3 +3,4 @@ allowBuilds:
 minimumReleaseAgeExclude:
   - '@lumen-media/module-sdk@0.6.0'
   - '@lumen-media/module-sdk@0.7.0'
+  - '@lumen-media/module-sdk@0.8.0'

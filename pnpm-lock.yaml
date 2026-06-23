@@ -46,8 +46,8 @@ importers:
         specifier: ^0.3.1
         version: 0.3.3(vite@7.3.5(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0))
       '@lumen-media/module-sdk':
-        specifier: ^0.7.0
-        version: 0.7.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: ^0.8.0
+        version: 0.8.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@tailwindcss/postcss':
         specifier: ^4.3.0
         version: 4.3.0
@@ -265,8 +265,8 @@ packages:
     peerDependencies:
       vite: '>=5'
 
-  '@lumen-media/module-sdk@0.7.0':
-    resolution: {integrity: sha512-kFpDQ2ko988BS37+32ktu/n7y8UgehGM7M1uoDytLM3QXOoO1DJB8Tfj/SmslAiRpLaT/+Jkju3d7uja+95T9A==}
+  '@lumen-media/module-sdk@0.8.0':
+    resolution: {integrity: sha512-BREmxijQRiGMmCnBK44Psk7EPib2sy/oI/ZDXhBPuJdhq+AUtmU80Nu4xO9/v1340L5Q77SrPPSTicyMtyKmwQ==}
     peerDependencies:
       react: '>=19'
       react-dom: '>=19'
@@ -1212,7 +1212,7 @@ snapshots:
       - bare-buffer
       - react-native-b4a
 
-  '@lumen-media/module-sdk@0.7.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@lumen-media/module-sdk@0.8.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
