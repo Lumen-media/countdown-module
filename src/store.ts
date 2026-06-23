@@ -62,9 +62,13 @@ function emitTick(remaining: number, status: CountdownState["status"], config: C
   emit("countdown:tick", { remaining, status, config }).catch(() => {})
 }
 
-function projectionProps(config: CountdownConfig) {
+function projectionProps(config: CountdownConfig, timerState: CountdownState) {
   const isCorner = config.appearance.overlayMode === "corner"
-  return !isCorner && config.appearance.background.type === "profile" ? { background: "default" } : undefined
+  const backgroundProps = !isCorner && config.appearance.background.type === "profile" ? { background: "default" } : {}
+  return {
+    ...backgroundProps,
+    initialTick: { remaining: timerState.remainingSeconds, status: timerState.status, config },
+  }
 }
 
 let _tickTimer: ReturnType<typeof setTimeout> | null = null
@@ -163,8 +167,14 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
   setOpenMediaPicker: (fn) => set({ _openMediaPicker: fn }),
 
   sendToPresenter: () => {
-    const { _presenter, timerState, config } = get()
-    _presenter?.project(PRESENTER_PANEL_ID, projectionProps(config))
+    const { _presenter, _overlay, timerState, config, isOverlayActive } = get()
+    if (isOverlayActive) {
+      if (!_overlay) return
+      _overlay.project(PRESENTER_PANEL_ID, projectionProps(config, timerState))
+      emitTick(timerState.remainingSeconds, timerState.status, config)
+      return
+    }
+    _presenter?.project(PRESENTER_PANEL_ID, projectionProps(config, timerState))
     set({ isPresenterActive: true })
     emitTick(timerState.remainingSeconds, timerState.status, config)
   },
@@ -178,7 +188,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
   sendToOverlay: () => {
     const { _overlay, timerState, config } = get()
     if (!_overlay) return
-    _overlay.project(PRESENTER_PANEL_ID, projectionProps(config))
+    _overlay.project(PRESENTER_PANEL_ID, projectionProps(config, timerState))
     set({ isOverlayActive: true })
     emitTick(timerState.remainingSeconds, timerState.status, config)
   },
@@ -257,9 +267,9 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     clearTick()
 
     if (isOverlayActive) {
-      _overlay?.project(PRESENTER_PANEL_ID, projectionProps(config))
+      _overlay?.project(PRESENTER_PANEL_ID, projectionProps(config, timerState))
     } else {
-      _presenter?.project(PRESENTER_PANEL_ID, projectionProps(config))
+      _presenter?.project(PRESENTER_PANEL_ID, projectionProps(config, timerState))
       set({ isPresenterActive: true })
     }
     if (timerState.status === "paused" && timerState.pausedAt !== null && timerState.startedAt !== null) {

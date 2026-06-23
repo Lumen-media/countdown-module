@@ -26,8 +26,8 @@ function cornerInset(position: CountdownConfig["appearance"]["cornerPosition"]):
   return { bottom: 24, right: 24 }
 }
 
-export function CountdownDisplay() {
-  const [tick, setTick] = useState<TickPayload | null>(null)
+export function CountdownDisplay({ initialTick }: { initialTick?: TickPayload }) {
+  const [tick, setTick] = useState<TickPayload | null>(initialTick ?? null)
 
   useEffect(() => {
     const unlisten = listen<TickPayload>("countdown:tick", (e) => {

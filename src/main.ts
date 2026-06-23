@@ -33,7 +33,7 @@ export default class CountdownPlugin extends LumenPlugin {
     host.panels.add({
       id: "countdown.presenter",
       slot: "presenter.content",
-      component: () => createElement(CountdownDisplay),
+      component: (props) => createElement(CountdownDisplay, props),
     })
 
     if (host.window === "presenter") return

@@ -74,13 +74,17 @@ export function PanelFooter() {
       </div>
 
       <div className="grid grid-cols-2 gap-5">
-        <Button variant="ghost" className="text-xs" onClick={isPresenterActive ? clearPresenter : sendToPresenter}>
-          {isPresenterActive ? <EyeOff size={13} /> : <Eye size={13} />}
-          {isPresenterActive ? "Exit" : "Preview"}
+        <Button
+          variant="ghost"
+          className="text-xs"
+          onClick={isOverlayActive ? clearOverlay : isPresenterActive ? clearPresenter : sendToPresenter}
+        >
+          {isOverlayActive || isPresenterActive ? <EyeOff size={13} /> : <Eye size={13} />}
+          {isOverlayActive ? "Close Overlay" : isPresenterActive ? "Exit" : "Preview"}
         </Button>
         <Button variant="ghost" className="text-xs" onClick={isOverlayActive ? clearOverlay : sendToOverlay}>
           <ExternalLink size={13} />
-          {isOverlayActive ? "Close Overlay" : "Overlay"}
+          {isOverlayActive ? "Overlay Active" : "Overlay"}
         </Button>
       </div>
     </div>
