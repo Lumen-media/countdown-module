@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react"
 import { useEventListener } from "usehooks-ts"
 import { HexColorPicker } from "react-colorful"
-import { MoveUpLeft, MoveUpRight, MoveDownLeft, MoveDownRight } from "lucide-react"
-import { Combobox, Input, Popover, Select, Slider, ToggleGroup } from "@lumen-media/module-sdk/ui"
+import { Info, MoveDownLeft, MoveDownRight, MoveUpLeft, MoveUpRight } from "lucide-react"
+import { Combobox, HoverCard, Input, Popover, Select, Slider, ToggleGroup } from "@lumen-media/module-sdk/ui"
 import { cn } from "../../../lib/cn.js"
 import { useLocalFonts } from "../../../hooks/useLocalFonts.js"
 import { useCountdownStore } from "../../../store.js"
@@ -13,11 +13,27 @@ const FONT_WEIGHTS = ["Thin", "Light", "Regular", "Medium", "Semi Bold", "Bold",
 const BG_TYPES = ["solid", "gradient"] as const
 type EditableBgType = (typeof BG_TYPES)[number]
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children, info }: { children: React.ReactNode; info?: React.ReactNode }) {
   return (
-    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-      {children}
-    </p>
+    <div className="mb-3 flex items-center gap-1.5">
+      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+        {children}
+      </p>
+      {info}
+    </div>
+  )
+}
+
+function InfoHint({ children }: { children: React.ReactNode }) {
+  return (
+    <HoverCard>
+      <HoverCard.HoverCardTrigger className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground">
+        <Info size={13} />
+      </HoverCard.HoverCardTrigger>
+      <HoverCard.HoverCardContent className="w-64 p-3 text-xs leading-relaxed text-muted-foreground" align="start">
+        {children}
+      </HoverCard.HoverCardContent>
+    </HoverCard>
   )
 }
 
@@ -71,15 +87,15 @@ function ColorRow({
 
   const pct = opacity !== undefined ? ` ${Math.round(opacity * 100)}%` : ""
   return (
-    <div className="flex items-center justify-between bg-background rounded-md px-3 py-2.5">
+    <div className="flex items-center justify-between rounded-md bg-background px-3 py-2.5">
       <span className="text-sm text-foreground">{label}</span>
       <div className="flex items-center gap-2">
         <Popover>
           <Popover.PopoverTrigger
-            className="w-5 h-5 rounded shrink-0 border border-border/60 cursor-pointer"
+            className="h-5 w-5 shrink-0 cursor-pointer rounded border border-border/60"
             style={{ background: local }}
           />
-          <Popover.PopoverContent className="p-3 w-auto" align="start" alignOffset={8}>
+          <Popover.PopoverContent className="w-auto p-3" align="start" alignOffset={8}>
             <HexColorPicker color={local} onChange={handlePickerChange} />
           </Popover.PopoverContent>
         </Popover>
@@ -94,7 +110,7 @@ function ColorRow({
             setHexInput(e.target.value.replace(/\s*\d+%$/, ""))
           }}
           onBlur={handleHexBlur}
-          className="w-12 bg-transparent border-none outline-none text-xs font-mono text-muted-foreground text-right p-0"
+          className="w-12 border-none bg-transparent p-0 text-right font-mono text-xs text-muted-foreground outline-none"
           spellCheck={false}
         />
       </div>
@@ -126,7 +142,7 @@ function FontSizeInput({ value, onChange }: { value: number; onChange: (v: numbe
       onChange={(e) => handleChange(e.target.value)}
       onBlur={handleBlur}
       onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-      className="w-20 px-1 bg-background dark:bg-background text-center"
+      className="w-20 bg-background px-1 text-center dark:bg-background"
     />
   )
 }
@@ -210,16 +226,16 @@ function RotationKnob({ value, onChange }: { value: number; onChange: (v: number
       <div
         ref={ref}
         onMouseDown={handleMouseDown}
-        className="relative w-8 h-8 rounded-full bg-card border border-border cursor-grab select-none shrink-0"
+        className="relative h-8 w-8 shrink-0 cursor-grab select-none rounded-full border border-border bg-card"
       >
         <div
-          className="absolute inset-0 flex justify-center pt-1 pointer-events-none"
+          className="pointer-events-none absolute inset-0 flex justify-center pt-1"
           style={{ transform: `rotate(${value}deg)` }}
         >
-          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+          <div className="h-1.5 w-1.5 rounded-full bg-primary" />
         </div>
       </div>
-      <span className="text-xs w-7 font-mono text-muted-foreground">{value}°</span>
+      <span className="w-7 font-mono text-xs text-muted-foreground">{value}°</span>
     </div>
   )
 }
@@ -234,7 +250,7 @@ function GradientEditor({ value, onChange }: { value: string; onChange: (v: stri
     <div className="flex flex-col gap-2">
       <ColorRow label="Color 1" color={color1} onChange={(c) => update({ color1: c })} />
       <ColorRow label="Color 2" color={color2} onChange={(c) => update({ color2: c })} />
-      <div className="flex items-center justify-between bg-background rounded-md px-3 py-2.5">
+      <div className="flex items-center justify-between rounded-md bg-background px-3 py-2.5">
         <span className="text-sm text-foreground">Angle</span>
         <RotationKnob value={angle} onChange={(v) => update({ angle: v })} />
       </div>
@@ -320,7 +336,7 @@ export function AppearanceTab() {
               const v = vals[vals.length - 1] as EditableBgType | undefined
               if (v) updateAppearance({ background: switchBgType(bg, v) })
             }}
-            className="w-full bg-background rounded-lg p-1"
+            className="w-full rounded-lg bg-background p-1"
           >
             {BG_TYPES.map((t) => (
               <ToggleGroup.ToggleGroupItem
@@ -360,7 +376,16 @@ export function AppearanceTab() {
       </div>
 
       <div>
-        <SectionLabel>Display Mode</SectionLabel>
+        <SectionLabel
+          info={(
+            <InfoHint>
+              Corner mode only moves the timer into the selected corner when media or lyrics are already active behind it in Lumen.
+              Otherwise it stays centered and uses the configured countdown background.
+            </InfoHint>
+          )}
+        >
+          Display Mode
+        </SectionLabel>
         <div className="flex flex-col gap-2">
           <ToggleGroup
             value={[appearance.overlayMode]}
@@ -368,7 +393,7 @@ export function AppearanceTab() {
               const v = vals[vals.length - 1] as CountdownConfig["appearance"]["overlayMode"] | undefined
               if (v) updateAppearance({ overlayMode: v })
             }}
-            className="w-full bg-background rounded-lg p-1"
+            className="w-full rounded-lg bg-background p-1"
           >
             <ToggleGroup.ToggleGroupItem
               value="fullscreen"
@@ -391,16 +416,16 @@ export function AppearanceTab() {
                 const v = vals[vals.length - 1] as CountdownConfig["appearance"]["cornerPosition"] | undefined
                 if (v) updateAppearance({ cornerPosition: v })
               }}
-              className="grid w-full grid-cols-2 gap-1 bg-background rounded-lg p-1"
+              className="grid w-full grid-cols-2 gap-1 rounded-lg bg-background p-1"
             >
               {(["top-left", "top-right", "bottom-left", "bottom-right"] as const).map((pos) => (
                 <ToggleGroup.ToggleGroupItem
                   key={pos}
                   value={pos}
                   className={cn(
-                    "text-xs rounded-md py-1.5 aria-pressed:bg-card",
+                    "rounded-md py-1.5 text-xs aria-pressed:bg-card",
                     appearance.cornerPosition === pos && "bg-card shadow-sm",
-                    pos === "top-left" || pos === "bottom-left" ? "justify-start pl-3" : "justify-end pr-3"
+                    pos === "top-left" || pos === "bottom-left" ? "justify-start pl-3" : "justify-end pr-3",
                   )}
                 >
                   {pos === "top-left" && <><MoveUpLeft size={13} /> Top Left</>}

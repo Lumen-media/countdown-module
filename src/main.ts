@@ -13,6 +13,8 @@ import { setupI18n } from "./i18n.js"
 type HostExt = {
   fs?: { read: (path: string) => Promise<Uint8Array> }
   overlay?: { project: (viewId: string, props?: unknown) => void; clear: () => void; onStateChange?: (handler: (state: "idle" | "live") => void) => { dispose(): void } }
+  player?: { current?: () => unknown; state?: () => "playing" | "paused" | "idle" }
+  lyrics?: { currentSlide?: () => unknown | null }
   themes: {
     onDefaultBackgroundChange?: (handler: (bg: { src: string; type: string; name: string } | null) => void) => { dispose(): void }
   }
@@ -77,6 +79,12 @@ export default class CountdownPlugin extends LumenPlugin {
     useCountdownStore.getState().setOpenMediaPicker((cb) => host.ui.openMediaPicker(cb))
 
     const hostExt = host as unknown as HostExt
+    useCountdownStore.getState().setExternalBackdropActivityReader(() => {
+      const playerActive = Boolean(hostExt.player?.current?.()) && hostExt.player?.state?.() !== "idle"
+      const lyricsActive = Boolean(hostExt.lyrics?.currentSlide?.())
+      return playerActive || lyricsActive
+    })
+
     if (hostExt.fs) useCountdownStore.getState().setHostFs(hostExt.fs)
     if (hostExt.overlay) {
       useCountdownStore.getState().setOverlay(hostExt.overlay)

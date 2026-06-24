@@ -1,5 +1,6 @@
 import { emit } from "@tauri-apps/api/event"
 import { create } from "zustand"
+import { hasConfiguredBackdrop, isCornerActive, type CountdownTickPayload } from "./lib/display-mode.js"
 import type { BackgroundConfig, BackgroundPreset, CountdownConfig, CountdownState, EndAction } from "./types.js"
 
 type PresenterAPI = { project: (viewId: string, props?: unknown) => void; clear: () => void }
@@ -7,6 +8,8 @@ type OverlayAPI = { project: (viewId: string, props?: unknown) => void; clear: (
 type QueueAPI = { next: () => void; previous: () => void; goTo: (index: number) => void }
 type PlayerAPI = { nextSlide: () => void; play: (itemId: string) => void }
 type LibraryItem = { id: string; title: string; type: string; thumbnail?: string }
+
+type ProfileBackground = CountdownStore["profileBackground"]
 
 const PRESENTER_PANEL_ID = "countdown.presenter"
 
@@ -58,16 +61,50 @@ const DEFAULT_CONFIG: CountdownConfig = {
   },
 }
 
-function emitTick(remaining: number, status: CountdownState["status"], config: CountdownConfig) {
-  emit("countdown:tick", { remaining, status, config }).catch(() => {})
+function getPresentationFlags(config: CountdownConfig, profileBackground: ProfileBackground, externalBackdropActive: boolean) {
+  const cornerActive = isCornerActive(config, profileBackground, externalBackdropActive)
+  const renderConfiguredBackground = !externalBackdropActive
+
+  return { cornerActive, renderConfiguredBackground }
 }
 
-function projectionProps(config: CountdownConfig, timerState: CountdownState) {
-  const isCorner = config.appearance.overlayMode === "corner"
-  const backgroundProps = !isCorner && config.appearance.background.type === "profile" ? { background: "default" } : {}
+function emitTick(
+  remaining: number,
+  status: CountdownState["status"],
+  config: CountdownConfig,
+  profileBackground: ProfileBackground,
+  externalBackdropActive: boolean,
+) {
+  const presentationFlags = getPresentationFlags(config, profileBackground, externalBackdropActive)
+  const payload: CountdownTickPayload = {
+    remaining,
+    status,
+    config,
+    ...presentationFlags,
+  }
+
+  emit("countdown:tick", payload).catch(() => {})
+}
+
+function projectionProps(
+  config: CountdownConfig,
+  timerState: CountdownState,
+  profileBackground: ProfileBackground,
+  externalBackdropActive: boolean,
+) {
+  const presentationFlags = getPresentationFlags(config, profileBackground, externalBackdropActive)
+  const backgroundProps = !externalBackdropActive && config.appearance.background.type === "profile"
+    ? { background: "default" }
+    : {}
+
   return {
     ...backgroundProps,
-    initialTick: { remaining: timerState.remainingSeconds, status: timerState.status, config },
+    initialTick: {
+      remaining: timerState.remainingSeconds,
+      status: timerState.status,
+      config,
+      ...presentationFlags,
+    } satisfies CountdownTickPayload,
   }
 }
 
@@ -121,6 +158,8 @@ type CountdownStore = {
   setPresenter: (p: PresenterAPI) => void
   _overlay: OverlayAPI | null
   setOverlay: (p: OverlayAPI) => void
+  _isExternalBackdropActive: (() => boolean) | null
+  setExternalBackdropActivityReader: (reader: () => boolean) => void
   sendToPresenter: () => void
   clearPresenter: () => void
   sendToOverlay: () => void
@@ -159,6 +198,8 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
   setPresenter: (p) => set({ _presenter: p }),
   _overlay: null,
   setOverlay: (p) => set({ _overlay: p }),
+  _isExternalBackdropActive: null,
+  setExternalBackdropActivityReader: (reader) => set({ _isExternalBackdropActive: reader }),
   _queue: null,
   setQueue: (q) => set({ _queue: q }),
   _player: null,
@@ -167,16 +208,17 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
   setOpenMediaPicker: (fn) => set({ _openMediaPicker: fn }),
 
   sendToPresenter: () => {
-    const { _presenter, _overlay, timerState, config, isOverlayActive } = get()
+    const { _presenter, _overlay, timerState, config, isOverlayActive, profileBackground, _isExternalBackdropActive } = get()
+    const externalBackdropActive = _isExternalBackdropActive?.() ?? false
     if (isOverlayActive) {
       if (!_overlay) return
-      _overlay.project(PRESENTER_PANEL_ID, projectionProps(config, timerState))
-      emitTick(timerState.remainingSeconds, timerState.status, config)
+      _overlay.project(PRESENTER_PANEL_ID, projectionProps(config, timerState, profileBackground, externalBackdropActive))
+      emitTick(timerState.remainingSeconds, timerState.status, config, profileBackground, externalBackdropActive)
       return
     }
-    _presenter?.project(PRESENTER_PANEL_ID, projectionProps(config, timerState))
+    _presenter?.project(PRESENTER_PANEL_ID, projectionProps(config, timerState, profileBackground, externalBackdropActive))
     set({ isPresenterActive: true })
-    emitTick(timerState.remainingSeconds, timerState.status, config)
+    emitTick(timerState.remainingSeconds, timerState.status, config, profileBackground, externalBackdropActive)
   },
 
   clearPresenter: () => {
@@ -186,11 +228,12 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
   },
 
   sendToOverlay: () => {
-    const { _overlay, timerState, config } = get()
+    const { _overlay, timerState, config, profileBackground, _isExternalBackdropActive } = get()
+    const externalBackdropActive = _isExternalBackdropActive?.() ?? false
     if (!_overlay) return
-    _overlay.project(PRESENTER_PANEL_ID, projectionProps(config, timerState))
+    _overlay.project(PRESENTER_PANEL_ID, projectionProps(config, timerState, profileBackground, externalBackdropActive))
     set({ isOverlayActive: true })
-    emitTick(timerState.remainingSeconds, timerState.status, config)
+    emitTick(timerState.remainingSeconds, timerState.status, config, profileBackground, externalBackdropActive)
   },
 
   clearOverlay: () => {
@@ -200,8 +243,9 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
   },
 
   rebroadcast: () => {
-    const { timerState, config } = get()
-    emitTick(timerState.remainingSeconds, timerState.status, config)
+    const { timerState, config, profileBackground, _isExternalBackdropActive } = get()
+    const externalBackdropActive = _isExternalBackdropActive?.() ?? false
+    emitTick(timerState.remainingSeconds, timerState.status, config, profileBackground, externalBackdropActive)
   },
 
   setConfig: (update) =>
@@ -261,54 +305,53 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     })),
 
   startTimer: () => {
-    const { timerState, config, _presenter, _overlay, isOverlayActive } = get()
+    const { timerState, config, _presenter, _overlay, isOverlayActive, profileBackground, _isExternalBackdropActive } = get()
+    const externalBackdropActive = _isExternalBackdropActive?.() ?? false
     if (timerState.status === "running") return
 
     clearTick()
 
+    const newState = timerState.status === "paused" && timerState.pausedAt !== null && timerState.startedAt !== null
+      ? {
+          ...timerState,
+          status: "running" as const,
+          startedAt: (timerState.startedAt ?? 0) + (Date.now() - timerState.pausedAt),
+          pausedAt: null,
+          firedTriggers: [],
+        }
+      : {
+          status: "running" as const,
+          remainingSeconds: config.totalSeconds,
+          startedAt: Date.now(),
+          pausedAt: null,
+          firedTriggers: [],
+        }
+
+    set({ timerState: newState })
+
     if (isOverlayActive) {
-      _overlay?.project(PRESENTER_PANEL_ID, projectionProps(config, timerState))
+      _overlay?.project(PRESENTER_PANEL_ID, projectionProps(config, newState, profileBackground, externalBackdropActive))
     } else {
-      _presenter?.project(PRESENTER_PANEL_ID, projectionProps(config, timerState))
+      _presenter?.project(PRESENTER_PANEL_ID, projectionProps(config, newState, profileBackground, externalBackdropActive))
       set({ isPresenterActive: true })
     }
-    if (timerState.status === "paused" && timerState.pausedAt !== null && timerState.startedAt !== null) {
-      const pausedDuration = Date.now() - timerState.pausedAt
-      const newState = {
-        ...timerState,
-        status: "running" as const,
-        startedAt: (timerState.startedAt ?? 0) + pausedDuration,
-        pausedAt: null,
-        firedTriggers: [],
-      }
-      set({ timerState: newState })
-      emitTick(newState.remainingSeconds, "running", config)
-    } else {
-      const newState = {
-        status: "running" as const,
-        remainingSeconds: config.totalSeconds,
-        startedAt: Date.now(),
-        pausedAt: null,
-        firedTriggers: [],
-      }
-      set({ timerState: newState })
-      emitTick(newState.remainingSeconds, "running", config)
-    }
 
+    emitTick(newState.remainingSeconds, "running", config, profileBackground, externalBackdropActive)
     scheduleTick(get)
   },
-
   pauseTimer: () => {
     clearTick()
-    const { timerState, config } = get()
+    const { timerState, config, profileBackground, _isExternalBackdropActive } = get()
+    const externalBackdropActive = _isExternalBackdropActive?.() ?? false
     const newState = { ...timerState, status: "paused" as const, pausedAt: Date.now() }
     set({ timerState: newState })
-    emitTick(newState.remainingSeconds, "paused", config)
+    emitTick(newState.remainingSeconds, "paused", config, profileBackground, externalBackdropActive)
   },
 
   resetTimer: () => {
     clearTick()
-    const { config } = get()
+    const { config, profileBackground, _isExternalBackdropActive } = get()
+    const externalBackdropActive = _isExternalBackdropActive?.() ?? false
     const newState = {
       status: "idle" as const,
       remainingSeconds: config.totalSeconds,
@@ -317,11 +360,12 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
       firedTriggers: [],
     }
     set({ timerState: newState })
-    emitTick(newState.remainingSeconds, "idle", config)
+    emitTick(newState.remainingSeconds, "idle", config, profileBackground, externalBackdropActive)
   },
 
   tick: () => {
-    const { timerState, config } = get()
+    const { timerState, config, profileBackground, _isExternalBackdropActive } = get()
+    const externalBackdropActive = _isExternalBackdropActive?.() ?? false
     if (timerState.status !== "running" || timerState.startedAt === null) return
 
     const elapsed = (Date.now() - timerState.startedAt) / 1000
@@ -332,7 +376,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
       set((s) => ({
         timerState: { ...s.timerState, status: "finished", remainingSeconds: 0 },
       }))
-      emitTick(0, "finished", config)
+      emitTick(0, "finished", config, profileBackground, externalBackdropActive)
       if (config.behavior.hideOnCompletion) {
         const { _presenter, _overlay, isOverlayActive } = get()
         if (isOverlayActive) {
@@ -390,7 +434,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
       }))
     }
 
-    emitTick(remaining, "running", updatedConfig)
+    emitTick(remaining, "running", updatedConfig, profileBackground, externalBackdropActive)
   },
 }))
 
