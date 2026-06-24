@@ -3,6 +3,7 @@ import { type LumenHost, LumenPlugin } from "@lumen-media/module-sdk"
 import { createElement } from "react"
 import { listen } from "@tauri-apps/api/event"
 import { CountdownDialog } from "./components/CountdownDialog.js"
+import { CountdownHeaderStatus } from "./components/CountdownHeaderStatus.js"
 import { CountdownDisplay } from "./components/presenter/CountdownDisplay.js"
 import { QueueTriggerConfigComponent, CountdownSummary, type QueueTriggerConfig } from "./components/QueueTriggerConfig.js"
 import { useCountdownStore } from "./store.js"
@@ -47,6 +48,14 @@ export default class CountdownPlugin extends LumenPlugin {
       slot: "dialog",
       title: "Countdown",
       component: () => createElement(CountdownDialog),
+    })
+
+    host.panels.add({
+      id: "countdown.header-status",
+      slot: "app.header.trailing" as never,
+      component: () => createElement(CountdownHeaderStatus, {
+        onOpen: () => host.ui.openDialog("countdown.dialog"),
+      }),
     })
 
     host.menus.addItem("tools", {
