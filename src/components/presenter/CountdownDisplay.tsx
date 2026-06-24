@@ -5,6 +5,14 @@ import { formatTime } from "../../store.js"
 import type { CountdownConfig } from "../../types.js"
 import { TextCarousel } from "../TextCarousel.js"
 
+function formatPreText(text: string, maxChars = 28): string {
+  const normalized = text.trim()
+  if (normalized.length <= maxChars) return normalized
+
+  const slicePoint = normalized.lastIndexOf(" ", maxChars)
+  const splitIndex = slicePoint > 0 ? slicePoint : maxChars
+  return `${normalized.slice(0, splitIndex)}\n${normalized.slice(splitIndex).trimStart()}`
+}
 function bgToStyle(config: CountdownConfig): React.CSSProperties {
   const bg = config.appearance.background
   if (bg.type === "solid") return { backgroundColor: bg.color }
@@ -70,7 +78,7 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
               transition: "font-size 260ms ease",
             }}
           >
-            {preText}
+            {formatPreText(preText)}
           </span>
         )}
 

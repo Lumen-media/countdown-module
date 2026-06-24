@@ -3,6 +3,14 @@ import { useCountdownStore, formatTime } from "../../store.js"
 import type { BackgroundConfig } from "../../types.js"
 import { TextCarousel } from "../TextCarousel.js"
 
+function formatPreText(text: string, maxChars = 28): string {
+  const normalized = text.trim()
+  if (normalized.length <= maxChars) return normalized
+
+  const slicePoint = normalized.lastIndexOf(" ", maxChars)
+  const splitIndex = slicePoint > 0 ? slicePoint : maxChars
+  return `${normalized.slice(0, splitIndex)}\n${normalized.slice(splitIndex).trimStart()}`
+}
 function bgToStyle(bg: BackgroundConfig): React.CSSProperties {
   if (bg.type === "solid") return { backgroundColor: bg.color }
   if (bg.type === "gradient") return { backgroundImage: bg.value }
@@ -45,7 +53,7 @@ export function CountdownPreview() {
   const profileBackground = useCountdownStore((s) => s.profileBackground)
   const { appearance, preText, postText } = config
   const remainingSeconds = config.totalSeconds
-  const cornerActive = false
+  const cornerActive = appearance.overlayMode === "corner"
 
   const glow = appearance.textShadowGlow ?? 0
   const timerShadow = glow > 0 ? `0 0 ${glow * 40}px rgba(255,255,255,0.8)` : undefined
@@ -79,7 +87,7 @@ export function CountdownPreview() {
               transition: "font-size 260ms ease",
             }}
           >
-            {preText}
+            {formatPreText(preText)}
           </span>
         )}
 
