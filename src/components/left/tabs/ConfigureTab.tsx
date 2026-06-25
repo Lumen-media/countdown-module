@@ -5,12 +5,13 @@ import { Button, Input, ScrollArea, Select, TextEditor } from "@lumen-media/modu
 import { cn } from "../../../lib/cn.js"
 import { useCountdownStore } from "../../../store.js"
 import type { BackgroundPreset } from "../../../types.js"
+import { t } from "../../../i18n.js"
 
-const PRESETS: { id: BackgroundPreset; label: string }[] = [
-  { id: "default", label: "Default" },
-  { id: "dark-minimal", label: "Dark Minimal" },
-  { id: "light-clean", label: "Light Clean" },
-  { id: "custom", label: "Custom" },
+const PRESETS: { id: BackgroundPreset; labelKey: string }[] = [
+  { id: "default", labelKey: "configure.preset.default" },
+  { id: "dark-minimal", labelKey: "configure.preset.darkMinimal" },
+  { id: "light-clean", labelKey: "configure.preset.lightClean" },
+  { id: "custom", labelKey: "configure.preset.custom" },
 ]
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -64,7 +65,7 @@ function PresetThumbnail({ preset }: { preset: BackgroundPreset }) {
         )}
         {hasMedia
           ? <span className="relative drop-shadow text-white">05:00</span>
-          : <><Video size={14} /><span className="text-[9px]">Custom</span></>
+          : <><Video size={14} /><span className="text-[9px]">{t("configure.preset.custom")}</span></>
         }
       </div>
     )
@@ -125,12 +126,12 @@ export function ConfigureTab() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <SectionLabel>Duration</SectionLabel>
+        <SectionLabel>{t("configure.section.duration")}</SectionLabel>
         <div className="flex gap-2">
           {(
             [
-              { label: "Minutes", value: localMinutes, set: setLocalMinutes },
-              { label: "Seconds", value: localSeconds, set: setLocalSeconds },
+              { label: t("configure.duration.minutes"), value: localMinutes, set: setLocalMinutes },
+              { label: t("configure.duration.seconds"), value: localSeconds, set: setLocalSeconds },
             ] as const
           ).map(({ label, value, set }) => (
             <div
@@ -153,8 +154,8 @@ export function ConfigureTab() {
 
         <div className="flex justify-between gap-1.5 mt-2.5">
           {[
-            { label: "+ 10s", delta: 10 },
-            { label: "− 10s", delta: -10 },
+            { label: t("configure.adjust.plus10"), delta: 10 },
+            { label: t("configure.adjust.minus10"), delta: -10 },
           ].map(({ label, delta }) => (
             <Button
               key={label}
@@ -173,16 +174,16 @@ export function ConfigureTab() {
             className="text-muted-foreground hover:text-foreground gap-1 flex-1"
           >
             <RotateCcw size={11} />
-            Reset
+            {t("configure.adjust.reset")}
           </Button>
         </div>
       </div>
 
       <div>
-        <SectionLabel>Display Text</SectionLabel>
+        <SectionLabel>{t("configure.section.displayText")}</SectionLabel>
         <div className="flex flex-col gap-2">
           <Input
-            placeholder="Pre text"
+            placeholder={t("configure.displayText.pre")}
             value={config.preText}
             onChange={(e) => setConfig({ preText: e.target.value })}
             className="bg-background dark:bg-background"
@@ -190,7 +191,7 @@ export function ConfigureTab() {
           <label className="max-h-[4.1lh] p-1 overflow-hidden rounded-md border border-input bg-background">
             <ScrollArea className="h-full max-h-[4.1lh]">
               <TextEditor
-                placeholder="Each line rotates as a carousel every 10s"
+                placeholder={t("configure.displayText.post")}
                 defaultValue={config.postText}
                 onChange={(e) => setConfig({ postText: e })}
                 className="[&_.tiptap]:p-1"
@@ -201,7 +202,7 @@ export function ConfigureTab() {
       </div>
 
       <div>
-        <SectionLabel>On Completion</SectionLabel>
+        <SectionLabel>{t("configure.section.onCompletion")}</SectionLabel>
         <Select
           value={config.actions.autoAdvance.enabled ? "auto-next" : "none"}
           onValueChange={(v) =>
@@ -218,18 +219,18 @@ export function ConfigureTab() {
         >
           <Select.SelectTrigger className="w-full bg-background dark:bg-background">
             <Select.SelectValue>
-              {config.actions.autoAdvance.enabled ? "Auto-switch to next Scene" : "None"}
+              {config.actions.autoAdvance.enabled ? t("configure.onCompletion.autoNext") : t("configure.onCompletion.none")}
             </Select.SelectValue>
           </Select.SelectTrigger>
           <Select.SelectContent>
-            <Select.SelectItem value="none">None</Select.SelectItem>
-            <Select.SelectItem value="auto-next">Auto-switch to next Scene</Select.SelectItem>
+            <Select.SelectItem value="none">{t("configure.onCompletion.none")}</Select.SelectItem>
+            <Select.SelectItem value="auto-next">{t("configure.onCompletion.autoNext")}</Select.SelectItem>
           </Select.SelectContent>
         </Select>
       </div>
 
       <div>
-        <SectionLabel>Background Preset</SectionLabel>
+        <SectionLabel>{t("configure.section.backgroundPreset")}</SectionLabel>
         <div className="grid grid-cols-2 gap-2">
           {PRESETS.map((p) => {
             const isSelected = config.appearance.preset === p.id
@@ -247,7 +248,7 @@ export function ConfigureTab() {
                 <span
                   className={`text-xs text-center ${isSelected ? "text-foreground font-semibold" : "text-muted-foreground font-normal"}`}
                 >
-                  {p.label}
+                  {t(p.labelKey)}
                 </span>
               </button>
             )

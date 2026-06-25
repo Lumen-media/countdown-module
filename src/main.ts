@@ -8,7 +8,7 @@ import { CountdownDisplay } from "./components/presenter/CountdownDisplay.js"
 import { QueueTriggerConfigComponent, CountdownSummary, type QueueTriggerConfig } from "./components/QueueTriggerConfig.js"
 import { useCountdownStore } from "./store.js"
 import type { CountdownConfig } from "./types.js"
-import { setupI18n } from "./i18n.js"
+import { setupI18n, t } from "./i18n.js"
 
 type HostExt = {
   fs?: { read: (path: string) => Promise<Uint8Array> }
@@ -49,7 +49,7 @@ export default class CountdownPlugin extends LumenPlugin {
     host.panels.add({
       id: "countdown.dialog",
       slot: "dialog",
-      title: "Countdown",
+      title: t("dialog.title"),
       component: () => createElement(CountdownDialog),
     })
 
@@ -64,13 +64,13 @@ export default class CountdownPlugin extends LumenPlugin {
     host.menus.addItem("tools", {
       type: "action",
       id: "countdown.open",
-      label: "Countdown Timer",
+      label: t("main.menu.open"),
       onClick: () => host.ui.openDialog("countdown.dialog"),
     })
 
     host.commands.add({
       id: "countdown.open",
-      title: "Open Countdown Timer",
+      title: t("main.command.open"),
       run: () => host.ui.openDialog("countdown.dialog"),
     })
 
@@ -125,7 +125,7 @@ export default class CountdownPlugin extends LumenPlugin {
 
     host.queue.registerTrigger<QueueTriggerConfig>({
       id: "countdown.wait",
-      label: "Wait (Countdown)",
+      label: t("main.trigger.wait"),
       ConfigComponent: QueueTriggerConfigComponent,
       SummaryComponent: CountdownSummary,
       defaultConfig: { seconds: 300 },

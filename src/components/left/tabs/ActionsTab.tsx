@@ -3,6 +3,7 @@ import { Label, Select, Switch } from "@lumen-media/module-sdk/ui"
 import { useCountdownStore } from "../../../store.js"
 import type { CountdownSoundSelection, EndAction, TimeTrigger } from "../../../types.js"
 import { createBundledSoundSelection, createDefaultBundledSoundSelection, SOUND_OPTIONS } from "../../../lib/sounds.js"
+import { t } from "../../../i18n.js"
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -28,26 +29,24 @@ function isLibrarySound(sound: CountdownSoundSelection | null): sound is Countdo
 
 type ActionOption = { value: EndAction["type"] | "warning-chime" | "change-text"; label: string; icon: React.ReactNode }
 
-const ACTION_OPTIONS: ActionOption[] = [
-  { value: "change-text", label: "Change Text", icon: <Type size={13} /> },
-  { value: "warning-chime", label: "Play Sound", icon: <Bell size={13} /> },
-  { value: "queue.next", label: "Next in Queue", icon: <ChevronsRight size={13} /> },
-  { value: "queue.previous", label: "Previous in Queue", icon: <SkipBack size={13} /> },
-  { value: "player.next-slide", label: "Next Slide", icon: <ChevronRight size={13} /> },
-  { value: "player.play", label: "Play Specific Media", icon: <Image size={13} /> },
-]
-
-const END_ACTION_OPTIONS = ACTION_OPTIONS.filter(
-  (o) => o.value !== "warning-chime" && o.value !== "change-text"
-) as { value: EndAction["type"]; label: string; icon: React.ReactNode }[]
-
-const NONE_SOUND_VALUE = "__none__"
-const SOUND_PLACEHOLDER = "Select an audio"
+function getActionOptions(): ActionOption[] {
+  return [
+    { value: "change-text", label: t("actions.option.changeText"), icon: <Type size={13} /> },
+    { value: "warning-chime", label: t("actions.option.playSound"), icon: <Bell size={13} /> },
+    { value: "queue.next", label: t("actions.option.nextInQueue"), icon: <ChevronsRight size={13} /> },
+    { value: "queue.previous", label: t("actions.option.previousInQueue"), icon: <SkipBack size={13} /> },
+    { value: "player.next-slide", label: t("actions.option.nextSlide"), icon: <ChevronRight size={13} /> },
+    { value: "player.play", label: t("actions.option.playSpecificMedia"), icon: <Image size={13} /> },
+  ]
+}
 
 function EndActionSelector() {
   const { config, setConfig, _openMediaPicker } = useCountdownStore()
   const { autoAdvance } = config.actions
   const action = autoAdvance.action
+  const endActionOptions = getActionOptions().filter(
+    (option) => option.value !== "warning-chime" && option.value !== "change-text"
+  ) as { value: EndAction["type"]; label: string; icon: React.ReactNode }[]
 
   function updateAction(patch: EndAction) {
     setConfig({ actions: { ...config.actions, autoAdvance: { ...autoAdvance, action: patch } } })
@@ -70,21 +69,21 @@ function EndActionSelector() {
 
   return (
     <div className="flex flex-col gap-2">
-      <Select value={action.type} onValueChange={(v) => handleTypeChange(v as EndAction["type"])}>
+      <Select value={action.type} onValueChange={(value) => handleTypeChange(value as EndAction["type"])}>
         <Select.SelectTrigger className="w-full bg-background dark:bg-background">
           <Select.SelectValue>
             <span className="flex items-center gap-1.5">
-              {END_ACTION_OPTIONS.find((o) => o.value === action.type)?.icon}
-              {END_ACTION_OPTIONS.find((o) => o.value === action.type)?.label}
+              {endActionOptions.find((option) => option.value === action.type)?.icon}
+              {endActionOptions.find((option) => option.value === action.type)?.label}
             </span>
           </Select.SelectValue>
         </Select.SelectTrigger>
         <Select.SelectContent>
-          {END_ACTION_OPTIONS.map((opt) => (
-            <Select.SelectItem key={opt.value} value={opt.value}>
+          {endActionOptions.map((option) => (
+            <Select.SelectItem key={option.value} value={option.value}>
               <span className="flex items-center gap-1.5">
-                {opt.icon}
-                {opt.label}
+                {option.icon}
+                {option.label}
               </span>
             </Select.SelectItem>
           ))}
@@ -112,7 +111,7 @@ function EndActionSelector() {
               className="flex-1 flex items-center justify-center gap-1.5 bg-background rounded-md px-3 py-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-foreground/30 cursor-pointer transition-colors"
             >
               <ExternalLink size={12} />
-              Choose media…
+              {t("actions.chooseMedia")}
             </button>
           )}
         </div>
@@ -123,9 +122,12 @@ function EndActionSelector() {
 
 function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }) {
   const { config, setConfig, _openMediaPicker, _library } = useCountdownStore()
+  const actionOptions = getActionOptions()
+  const currentOption = actionOptions.find((option) => option.value === trigger.type)
+  const soundPlaceholder = t("actions.selectAudio")
 
   function replaceTrigger(next: TimeTrigger) {
-    const updated = config.actions.timeTriggers.map((t, i) => i === index ? next : t)
+    const updated = config.actions.timeTriggers.map((item, itemIndex) => itemIndex === index ? next : item)
     setConfig({ actions: { ...config.actions, timeTriggers: updated as TimeTrigger[] } })
   }
 
@@ -142,7 +144,7 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
   }
 
   function removeTrigger() {
-    const updated = config.actions.timeTriggers.filter((_, i) => i !== index)
+    const updated = config.actions.timeTriggers.filter((_, itemIndex) => itemIndex !== index)
     setConfig({ actions: { ...config.actions, timeTriggers: updated } })
   }
 
@@ -174,14 +176,12 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
     })
   }
 
-  const currentOption = ACTION_OPTIONS.find((o) => o.value === trigger.type)
-
   return (
     <div className="bg-background rounded-xl px-3 pt-3 pb-2.5 flex flex-col gap-2">
       <div className="flex items-center gap-2">
         <Switch
           checked={trigger.enabled}
-          onCheckedChange={(v) => updateTrigger({ enabled: v })}
+          onCheckedChange={(checked) => updateTrigger({ enabled: checked })}
           className="shrink-0"
         />
         <div className="flex items-center gap-1.5 flex-1 min-w-0 text-xs text-muted-foreground">
@@ -197,7 +197,7 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
         </button>
       </div>
 
-      <Select value={trigger.type} onValueChange={(v) => changeType(v as TimeTrigger["type"])}>
+      <Select value={trigger.type} onValueChange={(value) => changeType(value as TimeTrigger["type"])}>
         <Select.SelectTrigger className="w-full bg-card dark:bg-card text-xs">
           <Select.SelectValue>
             <span className="flex items-center gap-1.5">
@@ -207,11 +207,11 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
           </Select.SelectValue>
         </Select.SelectTrigger>
         <Select.SelectContent>
-          {ACTION_OPTIONS.map((opt) => (
-            <Select.SelectItem key={opt.value} value={opt.value}>
+          {actionOptions.map((option) => (
+            <Select.SelectItem key={option.value} value={option.value}>
               <span className="flex items-center gap-1.5">
-                {opt.icon}
-                {opt.label}
+                {option.icon}
+                {option.label}
               </span>
             </Select.SelectItem>
           ))}
@@ -219,16 +219,16 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
       </Select>
 
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">At</span>
+        <span className="text-xs text-muted-foreground">{t("actions.at")}</span>
         <input
           type="text"
           value={formatAtSeconds(trigger.atSeconds)}
-          onChange={(e) => {
-            const parts = e.target.value.split(":")
+          onChange={(event) => {
+            const parts = event.target.value.split(":")
             if (parts.length === 2) {
-              const m = parseInt(parts[0]) || 0
-              const s = Math.min(59, parseInt(parts[1]) || 0)
-              updateTrigger({ atSeconds: m * 60 + s })
+              const minutes = parseInt(parts[0]) || 0
+              const seconds = Math.min(59, parseInt(parts[1]) || 0)
+              updateTrigger({ atSeconds: minutes * 60 + seconds })
             }
           }}
           className="w-14 text-right bg-transparent border-none outline-none text-sm font-mono font-bold tabular-nums"
@@ -240,16 +240,16 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
         <div className="flex flex-col gap-1.5">
           <input
             type="text"
-            placeholder="Pre text"
+            placeholder={t("actions.preText")}
             value={trigger.preText}
-            onChange={(e) => updateTrigger({ preText: e.target.value })}
+            onChange={(event) => updateTrigger({ preText: event.target.value })}
             className="w-full bg-card rounded-md px-2 py-1.5 text-xs border-none outline-none text-foreground placeholder:text-muted-foreground"
           />
           <input
             type="text"
-            placeholder="Post text"
+            placeholder={t("actions.postText")}
             value={trigger.postText}
-            onChange={(e) => updateTrigger({ postText: e.target.value })}
+            onChange={(event) => updateTrigger({ postText: event.target.value })}
             className="w-full bg-card rounded-md px-2 py-1.5 text-xs border-none outline-none text-foreground placeholder:text-muted-foreground"
           />
         </div>
@@ -258,17 +258,17 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
       {trigger.type === "warning-chime" && (
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Sound</span>
+            <span className="text-xs text-muted-foreground">{t("actions.sound")}</span>
             <Music size={13} className="text-muted-foreground" />
           </div>
 
           {SOUND_OPTIONS.length > 0 ? (
             <Select
-              value={trigger.sound?.source === "bundled" ? trigger.sound.value : NONE_SOUND_VALUE}
-              onValueChange={(value) => updateTrigger({ sound: value === NONE_SOUND_VALUE ? null : createBundledSoundSelection(value) })}
+              value={trigger.sound?.source === "bundled" ? trigger.sound.value : undefined}
+              onValueChange={(value) => updateTrigger({ sound: createBundledSoundSelection(value) })}
             >
               <Select.SelectTrigger className="w-full bg-card dark:bg-card text-xs">
-                <Select.SelectValue placeholder={SOUND_PLACEHOLDER} />
+                <Select.SelectValue placeholder={soundPlaceholder} />
               </Select.SelectTrigger>
               <Select.SelectContent>
                 {SOUND_OPTIONS.map((sound) => (
@@ -280,7 +280,7 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
             </Select>
           ) : (
             <div className="rounded-md bg-card px-2 py-1.5 text-xs text-muted-foreground">
-              No bundled sounds found in assets or assets/sounds.
+              {t("actions.noBundledSounds")}
             </div>
           )}
 
@@ -290,7 +290,7 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
               onClick={() => updateTrigger({ sound: null })}
               className="self-end text-xs text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0"
             >
-              Clear selected bundled sound
+              {t("actions.clearBundledSound")}
             </button>
           )}
 
@@ -314,7 +314,7 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
             className="flex items-center justify-center gap-1.5 bg-card rounded-md px-3 py-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-foreground/30 cursor-pointer transition-colors w-full"
           >
             <ExternalLink size={12} />
-            Choose audio from library…
+            {t("actions.chooseLibraryAudio")}
           </button>
         </div>
       )}
@@ -339,7 +339,7 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
             className="flex items-center justify-center gap-1.5 bg-card rounded-md px-3 py-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-foreground/30 cursor-pointer transition-colors w-full"
           >
             <ExternalLink size={12} />
-            Choose media…
+            {t("actions.chooseMedia")}
           </button>
         )
       )}
@@ -351,6 +351,7 @@ export function ActionsTab() {
   const { config, setConfig } = useCountdownStore()
   const { autoAdvance } = config.actions
   const { hideOnCompletion, completionSound } = config.behavior
+  const soundPlaceholder = t("actions.selectAudio")
 
   function addTrigger() {
     const newTrigger: TimeTrigger = { enabled: true, atSeconds: 60, type: "change-text", preText: "", postText: "" }
@@ -360,7 +361,7 @@ export function ActionsTab() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <SectionLabel>End Action</SectionLabel>
+        <SectionLabel>{t("actions.section.endAction")}</SectionLabel>
         <div className="bg-background rounded-xl px-3 pt-3 pb-2.5 flex flex-col gap-2.5">
           <div className="flex items-center gap-2">
             <div
@@ -369,27 +370,27 @@ export function ActionsTab() {
             >
               <SkipForward size={13} style={{ color: "var(--primary)" }} />
             </div>
-            <span className="text-sm font-semibold text-foreground flex-1">Auto-Advance</span>
+            <span className="text-sm font-semibold text-foreground flex-1">{t("actions.autoAdvance.title")}</span>
             <Switch
               checked={autoAdvance.enabled}
-              onCheckedChange={(v) =>
-                setConfig({ actions: { ...config.actions, autoAdvance: { ...autoAdvance, enabled: v } } })
+              onCheckedChange={(checked) =>
+                setConfig({ actions: { ...config.actions, autoAdvance: { ...autoAdvance, enabled: checked } } })
               }
               className="shrink-0"
             />
           </div>
           <p className="text-xs text-muted-foreground leading-snug">
-            Automatically trigger an action when the timer reaches zero.
+            {t("actions.autoAdvance.description")}
           </p>
           {autoAdvance.enabled && <EndActionSelector />}
         </div>
       </div>
 
       <div>
-        <SectionLabel>Time Triggers</SectionLabel>
+        <SectionLabel>{t("actions.section.timeTriggers")}</SectionLabel>
         <div className="flex flex-col gap-2">
-          {config.actions.timeTriggers.map((trigger, i) => (
-            <TriggerCard key={i} trigger={trigger} index={i} />
+          {config.actions.timeTriggers.map((trigger, index) => (
+            <TriggerCard key={index} trigger={trigger} index={index} />
           ))}
           <button
             type="button"
@@ -397,26 +398,26 @@ export function ActionsTab() {
             className="border border-dashed border-border rounded-xl py-2.5 text-xs text-muted-foreground cursor-pointer flex items-center justify-center gap-1.5 hover:text-foreground hover:border-foreground/30 transition-colors bg-transparent w-full"
           >
             <Plus size={12} />
-            Add Trigger
+            {t("actions.addTrigger")}
           </button>
         </div>
       </div>
 
       <div>
-        <SectionLabel>Behavior</SectionLabel>
+        <SectionLabel>{t("actions.section.behavior")}</SectionLabel>
         <div className="space-y-3">
           <div className="bg-background rounded-xl px-3 pt-3 pb-2.5 flex flex-col gap-2">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-foreground">Completion Sound</span>
+              <span className="text-sm font-semibold text-foreground">{t("actions.completionSound")}</span>
               <Music size={13} className="text-muted-foreground" />
             </div>
             {SOUND_OPTIONS.length > 0 ? (
               <Select
-                value={completionSound || NONE_SOUND_VALUE}
-                onValueChange={(value) => setConfig({ behavior: { ...config.behavior, completionSound: value === NONE_SOUND_VALUE ? "" : value } })}
+                value={completionSound || undefined}
+                onValueChange={(value) => setConfig({ behavior: { ...config.behavior, completionSound: value } })}
               >
                 <Select.SelectTrigger className="w-full bg-card dark:bg-card text-xs">
-                  <Select.SelectValue placeholder={SOUND_PLACEHOLDER} />
+                  <Select.SelectValue placeholder={soundPlaceholder} />
                 </Select.SelectTrigger>
                 <Select.SelectContent>
                   {SOUND_OPTIONS.map((sound) => (
@@ -428,24 +429,24 @@ export function ActionsTab() {
               </Select>
             ) : (
               <div className="rounded-md bg-card px-2 py-1.5 text-xs text-muted-foreground">
-                No bundled sounds found in assets or assets/sounds.
+                {t("actions.noBundledSounds")}
               </div>
             )}
           </div>
 
           <Label className="flex w-full items-center justify-between text-sm text-foreground">
-            Hide on completion
+            {t("actions.hideOnCompletion")}
             <Switch
               checked={hideOnCompletion}
-              onCheckedChange={(v) => setConfig({ behavior: { ...config.behavior, hideOnCompletion: v } })}
+              onCheckedChange={(checked) => setConfig({ behavior: { ...config.behavior, hideOnCompletion: checked } })}
               className="shrink-0"
             />
           </Label>
           <Label className="flex w-full items-center justify-between text-sm text-foreground">
-            Allow negative time (overrun)
+            {t("actions.allowNegative")}
             <Switch
               checked={config.allowNegative}
-              onCheckedChange={(v) => setConfig({ allowNegative: v })}
+              onCheckedChange={(checked) => setConfig({ allowNegative: checked })}
               className="shrink-0"
             />
           </Label>

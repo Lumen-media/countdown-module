@@ -1,19 +1,13 @@
 import { Play, Pause, RotateCcw, Eye, EyeOff, ExternalLink } from "lucide-react"
 import { useCountdownStore, formatTime } from "../../store.js"
 import { Button } from "@lumen-media/module-sdk/ui"
+import { t } from "../../i18n.js"
 
 const STATUS_DOT: Record<string, string> = {
   idle: "#f59e0b",
   running: "#22c55e",
   paused: "#6b7280",
   finished: "#ef4444",
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  idle: "Ready to start",
-  running: "Running",
-  paused: "Paused",
-  finished: "Finished",
 }
 
 export function PanelFooter() {
@@ -24,6 +18,12 @@ export function PanelFooter() {
   const isFinished = status === "finished"
   const isNegative = config.allowNegative && remainingSeconds < 0
   const handlePause = isNegative ? resetTimer : pauseTimer
+  const statusLabels: Record<string, string> = {
+    idle: t("footer.status.idle"),
+    running: t("footer.status.running"),
+    paused: t("footer.status.paused"),
+    finished: t("footer.status.finished"),
+  }
 
   return (
     <div className="w-full flex flex-col gap-2.5 shrink-0">
@@ -34,7 +34,7 @@ export function PanelFooter() {
             style={{ background: STATUS_DOT[status] ?? STATUS_DOT.idle }}
           />
           <span className="text-xs text-muted-foreground">
-            {STATUS_LABEL[status] ?? STATUS_LABEL.idle}
+            {statusLabels[status] ?? statusLabels.idle}
           </span>
         </div>
         <span className="text-sm font-semibold text-foreground tabular-nums">
@@ -49,7 +49,7 @@ export function PanelFooter() {
             className="flex-1 py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 cursor-pointer border-none transition-opacity hover:opacity-90"
           >
             <RotateCcw size={14} />
-            Reset
+            {t("footer.reset")}
           </Button>
         ) : (
           <>
@@ -58,7 +58,7 @@ export function PanelFooter() {
               className="flex-1 py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 cursor-pointer border-none transition-opacity hover:opacity-90"
             >
               {isRunning ? <Pause size={14} /> : <Play size={14} />}
-              {isRunning ? "Pause" : isPaused ? "Resume" : "Start Countdown"}
+              {isRunning ? t("footer.pause") : isPaused ? t("footer.resume") : t("footer.start")}
             </Button>
             {isPaused && (
               <Button
@@ -80,11 +80,11 @@ export function PanelFooter() {
           onClick={isOverlayActive ? clearOverlay : isPresenterActive ? clearPresenter : sendToPresenter}
         >
           {isOverlayActive || isPresenterActive ? <EyeOff size={13} /> : <Eye size={13} />}
-          {isOverlayActive ? "Close Overlay" : isPresenterActive ? "Exit" : "Preview"}
+          {isOverlayActive ? t("footer.closeOverlay") : isPresenterActive ? t("footer.exit") : t("footer.preview")}
         </Button>
         <Button variant="ghost" className="text-xs" onClick={isOverlayActive ? clearOverlay : sendToOverlay}>
           <ExternalLink size={13} />
-          {isOverlayActive ? "Overlay Active" : "Overlay"}
+          {isOverlayActive ? t("footer.overlayActive") : t("footer.overlay")}
         </Button>
       </div>
     </div>

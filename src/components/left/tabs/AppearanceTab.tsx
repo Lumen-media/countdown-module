@@ -7,6 +7,7 @@ import { cn } from "../../../lib/cn.js"
 import { useLocalFonts } from "../../../hooks/useLocalFonts.js"
 import { useCountdownStore } from "../../../store.js"
 import type { BackgroundConfig, CountdownConfig } from "../../../types.js"
+import { t } from "../../../i18n.js"
 
 const FONT_WEIGHTS = ["Thin", "Light", "Regular", "Medium", "Semi Bold", "Bold", "Extra Bold", "Black"]
 
@@ -248,10 +249,10 @@ function GradientEditor({ value, onChange }: { value: string; onChange: (v: stri
   }
   return (
     <div className="flex flex-col gap-2">
-      <ColorRow label="Color 1" color={color1} onChange={(c) => update({ color1: c })} />
-      <ColorRow label="Color 2" color={color2} onChange={(c) => update({ color2: c })} />
+      <ColorRow label={t("appearance.background.color1")} color={color1} onChange={(c) => update({ color1: c })} />
+      <ColorRow label={t("appearance.background.color2")} color={color2} onChange={(c) => update({ color2: c })} />
       <div className="flex items-center justify-between rounded-md bg-background px-3 py-2.5">
-        <span className="text-sm text-foreground">Angle</span>
+        <span className="text-sm text-foreground">{t("appearance.background.angle")}</span>
         <RotationKnob value={angle} onChange={(v) => update({ angle: v })} />
       </div>
     </div>
@@ -268,11 +269,11 @@ export function AppearanceTab() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <SectionLabel>Typography</SectionLabel>
+        <SectionLabel>{t("appearance.section.typography")}</SectionLabel>
         <div className="flex flex-col gap-2">
           <Combobox value={appearance.font} onValueChange={(v) => updateAppearance({ font: v })}>
             <Combobox.ComboboxInput
-              placeholder="Search font…"
+              placeholder={t("appearance.searchFont")}
               className="bg-background px-1 dark:bg-background"
             />
             <Combobox.ComboboxContent>
@@ -280,7 +281,7 @@ export function AppearanceTab() {
                 {fonts.map((f) => (
                   <Combobox.ComboboxItem key={f} value={f}>{f}</Combobox.ComboboxItem>
                 ))}
-                <Combobox.ComboboxEmpty>No fonts found</Combobox.ComboboxEmpty>
+                <Combobox.ComboboxEmpty>{t("appearance.noFontsFound")}</Combobox.ComboboxEmpty>
               </Combobox.ComboboxList>
             </Combobox.ComboboxContent>
           </Combobox>
@@ -306,21 +307,21 @@ export function AppearanceTab() {
       </div>
 
       <div>
-        <SectionLabel>Colors</SectionLabel>
+        <SectionLabel>{t("appearance.section.colors")}</SectionLabel>
         <div className="flex flex-col gap-2">
           <ColorRow
-            label="Timer Text"
+            label={t("appearance.color.timerText")}
             color={appearance.timerColor}
             onChange={(c) => updateAppearance({ timerColor: c })}
           />
           <ColorRow
-            label="Pre / Post Text"
+            label={t("appearance.color.prePostText")}
             color={appearance.prePostColor}
             onChange={(c) => updateAppearance({ prePostColor: c })}
             opacity={appearance.prePostOpacity}
           />
           <SliderRow
-            label="Pre / Post Opacity"
+            label={t("appearance.color.prePostOpacity")}
             value={appearance.prePostOpacity * 100}
             onChange={(v) => updateAppearance({ prePostOpacity: v / 100 })}
           />
@@ -328,7 +329,7 @@ export function AppearanceTab() {
       </div>
 
       <div>
-        <SectionLabel>Background Layer</SectionLabel>
+        <SectionLabel>{t("appearance.section.backgroundLayer")}</SectionLabel>
         <div className="flex flex-col gap-3">
           <ToggleGroup
             value={bgType ? [bgType] : []}
@@ -338,20 +339,20 @@ export function AppearanceTab() {
             }}
             className="w-full rounded-lg bg-background p-1"
           >
-            {BG_TYPES.map((t) => (
+            {BG_TYPES.map((bgLayerType) => (
               <ToggleGroup.ToggleGroupItem
-                key={t}
-                value={t}
-                className={cn("flex-1 text-xs capitalize aria-pressed:bg-card", bgType === t && "bg-card shadow-sm")}
+                key={bgLayerType}
+                value={bgLayerType}
+                className={cn("flex-1 text-xs capitalize aria-pressed:bg-card", bgType === bgLayerType && "bg-card shadow-sm")}
               >
-                {t.charAt(0).toUpperCase() + t.slice(1)}
+                {t(`appearance.background.${bgLayerType}`)}
               </ToggleGroup.ToggleGroupItem>
             ))}
           </ToggleGroup>
 
           {bg.type === "solid" && (
             <ColorRow
-              label="Color"
+              label={t("appearance.background.color")}
               color={bg.color}
               onChange={(c) => updateAppearance({ background: { ...bg, color: c } })}
             />
@@ -367,9 +368,9 @@ export function AppearanceTab() {
       </div>
 
       <div>
-        <SectionLabel>Visual Effects</SectionLabel>
+        <SectionLabel>{t("appearance.section.visualEffects")}</SectionLabel>
         <SliderRow
-          label="Text Shadow / Glow"
+          label={t("appearance.effect.textShadowGlow")}
           value={appearance.textShadowGlow * 100}
           onChange={(v) => updateAppearance({ textShadowGlow: v / 100 })}
         />
@@ -428,10 +429,10 @@ export function AppearanceTab() {
                     pos === "top-left" || pos === "bottom-left" ? "justify-start pl-3" : "justify-end pr-3",
                   )}
                 >
-                  {pos === "top-left" && <><MoveUpLeft size={13} /> Top Left</>}
-                  {pos === "top-right" && <>Top Right <MoveUpRight size={13} /></>}
-                  {pos === "bottom-left" && <><MoveDownLeft size={13} /> Bottom Left</>}
-                  {pos === "bottom-right" && <>Bottom Right <MoveDownRight size={13} /></>}
+                  {pos === "top-left" && <><MoveUpLeft size={13} /> {t("appearance.displayMode.topLeft")}</>}
+                  {pos === "top-right" && <>{t("appearance.displayMode.topRight")} <MoveUpRight size={13} /></>}
+                  {pos === "bottom-left" && <><MoveDownLeft size={13} /> {t("appearance.displayMode.bottomLeft")}</>}
+                  {pos === "bottom-right" && <>{t("appearance.displayMode.bottomRight")} <MoveDownRight size={13} /></>}
                 </ToggleGroup.ToggleGroupItem>
               ))}
             </ToggleGroup>

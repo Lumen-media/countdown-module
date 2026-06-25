@@ -1,4 +1,5 @@
 import { Input } from "@lumen-media/module-sdk/ui"
+import { t } from "../i18n.js"
 
 export type QueueTriggerConfig = { seconds: number }
 
@@ -43,11 +44,11 @@ export function QueueTriggerConfigComponent({
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-muted-foreground">
-        Duration to wait before advancing to the next queue item.
+        {t("queue.wait.description")}
       </p>
       <div className="flex items-center gap-2">
         <div className="flex flex-col gap-1 flex-1">
-          <label className="text-xs text-muted-foreground">Minutes</label>
+          <label className="text-xs text-muted-foreground">{t("queue.wait.minutes")}</label>
           <Input
             type="number"
             min={0}
@@ -56,7 +57,7 @@ export function QueueTriggerConfigComponent({
           />
         </div>
         <div className="flex flex-col gap-1 flex-1">
-          <label className="text-xs text-muted-foreground">Seconds</label>
+          <label className="text-xs text-muted-foreground">{t("queue.wait.seconds")}</label>
           <Input
             type="number"
             min={0}
