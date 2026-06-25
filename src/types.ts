@@ -1,5 +1,12 @@
+export type CountdownSoundSelection = {
+  source: "bundled" | "library"
+  value: string
+  label: string
+  path?: string
+}
+
 export type TimeTrigger =
-  | { enabled: boolean; atSeconds: number; type: "warning-chime"; sound: string }
+  | { enabled: boolean; atSeconds: number; type: "warning-chime"; sound: CountdownSoundSelection | null }
   | { enabled: boolean; atSeconds: number; type: "change-text"; preText: string; postText: string }
   | { enabled: boolean; atSeconds: number; type: "queue.next" }
   | { enabled: boolean; atSeconds: number; type: "queue.previous" }
@@ -45,6 +52,7 @@ export type CountdownConfig = {
   }
   behavior: {
     hideOnCompletion: boolean
+    completionSound: string
   }
 }
 

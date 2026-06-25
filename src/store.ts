@@ -1,6 +1,7 @@
 import { emit } from "@tauri-apps/api/event"
 import { create } from "zustand"
 import { hasConfiguredBackdrop, isCornerActive, type CountdownTickPayload } from "./lib/display-mode.js"
+import { createDefaultBundledSoundSelection, playBundledSound, playSelectedSound } from "./lib/sounds.js"
 import type { BackgroundConfig, BackgroundPreset, CountdownConfig, CountdownState, EndAction } from "./types.js"
 
 type PresenterAPI = { project: (viewId: string, props?: unknown) => void; clear: () => void }
@@ -8,6 +9,8 @@ type OverlayAPI = { project: (viewId: string, props?: unknown) => void; clear: (
 type QueueAPI = { next: () => void; previous: () => void; goTo: (index: number) => void }
 type PlayerAPI = { nextSlide: () => void; play: (itemId: string) => void }
 type LibraryItem = { id: string; title: string; type: string; thumbnail?: string }
+type LibraryLookupItem = { id: string; path: string; name: string; type: string }
+type LibraryLookupAPI = { get: (id: string) => Promise<LibraryLookupItem | null> }
 
 type ProfileBackground = CountdownStore["profileBackground"]
 
@@ -51,13 +54,11 @@ const DEFAULT_CONFIG: CountdownConfig = {
   },
   actions: {
     autoAdvance: { enabled: true, action: { type: "queue.next" } as EndAction },
-    timeTriggers: [
-      { enabled: false, atSeconds: 60, type: "warning-chime", sound: "" },
-      { enabled: false, atSeconds: 30, type: "change-text", preText: "", postText: "" },
-    ],
+    timeTriggers: [],
   },
   behavior: {
     hideOnCompletion: true,
+    completionSound: "",
   },
 }
 
@@ -169,6 +170,8 @@ type CountdownStore = {
   setQueue: (q: QueueAPI) => void
   _player: PlayerAPI | null
   setPlayer: (p: PlayerAPI) => void
+  _library: LibraryLookupAPI | null
+  setLibrary: (library: LibraryLookupAPI) => void
   _openMediaPicker: ((cb: (item: LibraryItem) => void) => void) | null
   setOpenMediaPicker: (fn: (cb: (item: LibraryItem) => void) => void) => void
 }
@@ -204,6 +207,8 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
   setQueue: (q) => set({ _queue: q }),
   _player: null,
   setPlayer: (p) => set({ _player: p }),
+  _library: null,
+  setLibrary: (library) => set({ _library: library }),
   _openMediaPicker: null as CountdownStore["_openMediaPicker"],
   setOpenMediaPicker: (fn) => set({ _openMediaPicker: fn }),
 
@@ -377,6 +382,9 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
         timerState: { ...s.timerState, status: "finished", remainingSeconds: 0 },
       }))
       emitTick(0, "finished", config, profileBackground, externalBackdropActive)
+      if (config.behavior.completionSound) {
+        playBundledSound(config.behavior.completionSound)
+      }
       if (config.behavior.hideOnCompletion) {
         const { _presenter, _overlay, isOverlayActive } = get()
         if (isOverlayActive) {
@@ -388,7 +396,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
         }
       }
       if (config.actions.autoAdvance.enabled) {
-        const { _queue, _player } = get()
+        const { _queue, _player, _hostFs } = get()
         const action = config.actions.autoAdvance.action
         if (action.type === "queue.next") _queue?.next()
         else if (action.type === "queue.previous") _queue?.previous()
@@ -401,7 +409,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     let updatedConfig = config
     const newFiredTriggers = [...timerState.firedTriggers]
 
-    const { _queue, _player } = get()
+    const { _queue, _player, _hostFs } = get()
     for (const trigger of config.actions.timeTriggers) {
       if (
         trigger.enabled &&
@@ -410,6 +418,8 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
       ) {
         if (trigger.type === "change-text") {
           updatedConfig = { ...updatedConfig, preText: trigger.preText, postText: trigger.postText }
+        } else if (trigger.type === "warning-chime") {
+          void playSelectedSound(trigger.sound, _hostFs)
         } else if (trigger.type === "queue.next") {
           _queue?.next()
         } else if (trigger.type === "queue.previous") {
