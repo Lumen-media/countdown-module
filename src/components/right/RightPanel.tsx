@@ -7,15 +7,15 @@ import { CountdownPreview } from "./CountdownPreview.js"
 export function RightPanel() {
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between px-5 pt-4 pb-3 shrink-0">
+      <div className="flex items-center justify-between px-4 pb-3 shrink-0">
         <h3 className="text-sm font-semibold text-foreground">{t("rightPanel.livePreviewStage")}</h3>
       </div>
 
-      <div className="flex-1 flex items-stretch overflow-hidden min-h-0 px-5">
+      <div className="flex-1 flex items-stretch overflow-hidden min-h-0 pl-4">
         <CountdownPreview />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 px-5 py-3 shrink-0">
+      <div className="grid grid-cols-2 gap-3 pl-4 pt-4 shrink-0">
         <InfoCard icon={<Monitor size={15} />} label={t("rightPanel.currentOutput")} value={t("rightPanel.defaultOutput")} />
         <InfoCard icon={<Zap size={15} />} label={t("rightPanel.nextAction")} value={t("rightPanel.defaultNextAction")} />
       </div>

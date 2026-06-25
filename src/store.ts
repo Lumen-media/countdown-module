@@ -1,7 +1,7 @@
 import { emit } from "@tauri-apps/api/event"
 import { create } from "zustand"
-import { hasConfiguredBackdrop, isCornerActive, type CountdownTickPayload } from "./lib/display-mode.js"
-import { createDefaultBundledSoundSelection, playBundledSound, playSelectedSound } from "./lib/sounds.js"
+import { isCornerActive, type CountdownTickPayload } from "./lib/display-mode.js"
+import { playBundledSound, playSelectedSound } from "./lib/sounds.js"
 import type { BackgroundConfig, BackgroundPreset, CountdownConfig, CountdownState, EndAction } from "./types.js"
 
 type PresenterAPI = { project: (viewId: string, props?: unknown) => void; clear: () => void }
@@ -53,7 +53,7 @@ const DEFAULT_CONFIG: CountdownConfig = {
     preset: "default",
   },
   actions: {
-    autoAdvance: { enabled: true, action: { type: "queue.next" } as EndAction },
+    autoAdvance: { enabled: false, action: { type: "queue.next" } as EndAction },
     timeTriggers: [],
   },
   behavior: {
