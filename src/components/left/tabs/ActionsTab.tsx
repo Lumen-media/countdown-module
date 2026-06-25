@@ -1,7 +1,8 @@
-import { Bell, ChevronRight, ChevronsRight, ExternalLink, Image, Music, Plus, SkipForward, SkipBack, Type, X } from "lucide-react"
+import { Bell, ChevronRight, ChevronsRight, ExternalLink, Image, Music, Plus, SkipBack, SkipForward, Type, X } from "lucide-react"
 import { Label, Select, Switch } from "@lumen-media/module-sdk/ui"
 import { useCountdownStore } from "../../../store.js"
-import type { EndAction, TimeTrigger } from "../../../types.js"
+import type { CountdownSoundSelection, EndAction, TimeTrigger } from "../../../types.js"
+import { createBundledSoundSelection, createDefaultBundledSoundSelection, SOUND_OPTIONS } from "../../../lib/sounds.js"
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -17,11 +18,19 @@ function formatAtSeconds(seconds: number) {
   return `${m}:${s}`
 }
 
+function defaultTriggerSound() {
+  return createDefaultBundledSoundSelection()
+}
+
+function isLibrarySound(sound: CountdownSoundSelection | null): sound is CountdownSoundSelection & { source: "library"; path: string } {
+  return Boolean(sound && sound.source === "library" && sound.path)
+}
+
 type ActionOption = { value: EndAction["type"] | "warning-chime" | "change-text"; label: string; icon: React.ReactNode }
 
 const ACTION_OPTIONS: ActionOption[] = [
   { value: "change-text", label: "Change Text", icon: <Type size={13} /> },
-  { value: "warning-chime", label: "Warning Chime", icon: <Bell size={13} /> },
+  { value: "warning-chime", label: "Play Sound", icon: <Bell size={13} /> },
   { value: "queue.next", label: "Next in Queue", icon: <ChevronsRight size={13} /> },
   { value: "queue.previous", label: "Previous in Queue", icon: <SkipBack size={13} /> },
   { value: "player.next-slide", label: "Next Slide", icon: <ChevronRight size={13} /> },
@@ -31,6 +40,9 @@ const ACTION_OPTIONS: ActionOption[] = [
 const END_ACTION_OPTIONS = ACTION_OPTIONS.filter(
   (o) => o.value !== "warning-chime" && o.value !== "change-text"
 ) as { value: EndAction["type"]; label: string; icon: React.ReactNode }[]
+
+const NONE_SOUND_VALUE = "__none__"
+const SOUND_PLACEHOLDER = "Select an audio"
 
 function EndActionSelector() {
   const { config, setConfig, _openMediaPicker } = useCountdownStore()
@@ -110,7 +122,7 @@ function EndActionSelector() {
 }
 
 function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }) {
-  const { config, setConfig, _openMediaPicker } = useCountdownStore()
+  const { config, setConfig, _openMediaPicker, _library } = useCountdownStore()
 
   function replaceTrigger(next: TimeTrigger) {
     const updated = config.actions.timeTriggers.map((t, i) => i === index ? next : t)
@@ -123,7 +135,7 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
 
   function changeType(newType: TimeTrigger["type"]) {
     const base = { enabled: trigger.enabled, atSeconds: trigger.atSeconds }
-    if (newType === "warning-chime") replaceTrigger({ ...base, type: "warning-chime", sound: "" })
+    if (newType === "warning-chime") replaceTrigger({ ...base, type: "warning-chime", sound: defaultTriggerSound() })
     else if (newType === "change-text") replaceTrigger({ ...base, type: "change-text", preText: "", postText: "" })
     else if (newType === "player.play") replaceTrigger({ ...base, type: "player.play", itemId: "", itemTitle: "" })
     else replaceTrigger({ ...base, type: newType } as TimeTrigger)
@@ -138,6 +150,27 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
     if (!_openMediaPicker) return
     _openMediaPicker((item) => {
       replaceTrigger({ ...trigger, type: "player.play", itemId: item.id, itemTitle: item.title } as TimeTrigger)
+    })
+  }
+
+  function handlePickLibraryAudio() {
+    if (!_openMediaPicker || !_library) return
+
+    _openMediaPicker(async (item) => {
+      if (item.type !== "audio") return
+      const media = await _library.get(item.id)
+      if (!media?.path) return
+
+      replaceTrigger({
+        ...trigger,
+        type: "warning-chime",
+        sound: {
+          source: "library",
+          value: item.id,
+          label: item.title,
+          path: media.path,
+        },
+      })
     })
   }
 
@@ -223,9 +256,66 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
       )}
 
       {trigger.type === "warning-chime" && (
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Sound</span>
-          <Music size={13} className="text-muted-foreground" />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Sound</span>
+            <Music size={13} className="text-muted-foreground" />
+          </div>
+
+          {SOUND_OPTIONS.length > 0 ? (
+            <Select
+              value={trigger.sound?.source === "bundled" ? trigger.sound.value : NONE_SOUND_VALUE}
+              onValueChange={(value) => updateTrigger({ sound: value === NONE_SOUND_VALUE ? null : createBundledSoundSelection(value) })}
+            >
+              <Select.SelectTrigger className="w-full bg-card dark:bg-card text-xs">
+                <Select.SelectValue placeholder={SOUND_PLACEHOLDER} />
+              </Select.SelectTrigger>
+              <Select.SelectContent>
+                {SOUND_OPTIONS.map((sound) => (
+                  <Select.SelectItem key={sound.id} value={sound.id}>
+                    {sound.label}
+                  </Select.SelectItem>
+                ))}
+              </Select.SelectContent>
+            </Select>
+          ) : (
+            <div className="rounded-md bg-card px-2 py-1.5 text-xs text-muted-foreground">
+              No bundled sounds found in assets or assets/sounds.
+            </div>
+          )}
+
+          {trigger.sound?.source === "bundled" && (
+            <button
+              type="button"
+              onClick={() => updateTrigger({ sound: null })}
+              className="self-end text-xs text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0"
+            >
+              Clear selected bundled sound
+            </button>
+          )}
+
+          {isLibrarySound(trigger.sound) && (
+            <div className="flex items-center gap-2 bg-card rounded-md px-3 py-2 min-w-0">
+              <Music size={12} className="text-muted-foreground shrink-0" />
+              <span className="text-xs text-foreground truncate flex-1">{trigger.sound.label}</span>
+              <button
+                type="button"
+                onClick={() => updateTrigger({ sound: null })}
+                className="text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0 shrink-0"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handlePickLibraryAudio}
+            className="flex items-center justify-center gap-1.5 bg-card rounded-md px-3 py-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-foreground/30 cursor-pointer transition-colors w-full"
+          >
+            <ExternalLink size={12} />
+            Choose audio from library…
+          </button>
         </div>
       )}
 
@@ -260,7 +350,7 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
 export function ActionsTab() {
   const { config, setConfig } = useCountdownStore()
   const { autoAdvance } = config.actions
-  const { hideOnCompletion } = config.behavior
+  const { hideOnCompletion, completionSound } = config.behavior
 
   function addTrigger() {
     const newTrigger: TimeTrigger = { enabled: true, atSeconds: 60, type: "change-text", preText: "", postText: "" }
@@ -314,7 +404,35 @@ export function ActionsTab() {
 
       <div>
         <SectionLabel>Behavior</SectionLabel>
-        <div className="space-y-2">
+        <div className="space-y-3">
+          <div className="bg-background rounded-xl px-3 pt-3 pb-2.5 flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-foreground">Completion Sound</span>
+              <Music size={13} className="text-muted-foreground" />
+            </div>
+            {SOUND_OPTIONS.length > 0 ? (
+              <Select
+                value={completionSound || NONE_SOUND_VALUE}
+                onValueChange={(value) => setConfig({ behavior: { ...config.behavior, completionSound: value === NONE_SOUND_VALUE ? "" : value } })}
+              >
+                <Select.SelectTrigger className="w-full bg-card dark:bg-card text-xs">
+                  <Select.SelectValue placeholder={SOUND_PLACEHOLDER} />
+                </Select.SelectTrigger>
+                <Select.SelectContent>
+                  {SOUND_OPTIONS.map((sound) => (
+                    <Select.SelectItem key={sound.id} value={sound.id}>
+                      {sound.label}
+                    </Select.SelectItem>
+                  ))}
+                </Select.SelectContent>
+              </Select>
+            ) : (
+              <div className="rounded-md bg-card px-2 py-1.5 text-xs text-muted-foreground">
+                No bundled sounds found in assets or assets/sounds.
+              </div>
+            )}
+          </div>
+
           <Label className="flex w-full items-center justify-between text-sm text-foreground">
             Hide on completion
             <Switch

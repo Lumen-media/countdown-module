@@ -1,6 +1,6 @@
 import css from "./styles.css?inline"
 import { type LumenHost, LumenPlugin } from "@lumen-media/module-sdk"
-import { createElement } from "react"
+import { createElement, type ComponentProps } from "react"
 import { listen } from "@tauri-apps/api/event"
 import { CountdownDialog } from "./components/CountdownDialog.js"
 import { CountdownHeaderStatus } from "./components/CountdownHeaderStatus.js"
@@ -12,6 +12,7 @@ import { setupI18n } from "./i18n.js"
 
 type HostExt = {
   fs?: { read: (path: string) => Promise<Uint8Array> }
+  library?: { get?: (id: string) => Promise<{ id: string; path: string; name: string; type: string } | null> }
   overlay?: { project: (viewId: string, props?: unknown) => void; clear: () => void; onStateChange?: (handler: (state: "idle" | "live") => void) => { dispose(): void } }
   player?: { current?: () => unknown; state?: () => "playing" | "paused" | "idle" }
   lyrics?: { currentSlide?: () => unknown | null }
@@ -36,7 +37,7 @@ export default class CountdownPlugin extends LumenPlugin {
     host.panels.add({
       id: "countdown.presenter",
       slot: "presenter.content",
-      component: (props) => createElement(CountdownDisplay, props),
+      component: (props) => createElement(CountdownDisplay, props as ComponentProps<typeof CountdownDisplay>),
     })
 
     if (host.window === "presenter") return
@@ -86,6 +87,7 @@ export default class CountdownPlugin extends LumenPlugin {
     })
 
     if (hostExt.fs) useCountdownStore.getState().setHostFs(hostExt.fs)
+    if (hostExt.library?.get) useCountdownStore.getState().setLibrary({ get: hostExt.library.get })
     if (hostExt.overlay) {
       useCountdownStore.getState().setOverlay(hostExt.overlay)
       const overlayState = hostExt.overlay.onStateChange?.((state) => {
