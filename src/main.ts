@@ -12,7 +12,7 @@ import { setupI18n, t } from "./i18n.js"
 
 type HostExt = {
   fs?: { read: (path: string) => Promise<Uint8Array> }
-  library?: { get?: (id: string) => Promise<{ id: string; path: string; name: string; type: string } | null> }
+  library?: { list?: (type?: string, query?: string) => Promise<{ id: string; path: string; name: string; type: string }[]>; get?: (id: string) => Promise<{ id: string; path: string; name: string; type: string } | null> }
   overlay?: { project: (viewId: string, props?: unknown) => void; clear: () => void; onStateChange?: (handler: (state: "idle" | "live") => void) => { dispose(): void } }
   player?: { current?: () => unknown; state?: () => "playing" | "paused" | "idle" }
   lyrics?: { currentSlide?: () => unknown | null }
@@ -77,7 +77,6 @@ export default class CountdownPlugin extends LumenPlugin {
     useCountdownStore.getState().setPresenter(host.presentation)
     useCountdownStore.getState().setQueue(host.queue)
     useCountdownStore.getState().setPlayer(host.player)
-    useCountdownStore.getState().setOpenMediaPicker((cb) => host.ui.openMediaPicker(cb))
 
     const hostExt = host as unknown as HostExt
     useCountdownStore.getState().setExternalBackdropActivityReader(() => {
@@ -87,7 +86,7 @@ export default class CountdownPlugin extends LumenPlugin {
     })
 
     if (hostExt.fs) useCountdownStore.getState().setHostFs(hostExt.fs)
-    if (hostExt.library?.get) useCountdownStore.getState().setLibrary({ get: hostExt.library.get })
+    if (hostExt.library?.list && hostExt.library?.get) useCountdownStore.getState().setLibrary({ list: hostExt.library.list, get: hostExt.library.get })
     if (hostExt.overlay) {
       useCountdownStore.getState().setOverlay(hostExt.overlay)
       const overlayState = hostExt.overlay.onStateChange?.((state) => {

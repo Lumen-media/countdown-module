@@ -10,7 +10,7 @@ type QueueAPI = { next: () => void; previous: () => void; goTo: (index: number) 
 type PlayerAPI = { nextSlide: () => void; play: (itemId: string) => void }
 type LibraryItem = { id: string; title: string; type: string; thumbnail?: string }
 type LibraryLookupItem = { id: string; path: string; name: string; type: string }
-type LibraryLookupAPI = { get: (id: string) => Promise<LibraryLookupItem | null> }
+type LibraryLookupAPI = { list: (type?: string, query?: string) => Promise<LibraryLookupItem[]>; get: (id: string) => Promise<LibraryLookupItem | null> }
 
 type ProfileBackground = CountdownStore["profileBackground"]
 

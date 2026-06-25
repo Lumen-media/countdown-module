@@ -1,5 +1,6 @@
-import { Bell, ChevronRight, ChevronsRight, ExternalLink, Image, Music, Plus, SkipBack, SkipForward, Type, X } from "lucide-react"
-import { Label, Select, Switch } from "@lumen-media/module-sdk/ui"
+import { useEffect, useState } from "react"
+import { Bell, ChevronRight, ChevronsRight, Image, Music, Plus, SkipBack, SkipForward, Type, X } from "lucide-react"
+import { Combobox, Label, Select, Switch } from "@lumen-media/module-sdk/ui"
 import { useCountdownStore } from "../../../store.js"
 import type { CountdownSoundSelection, EndAction, TimeTrigger } from "../../../types.js"
 import { createBundledSoundSelection, createDefaultBundledSoundSelection, SOUND_OPTIONS } from "../../../lib/sounds.js"
@@ -30,6 +31,7 @@ function isLibrarySound(sound: CountdownSoundSelection | null): sound is Countdo
 }
 
 type ActionOption = { value: EndAction["type"] | "warning-chime" | "change-text"; label: string; icon: React.ReactNode }
+type LibraryMediaOption = { id: string; name: string; type: string; path: string }
 
 function getActionOptions(): ActionOption[] {
   return [
@@ -42,8 +44,93 @@ function getActionOptions(): ActionOption[] {
   ]
 }
 
+function LibraryMediaCombobox({
+  mediaType,
+  placeholder,
+  emptyLabel,
+  onSelect,
+}: {
+  mediaType?: "audio" | "video" | "image"
+  placeholder: string
+  emptyLabel: string
+  onSelect: (item: LibraryMediaOption) => void
+}) {
+  const { _library } = useCountdownStore()
+  const [items, setItems] = useState<LibraryMediaOption[]>([])
+  const [query, setQuery] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!_library) {
+      setItems([])
+      return
+    }
+
+    let cancelled = false
+    setLoading(true)
+
+    void _library.list(mediaType).then((nextItems) => {
+      if (!cancelled) {
+        setItems(nextItems as LibraryMediaOption[])
+      }
+    }).finally(() => {
+      if (!cancelled) {
+        setLoading(false)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [_library, mediaType])
+
+  const normalizedQuery = query.trim().toLowerCase()
+  const filteredItems = normalizedQuery
+    ? items.filter((item) => `${item.name} ${item.type}`.toLowerCase().includes(normalizedQuery))
+    : items
+
+  return (
+    <Combobox value="" onValueChange={(value) => {
+      const item = items.find((entry) => entry.id === value)
+      if (item) {
+        onSelect(item)
+        setQuery("")
+      }
+    }}>
+      <Combobox.ComboboxInput
+        placeholder={placeholder}
+        className="bg-card px-1 text-xs dark:bg-card"
+        disabled={!_library}
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+      />
+      <Combobox.ComboboxContent>
+        <Combobox.ComboboxList>
+          {filteredItems.map((item) => (
+            <Combobox.ComboboxItem key={item.id} value={item.id}>
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="truncate flex-1">{item.name}</span>
+                {!mediaType && (
+                  <span className="shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground">
+                    {item.type}
+                  </span>
+                )}
+              </div>
+            </Combobox.ComboboxItem>
+          ))}
+          {filteredItems.length === 0 && (
+            <div className="flex w-full justify-center py-2 text-center text-sm text-muted-foreground">
+              {loading ? t("actions.loadingMedia") : emptyLabel}
+            </div>
+          )}
+        </Combobox.ComboboxList>
+      </Combobox.ComboboxContent>
+    </Combobox>
+  )
+}
+
 function EndActionSelector() {
-  const { config, setConfig, _openMediaPicker } = useCountdownStore()
+  const { config, setConfig } = useCountdownStore()
   const { autoAdvance } = config.actions
   const action = autoAdvance.action
   const endActionOptions = getActionOptions().filter(
@@ -60,13 +147,6 @@ function EndActionSelector() {
     } else {
       updateAction({ type } as EndAction)
     }
-  }
-
-  function handlePickMedia() {
-    if (!_openMediaPicker) return
-    _openMediaPicker((item) => {
-      updateAction({ type: "player.play", itemId: item.id, itemTitle: item.title })
-    })
   }
 
   return (
@@ -107,14 +187,11 @@ function EndActionSelector() {
               </button>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={handlePickMedia}
-              className="flex-1 flex items-center justify-center gap-1.5 bg-background rounded-md px-3 py-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-foreground/30 cursor-pointer transition-colors"
-            >
-              <ExternalLink size={12} />
-              {t("actions.chooseMedia")}
-            </button>
+            <LibraryMediaCombobox
+              placeholder={t("actions.searchMedia")}
+              emptyLabel={t("actions.noMediaFound")}
+              onSelect={(item) => updateAction({ type: "player.play", itemId: item.id, itemTitle: item.name })}
+            />
           )}
         </div>
       )}
@@ -123,7 +200,7 @@ function EndActionSelector() {
 }
 
 function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }) {
-  const { config, setConfig, _openMediaPicker, _library } = useCountdownStore()
+  const { config, setConfig } = useCountdownStore()
   const actionOptions = getActionOptions()
   const currentOption = actionOptions.find((option) => option.value === trigger.type)
   const soundPlaceholder = t("actions.selectAudio")
@@ -148,34 +225,6 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
   function removeTrigger() {
     const updated = config.actions.timeTriggers.filter((_, itemIndex) => itemIndex !== index)
     setConfig({ actions: { ...config.actions, timeTriggers: updated } })
-  }
-
-  function handlePickMedia() {
-    if (!_openMediaPicker) return
-    _openMediaPicker((item) => {
-      replaceTrigger({ ...trigger, type: "player.play", itemId: item.id, itemTitle: item.title } as TimeTrigger)
-    })
-  }
-
-  function handlePickLibraryAudio() {
-    if (!_openMediaPicker || !_library) return
-
-    _openMediaPicker(async (item) => {
-      if (item.type !== "audio") return
-      const media = await _library.get(item.id)
-      if (!media?.path) return
-
-      replaceTrigger({
-        ...trigger,
-        type: "warning-chime",
-        sound: {
-          source: "library",
-          value: item.id,
-          label: item.title,
-          path: media.path,
-        },
-      })
-    })
   }
 
   return (
@@ -310,14 +359,19 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={handlePickLibraryAudio}
-            className="flex items-center justify-center gap-1.5 bg-card rounded-md px-3 py-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-foreground/30 cursor-pointer transition-colors w-full"
-          >
-            <ExternalLink size={12} />
-            {t("actions.chooseLibraryAudio")}
-          </button>
+          <LibraryMediaCombobox
+            mediaType="audio"
+            placeholder={t("actions.searchLibraryAudio")}
+            emptyLabel={t("actions.noLibraryAudioFound")}
+            onSelect={(item) => updateTrigger({
+              sound: {
+                source: "library",
+                value: item.id,
+                label: item.name,
+                path: item.path,
+              },
+            })}
+          />
         </div>
       )}
 
@@ -335,14 +389,11 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
             </button>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={handlePickMedia}
-            className="flex items-center justify-center gap-1.5 bg-card rounded-md px-3 py-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-foreground/30 cursor-pointer transition-colors w-full"
-          >
-            <ExternalLink size={12} />
-            {t("actions.chooseMedia")}
-          </button>
+          <LibraryMediaCombobox
+            placeholder={t("actions.searchMedia")}
+            emptyLabel={t("actions.noMediaFound")}
+            onSelect={(item) => replaceTrigger({ ...trigger, type: "player.play", itemId: item.id, itemTitle: item.name } as TimeTrigger)}
+          />
         )
       )}
     </div>
