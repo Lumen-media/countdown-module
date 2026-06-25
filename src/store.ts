@@ -1,7 +1,7 @@
 import { emit } from "@tauri-apps/api/event"
 import { create } from "zustand"
 import { isCornerActive, type CountdownTickPayload } from "./lib/display-mode.js"
-import { playBundledSound, playSelectedSound } from "./lib/sounds.js"
+import { DEFAULT_WARNING_SOUND_ID, getBundledSoundDuration, playBundledSound, playSelectedSound } from "./lib/sounds.js"
 import type { BackgroundConfig, BackgroundPreset, CountdownConfig, CountdownState, EndAction } from "./types.js"
 
 type PresenterAPI = { project: (viewId: string, props?: unknown) => void; clear: () => void }
@@ -58,7 +58,7 @@ const DEFAULT_CONFIG: CountdownConfig = {
   },
   behavior: {
     hideOnCompletion: true,
-    completionSound: "",
+    completionSound: DEFAULT_WARNING_SOUND_ID,
   },
 }
 
@@ -109,13 +109,71 @@ function projectionProps(
   }
 }
 
+const COMPLETION_SOUND_SAFETY_SECONDS = 1
+
 let _tickTimer: ReturnType<typeof setTimeout> | null = null
+let _completionSoundTimer: ReturnType<typeof setTimeout> | null = null
 
 function clearTick() {
   if (_tickTimer !== null) {
     clearTimeout(_tickTimer)
     _tickTimer = null
   }
+}
+
+function clearCompletionSoundTimer() {
+  if (_completionSoundTimer !== null) {
+    clearTimeout(_completionSoundTimer)
+    _completionSoundTimer = null
+  }
+}
+
+function scheduleCompletionSound(get: () => CountdownStore) {
+  clearCompletionSoundTimer()
+
+  const { timerState, config } = get()
+  const soundId = config.behavior.completionSound
+  if (timerState.status !== "running" || timerState.startedAt === null || !soundId || timerState.completionSoundStarted) {
+    return
+  }
+
+  void getBundledSoundDuration(soundId).then((durationSeconds) => {
+    const { timerState: latestTimerState, config: latestConfig } = get()
+    if (
+      latestTimerState.status !== "running" ||
+      latestTimerState.startedAt === null ||
+      latestTimerState.completionSoundStarted ||
+      latestConfig.behavior.completionSound !== soundId
+    ) {
+      return
+    }
+
+    const elapsed = (Date.now() - latestTimerState.startedAt) / 1000
+    const remainingSeconds = Math.max(0, latestConfig.totalSeconds - elapsed)
+    const leadSeconds = Math.max(0, (durationSeconds ?? 0) - COMPLETION_SOUND_SAFETY_SECONDS)
+    const delayMs = Math.max(0, (remainingSeconds - leadSeconds) * 1000)
+
+    _completionSoundTimer = setTimeout(() => {
+      const { timerState: currentTimerState, config: currentConfig } = get()
+      if (
+        currentTimerState.status !== "running" ||
+        currentTimerState.completionSoundStarted ||
+        currentConfig.behavior.completionSound !== soundId
+      ) {
+        _completionSoundTimer = null
+        return
+      }
+
+      useCountdownStore.setState((state) => ({
+        timerState: {
+          ...state.timerState,
+          completionSoundStarted: true,
+        },
+      }))
+      playBundledSound(soundId)
+      _completionSoundTimer = null
+    }, delayMs)
+  })
 }
 
 function scheduleTick(get: () => CountdownStore) {
@@ -184,6 +242,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     startedAt: null,
     pausedAt: null,
     firedTriggers: [],
+    completionSoundStarted: false,
   },
   isPreviewExpanded: false,
   setPreviewExpanded: (v) => set({ isPreviewExpanded: v }),
@@ -315,6 +374,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     if (timerState.status === "running") return
 
     clearTick()
+    clearCompletionSoundTimer()
 
     const newState = timerState.status === "paused" && timerState.pausedAt !== null && timerState.startedAt !== null
       ? {
@@ -323,6 +383,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
           startedAt: (timerState.startedAt ?? 0) + (Date.now() - timerState.pausedAt),
           pausedAt: null,
           firedTriggers: [],
+          completionSoundStarted: timerState.completionSoundStarted,
         }
       : {
           status: "running" as const,
@@ -330,6 +391,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
           startedAt: Date.now(),
           pausedAt: null,
           firedTriggers: [],
+          completionSoundStarted: false,
         }
 
     set({ timerState: newState })
@@ -342,10 +404,12 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     }
 
     emitTick(newState.remainingSeconds, "running", config, profileBackground, externalBackdropActive)
+    scheduleCompletionSound(get)
     scheduleTick(get)
   },
   pauseTimer: () => {
     clearTick()
+    clearCompletionSoundTimer()
     const { timerState, config, profileBackground, _isExternalBackdropActive } = get()
     const externalBackdropActive = _isExternalBackdropActive?.() ?? false
     const newState = { ...timerState, status: "paused" as const, pausedAt: Date.now() }
@@ -355,6 +419,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
 
   resetTimer: () => {
     clearTick()
+    clearCompletionSoundTimer()
     const { config, profileBackground, _isExternalBackdropActive } = get()
     const externalBackdropActive = _isExternalBackdropActive?.() ?? false
     const newState = {
@@ -363,6 +428,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
       startedAt: null,
       pausedAt: null,
       firedTriggers: [],
+      completionSoundStarted: false,
     }
     set({ timerState: newState })
     emitTick(newState.remainingSeconds, "idle", config, profileBackground, externalBackdropActive)
@@ -378,13 +444,11 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     const remaining = config.allowNegative ? raw : Math.max(0, raw)
 
     if (!config.allowNegative && remaining <= 0) {
+      clearCompletionSoundTimer()
       set((s) => ({
         timerState: { ...s.timerState, status: "finished", remainingSeconds: 0 },
       }))
       emitTick(0, "finished", config, profileBackground, externalBackdropActive)
-      if (config.behavior.completionSound) {
-        playBundledSound(config.behavior.completionSound)
-      }
       if (config.behavior.hideOnCompletion) {
         const { _presenter, _overlay, isOverlayActive } = get()
         if (isOverlayActive) {
@@ -455,3 +519,4 @@ export function formatTime(seconds: number): string {
   const sign = seconds < 0 ? "-" : ""
   return `${sign}${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
 }
+

@@ -64,4 +64,5 @@ export type CountdownState = {
   startedAt: number | null
   pausedAt: number | null
   firedTriggers: number[]
+  completionSoundStarted: boolean
 }

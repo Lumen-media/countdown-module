@@ -68,6 +68,7 @@ const en: Record<string, string> = {
   "actions.noBundledSounds": "No bundled sounds found in assets or assets/sounds.",
   "actions.addTrigger": "Add Trigger",
   "actions.selectAudio": "Select an audio",
+  "actions.noAudio": "No audio",
   "actions.completionSound": "Completion Sound",
   "actions.hideOnCompletion": "Hide on completion",
   "actions.allowNegative": "Allow negative time (overrun)",
@@ -104,3 +105,4 @@ const en: Record<string, string> = {
 };
 
 export default en;
+

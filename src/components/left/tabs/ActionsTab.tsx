@@ -5,6 +5,8 @@ import type { CountdownSoundSelection, EndAction, TimeTrigger } from "../../../t
 import { createBundledSoundSelection, createDefaultBundledSoundSelection, SOUND_OPTIONS } from "../../../lib/sounds.js"
 import { t } from "../../../i18n.js"
 
+const NO_SOUND_VALUE = ""
+
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
@@ -413,13 +415,16 @@ export function ActionsTab() {
             </div>
             {SOUND_OPTIONS.length > 0 ? (
               <Select
-                value={completionSound || undefined}
-                onValueChange={(value) => setConfig({ behavior: { ...config.behavior, completionSound: value } })}
+                value={completionSound || NO_SOUND_VALUE}
+                onValueChange={(value) => setConfig({ behavior: { ...config.behavior, completionSound: value === NO_SOUND_VALUE ? "" : value } })}
               >
                 <Select.SelectTrigger className="w-full bg-card dark:bg-card text-xs">
                   <Select.SelectValue placeholder={soundPlaceholder} />
                 </Select.SelectTrigger>
                 <Select.SelectContent>
+                  <Select.SelectItem value={NO_SOUND_VALUE}>
+                    {t("actions.noAudio")}
+                  </Select.SelectItem>
                   {SOUND_OPTIONS.map((sound) => (
                     <Select.SelectItem key={sound.id} value={sound.id}>
                       {sound.label}

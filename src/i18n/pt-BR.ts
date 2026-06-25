@@ -68,6 +68,7 @@ const ptBR: Record<string, string> = {
   "actions.noBundledSounds": "Nenhum áudio interno encontrado em assets ou assets/sounds.",
   "actions.addTrigger": "Adicionar trigger",
   "actions.selectAudio": "Selecione um áudio",
+  "actions.noAudio": "Sem áudio",
   "actions.completionSound": "Áudio ao finalizar",
   "actions.hideOnCompletion": "Ocultar ao finalizar",
   "actions.allowNegative": "Permitir tempo negativo (estouro)",
@@ -104,3 +105,4 @@ const ptBR: Record<string, string> = {
 };
 
 export default ptBR;
+

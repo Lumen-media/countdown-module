@@ -74,6 +74,7 @@ export const SOUND_OPTIONS: SoundOption[] = Object.entries(bundledSoundModules)
 
 const soundUrlMap = new Map(SOUND_OPTIONS.map((sound) => [sound.id, sound.url]))
 const soundLabelMap = new Map(SOUND_OPTIONS.map((sound) => [sound.id, sound.label]))
+const bundledSoundDurationCache = new Map<string, Promise<number | null>>()
 
 export const DEFAULT_WARNING_SOUND_ID =
   SOUND_OPTIONS.find((sound) => sound.id === 'kitchen-timer.mp3')?.id ??
@@ -106,6 +107,41 @@ export function playBundledSound(soundId: string) {
   if (!url) return
 
   void playAudioUrl(url)
+}
+
+export function getBundledSoundDuration(soundId: string): Promise<number | null> {
+  const existing = bundledSoundDurationCache.get(soundId)
+  if (existing) return existing
+
+  const url = resolveBundledSoundUrl(soundId)
+  if (!url) return Promise.resolve(null)
+
+  const durationPromise = new Promise<number | null>((resolve) => {
+    const audio = new Audio(url)
+    audio.preload = 'metadata'
+
+    const cleanup = () => {
+      audio.removeEventListener('loadedmetadata', handleLoaded)
+      audio.removeEventListener('error', handleError)
+    }
+
+    const handleLoaded = () => {
+      const duration = Number.isFinite(audio.duration) ? audio.duration : null
+      cleanup()
+      resolve(duration)
+    }
+
+    const handleError = () => {
+      cleanup()
+      resolve(null)
+    }
+
+    audio.addEventListener('loadedmetadata', handleLoaded, { once: true })
+    audio.addEventListener('error', handleError, { once: true })
+  })
+
+  bundledSoundDurationCache.set(soundId, durationPromise)
+  return durationPromise
 }
 
 export async function playSelectedSound(
