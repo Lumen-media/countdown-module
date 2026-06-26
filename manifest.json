@@ -1,7 +1,7 @@
 {
   "id": "com.example.countdown-module",
   "name": "countdown-module",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "api": "^0.1.0",
   "minLumenVersion": "0.0.0",
   "description": "A Lumen module",
