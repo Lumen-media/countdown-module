@@ -32,6 +32,9 @@ function isLibrarySound(sound: CountdownSoundSelection | null): sound is Countdo
 
 type ActionOption = { value: EndAction["type"] | "warning-chime" | "change-text"; label: string; icon: React.ReactNode }
 type LibraryMediaOption = { id: string; name: string; type: string; path: string }
+type SoundComboboxOption =
+  | { key: string; label: string; source: "bundled"; value: string }
+  | { key: string; label: string; source: "library"; value: string; path: string }
 
 function getActionOptions(): ActionOption[] {
   return [
@@ -44,6 +47,150 @@ function getActionOptions(): ActionOption[] {
   ]
 }
 
+function AudioCombobox({
+  value,
+  onSelect,
+}: {
+  value: CountdownSoundSelection | null
+  onSelect: (sound: CountdownSoundSelection | null) => void
+}) {
+  const { _library } = useCountdownStore()
+  const [libraryItems, setLibraryItems] = useState<LibraryMediaOption[]>([])
+  const [query, setQuery] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  const bundledItems: SoundComboboxOption[] = SOUND_OPTIONS.map((sound) => ({
+    key: `bundled:${sound.id}`,
+    label: sound.label,
+    source: "bundled",
+    value: sound.id,
+  }))
+
+  useEffect(() => {
+    if (value?.source === "bundled") {
+      const selected = SOUND_OPTIONS.find((sound) => sound.id === value.value)
+      setQuery(selected?.label ?? "")
+      return
+    }
+
+    if (value?.source === "library") {
+      setQuery(value.label)
+      return
+    }
+
+    setQuery("")
+  }, [value])
+
+  useEffect(() => {
+    if (!_library) {
+      setLibraryItems([])
+      return
+    }
+
+    let cancelled = false
+    setLoading(true)
+
+    void _library.list("audio").then((nextItems) => {
+      if (!cancelled) {
+        setLibraryItems(nextItems as LibraryMediaOption[])
+      }
+    }).finally(() => {
+      if (!cancelled) {
+        setLoading(false)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [_library])
+
+  const libraryOptions: SoundComboboxOption[] = libraryItems.map((item) => ({
+    key: `library:${item.id}`,
+    label: item.name,
+    source: "library",
+    value: item.id,
+    path: item.path,
+  }))
+
+  const normalizedQuery = query.trim().toLowerCase()
+  const bundledFiltered = normalizedQuery
+    ? bundledItems.filter((item) => item.label.toLowerCase().includes(normalizedQuery))
+    : bundledItems
+  const libraryFiltered = normalizedQuery
+    ? libraryOptions.filter((item) => item.label.toLowerCase().includes(normalizedQuery))
+    : libraryOptions
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Combobox value="" onValueChange={(selectedKey) => {
+        const selected = [...bundledItems, ...libraryOptions].find((item) => item.key === selectedKey)
+        if (!selected) return
+
+        if (selected.source === "bundled") {
+          onSelect(createBundledSoundSelection(selected.value))
+        } else {
+          onSelect({
+            source: "library",
+            value: selected.value,
+            label: selected.label,
+            path: selected.path,
+          })
+        }
+      }}>
+        <Combobox.ComboboxInput
+          placeholder={t("actions.selectAudio")}
+          className="bg-card px-1 text-xs dark:bg-card"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        <Combobox.ComboboxContent>
+          <Combobox.ComboboxList>
+            {bundledFiltered.length > 0 && (
+              <>
+                <div className="px-2 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t("actions.bundledAudio")}
+                </div>
+                {bundledFiltered.map((item) => (
+                  <Combobox.ComboboxItem key={item.key} value={item.key}>
+                    <span className="truncate">{item.label}</span>
+                  </Combobox.ComboboxItem>
+                ))}
+              </>
+            )}
+            {libraryFiltered.length > 0 && (
+              <>
+                <div className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t("actions.libraryAudio")}
+                </div>
+                {libraryFiltered.map((item) => (
+                  <Combobox.ComboboxItem key={item.key} value={item.key}>
+                    <span className="truncate">{item.label}</span>
+                  </Combobox.ComboboxItem>
+                ))}
+              </>
+            )}
+            {bundledFiltered.length === 0 && libraryFiltered.length === 0 && (
+              <div className="flex w-full justify-center py-2 text-center text-sm text-muted-foreground">
+                {loading ? t("actions.loadingMedia") : t("actions.noAudioSourcesFound")}
+              </div>
+            )}
+          </Combobox.ComboboxList>
+        </Combobox.ComboboxContent>
+      </Combobox>
+
+      {value && (
+        <button
+          type="button"
+          onClick={() => onSelect(null)}
+          className="self-end text-xs text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0"
+        >
+          {t("actions.clearSelectedSound")}
+        </button>
+      )}
+    </div>
+  )
+}
 function LibraryMediaCombobox({
   mediaType,
   placeholder,
@@ -313,64 +460,9 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
             <Music size={13} className="text-muted-foreground" />
           </div>
 
-          {SOUND_OPTIONS.length > 0 ? (
-            <Select
-              value={trigger.sound?.source === "bundled" ? trigger.sound.value : undefined}
-              onValueChange={(value) => updateTrigger({ sound: createBundledSoundSelection(value) })}
-            >
-              <Select.SelectTrigger className="w-full bg-card dark:bg-card text-xs">
-                <Select.SelectValue placeholder={soundPlaceholder} />
-              </Select.SelectTrigger>
-              <Select.SelectContent>
-                {SOUND_OPTIONS.map((sound) => (
-                  <Select.SelectItem key={sound.id} value={sound.id}>
-                    {sound.label}
-                  </Select.SelectItem>
-                ))}
-              </Select.SelectContent>
-            </Select>
-          ) : (
-            <div className="rounded-md bg-card px-2 py-1.5 text-xs text-muted-foreground">
-              {t("actions.noBundledSounds")}
-            </div>
-          )}
-
-          {trigger.sound?.source === "bundled" && (
-            <button
-              type="button"
-              onClick={() => updateTrigger({ sound: null })}
-              className="self-end text-xs text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0"
-            >
-              {t("actions.clearBundledSound")}
-            </button>
-          )}
-
-          {isLibrarySound(trigger.sound) && (
-            <div className="flex items-center gap-2 bg-card rounded-md px-3 py-2 min-w-0">
-              <Music size={12} className="text-muted-foreground shrink-0" />
-              <span className="text-xs text-foreground truncate flex-1">{trigger.sound.label}</span>
-              <button
-                type="button"
-                onClick={() => updateTrigger({ sound: null })}
-                className="text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0 shrink-0"
-              >
-                <X size={12} />
-              </button>
-            </div>
-          )}
-
-          <LibraryMediaCombobox
-            mediaType="audio"
-            placeholder={t("actions.searchLibraryAudio")}
-            emptyLabel={t("actions.noLibraryAudioFound")}
-            onSelect={(item) => updateTrigger({
-              sound: {
-                source: "library",
-                value: item.id,
-                label: item.name,
-                path: item.path,
-              },
-            })}
+          <AudioCombobox
+            value={trigger.sound}
+            onSelect={(sound) => updateTrigger({ sound })}
           />
         </div>
       )}
@@ -511,3 +603,8 @@ export function ActionsTab() {
     </div>
   )
 }
+
+
+
+
+
