@@ -63,7 +63,7 @@ export function CountdownPreview() {
 
   return (
     <div
-      className="relative isolate h-full w-full overflow-hidden rounded-xl"
+      data-countdown-stage className="relative isolate h-full w-full overflow-hidden rounded-xl"
       style={isProfile ? {} : bgToStyle(appearance.background)}
     >
       {isProfile && <ProfileBg />}

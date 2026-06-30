@@ -499,7 +499,14 @@ export function ActionsTab() {
   const soundPlaceholder = t("actions.selectAudio")
 
   function addTrigger() {
-    const newTrigger: TimeTrigger = { enabled: true, atSeconds: 60, type: "change-text", preText: "", postText: "" }
+    const triggerAtSeconds = Math.max(0, Math.min(config.totalSeconds, Math.floor(config.totalSeconds / 2)))
+    const newTrigger: TimeTrigger = {
+      enabled: true,
+      atSeconds: triggerAtSeconds,
+      type: "change-text",
+      preText: "",
+      postText: "",
+    }
     setConfig({ actions: { ...config.actions, timeTriggers: [...config.actions.timeTriggers, newTrigger] } })
   }
 
@@ -603,6 +610,7 @@ export function ActionsTab() {
     </div>
   )
 }
+
 
 
 

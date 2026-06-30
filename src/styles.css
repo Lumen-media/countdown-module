@@ -1,3 +1,20 @@
 @import "tailwindcss/theme";
 @import "tailwindcss/utilities";
 @source "./**/*.tsx";
+
+
+[data-countdown-ui],
+[data-countdown-ui] * ,
+[data-countdown-stage],
+[data-countdown-stage] * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+[data-countdown-ui] input,
+[data-countdown-ui] textarea,
+[data-countdown-ui] [contenteditable="true"],
+[data-countdown-ui] [data-allow-selection="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}

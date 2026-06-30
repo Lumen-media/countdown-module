@@ -48,6 +48,7 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
 
   return (
     <div
+      data-countdown-stage
       style={{
         position: "fixed",
         inset: 0,
