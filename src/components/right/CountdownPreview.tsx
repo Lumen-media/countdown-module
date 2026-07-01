@@ -166,7 +166,7 @@ export function CountdownPreview() {
           style={{ margin: cornerActive ? 0 : "4px 0" }}
         >
           {appearance.showProgressBar && (() => {
-            const ringSize = cornerActive ? 100 : Math.round(timerFs * 3.5)
+            const ringSize = cornerActive ? 110 : Math.round(timerFs * 4.2)
             return (
               <div
                 className="absolute"
@@ -176,9 +176,6 @@ export function CountdownPreview() {
                   transform: "translate(-50%, -50%)",
                   width: ringSize,
                   height: ringSize,
-                  borderRadius: "50%",
-                  backdropFilter: "blur(2px)",
-                  WebkitBackdropFilter: "blur(2px)",
                   pointerEvents: "none",
                   zIndex: 0,
                 }}

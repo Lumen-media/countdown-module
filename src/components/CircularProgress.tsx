@@ -32,6 +32,18 @@ export function CircularProgress({
 
   return (
     <svg width={size} height={size} viewBox="0 0 100 100">
+      <defs>
+        <filter id={`glass-${size}`}>
+          <feGaussianBlur stdDeviation="1.5" />
+        </filter>
+      </defs>
+      <circle
+        cx="50"
+        cy="50"
+        r={radius + 3}
+        fill="rgba(255,255,255,0.06)"
+        filter={`url(#glass-${size})`}
+      />
       <circle
         cx="50"
         cy="50"

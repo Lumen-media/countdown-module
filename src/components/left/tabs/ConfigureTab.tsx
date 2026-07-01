@@ -219,6 +219,7 @@ export function ConfigureTab() {
               variant="outline"
               size="xs"
               onClick={() => quickPreset(minutes)}
+              disabled={timerRunning}
               className="text-muted-foreground hover:text-foreground"
             >
               <Clock size={11} />

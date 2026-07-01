@@ -36,6 +36,7 @@ const HOTKEY_ACTIONS: { action: HotkeyAction; labelKey: string }[] = [
 
 export function TimerSettings() {
   const { config, timerPresets, saveTimerPreset, loadTimerPreset, deleteTimerPreset, updateHotkeys } = useCountdownStore()
+  const timerRunning = useCountdownStore((s) => s.timerState.status) === "running"
   const [presetName, setPresetName] = useState("")
   const [recordingHotkey, setRecordingHotkey] = useState<HotkeyAction | null>(null)
 
@@ -68,6 +69,7 @@ export function TimerSettings() {
             <Button
               variant="outline"
               size="xs"
+              disabled={timerRunning}
               onClick={() => { saveTimerPreset(presetName || `Preset ${timerPresets.length + 1}`); setPresetName("") }}
               className="shrink-0"
             >
@@ -85,7 +87,8 @@ export function TimerSettings() {
                   <button
                     type="button"
                     onClick={() => loadTimerPreset(p.id)}
-                    className="text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0.5"
+                    disabled={timerRunning}
+                    className="text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
                     title={t("configure.timerPresets.load")}
                   >
                     <Upload size={12} />
