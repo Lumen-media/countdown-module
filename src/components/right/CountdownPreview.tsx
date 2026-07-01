@@ -3,6 +3,7 @@ import { displayAnchor } from "../../lib/display-mode.js"
 import { useAdaptiveTextAppearance } from "../../lib/adaptive-text.js"
 import { useCountdownStore } from "../../store.js"
 import { DigitDisplay } from "../DigitDisplay.js"
+import { CircularProgress } from "../CircularProgress.js"
 import type { BackgroundConfig } from "../../types.js"
 import { TextCarousel } from "../TextCarousel.js"
 
@@ -158,19 +159,34 @@ export function CountdownPreview() {
           </span>
         )}
 
-        <span
-          className="relative block text-center leading-none"
-          style={{
-            fontSize: cornerActive ? "54px" : "80px",
-            fontWeight: 900,
-            color: timerColor,
-            fontFamily: appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font,
-            textShadow: timerShadow,
-            transition: "font-size 260ms ease",
-          }}
+        <div
+          className="relative flex items-center justify-center"
+          style={{ margin: cornerActive ? 0 : "4px 0" }}
         >
-          <DigitDisplay seconds={remainingSeconds} />
-        </span>
+          {appearance.showProgressBar && (
+            <div className="absolute" style={{ pointerEvents: "none" }}>
+              <CircularProgress
+                remaining={remainingSeconds}
+                total={config.totalSeconds}
+                color={appearance.progressBarColor}
+                size={cornerActive ? 90 : 150}
+              />
+            </div>
+          )}
+          <span
+            className="relative block text-center leading-none"
+            style={{
+              fontSize: cornerActive ? "54px" : "80px",
+              fontWeight: 900,
+              color: timerColor,
+              fontFamily: appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font,
+              textShadow: timerShadow,
+              transition: "font-size 260ms ease",
+            }}
+          >
+            <DigitDisplay seconds={remainingSeconds} animation={appearance.digitAnimation} pulseEffect={appearance.pulseEffect} />
+          </span>
+        </div>
 
         {postText && (
           <TextCarousel

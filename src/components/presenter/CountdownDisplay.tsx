@@ -3,6 +3,7 @@ import { emit, listen } from "@tauri-apps/api/event"
 import { displayAnchor, type CountdownTickPayload } from "../../lib/display-mode.js"
 import { useAdaptiveTextAppearance } from "../../lib/adaptive-text.js"
 import { DigitDisplay } from "../DigitDisplay.js"
+import { CircularProgress } from "../CircularProgress.js"
 import type { BackgroundConfig, CountdownConfig } from "../../types.js"
 import { TextCarousel } from "../TextCarousel.js"
 
@@ -137,20 +138,39 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
           </span>
         )}
 
-        <span
+        <div
           style={{
             position: "relative",
-            fontSize: cornerActive ? "48px" : `${appearance.fontSize}px`,
-            fontWeight: 900,
-            color: timerColor,
-            fontFamily: appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font,
-            textShadow: timerShadow,
-            lineHeight: 1,
-            transition: "font-size 260ms ease",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          <DigitDisplay seconds={remaining} />
-        </span>
+          {appearance.showProgressBar && (
+            <div style={{ position: "absolute", pointerEvents: "none" }}>
+              <CircularProgress
+                remaining={remaining}
+                total={config.totalSeconds}
+                color={appearance.progressBarColor}
+                size={cornerActive ? 90 : appearance.fontSize + 40}
+              />
+            </div>
+          )}
+          <span
+            style={{
+              position: "relative",
+              fontSize: cornerActive ? "48px" : `${appearance.fontSize}px`,
+              fontWeight: 900,
+              color: timerColor,
+              fontFamily: appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font,
+              textShadow: timerShadow,
+              lineHeight: 1,
+              transition: "font-size 260ms ease",
+            }}
+          >
+            <DigitDisplay seconds={remaining} animation={appearance.digitAnimation} pulseEffect={appearance.pulseEffect} />
+          </span>
+        </div>
 
         {postText && (
           <TextCarousel

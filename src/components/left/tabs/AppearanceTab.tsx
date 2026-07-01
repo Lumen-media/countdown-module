@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { useEventListener } from "usehooks-ts"
 import { HexColorPicker } from "react-colorful"
 import { Info, MoveDownLeft, MoveDownRight, MoveUpLeft, MoveUpRight } from "lucide-react"
-import { Combobox, HoverCard, Input, Popover, Select, Slider, ToggleGroup } from "@lumen-media/module-sdk/ui"
+import { Combobox, HoverCard, Input, Popover, Select, Slider, Switch, ToggleGroup } from "@lumen-media/module-sdk/ui"
 import { cn } from "../../../lib/cn.js"
 import { useLocalFonts } from "../../../hooks/useLocalFonts.js"
 import { t } from "../../../i18n.js"
@@ -381,6 +381,54 @@ export function AppearanceTab() {
             value={appearance.textShadowGlow * 100}
             onChange={(value) => updateAppearance({ textShadowGlow: value / 100 })}
           />
+        </div>
+      </div>
+
+      <div>
+        <SectionLabel>{t("appearance.section.animations")}</SectionLabel>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
+            <span className="text-xs text-muted-foreground">{t("appearance.animation.digitTransition")}</span>
+            <ToggleGroup
+              value={[appearance.digitAnimation]}
+              onValueChange={(values) => {
+                const value = values[values.length - 1] as CountdownConfig["appearance"]["digitAnimation"] | undefined
+                if (value) updateAppearance({ digitAnimation: value })
+              }}
+              className="w-full rounded-lg bg-background p-1"
+            >
+              {(["none", "flip", "blur"] as const).map((anim) => (
+                <ToggleGroup.ToggleGroupItem
+                  key={anim}
+                  value={anim}
+                  className={cn(
+                    "flex-1 text-xs capitalize aria-pressed:bg-card",
+                    appearance.digitAnimation === anim && "bg-card shadow-sm",
+                  )}
+                >
+                  {t(`appearance.animation.${anim}`)}
+                </ToggleGroup.ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+
+          <div className="flex items-center justify-between rounded-md bg-background px-3 py-2.5">
+            <span className="text-sm text-foreground">{t("appearance.animation.pulseEffect")}</span>
+            <Switch checked={appearance.pulseEffect} onCheckedChange={(checked) => updateAppearance({ pulseEffect: checked })} />
+          </div>
+
+          <div className="flex items-center justify-between rounded-md bg-background px-3 py-2.5">
+            <span className="text-sm text-foreground">{t("appearance.animation.showProgressBar")}</span>
+            <Switch checked={appearance.showProgressBar} onCheckedChange={(checked) => updateAppearance({ showProgressBar: checked })} />
+          </div>
+
+          {appearance.showProgressBar && (
+            <ColorRow
+              label={t("appearance.animation.progressBarColor")}
+              color={appearance.progressBarColor}
+              onChange={(color) => updateAppearance({ progressBarColor: color })}
+            />
+          )}
         </div>
       </div>
 

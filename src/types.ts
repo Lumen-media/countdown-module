@@ -52,6 +52,10 @@ export type CountdownConfig = {
     prePostColor: string
     prePostOpacity: number
     textShadowGlow: number
+    digitAnimation: "none" | "flip" | "blur"
+    pulseEffect: boolean
+    showProgressBar: boolean
+    progressBarColor: string
     overlayMode: "fullscreen" | "corner"
     cornerPosition: "top-left" | "top-right" | "bottom-left" | "bottom-right"
     background: BackgroundConfig
