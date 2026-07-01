@@ -46,7 +46,6 @@ const ProfileBg = memo(function ProfileBg_() {
         muted
         playsInline
         className="absolute inset-0 h-full w-full object-cover"
-        style={{ willChange: "transform" }}
       />
     )
   }
@@ -57,7 +56,6 @@ const ProfileBg = memo(function ProfileBg_() {
       alt=""
       decoding="async"
       className="absolute inset-0 h-full w-full object-cover"
-      style={{ willChange: "transform" }}
       onError={() => setImgError(true)}
     />
   )
@@ -87,7 +85,6 @@ const ConfiguredBackgroundMedia = memo(function ConfiguredBackgroundMedia_({
         alt=""
         decoding="async"
         className="absolute inset-0 h-full w-full object-cover"
-        style={{ opacity: background.opacity, willChange: "transform" }}
         onError={() => setImgError(true)}
       />
     )
@@ -102,7 +99,6 @@ const ConfiguredBackgroundMedia = memo(function ConfiguredBackgroundMedia_({
         muted
         playsInline
         className="absolute inset-0 h-full w-full object-cover"
-        style={{ opacity: background.opacity, willChange: "transform" }}
       />
     )
   }

@@ -49,7 +49,7 @@ const ConfiguredBackgroundMedia = memo(function ConfiguredBackgroundMedia_({
         onError={() => setImgError(true)}
         style={{
           position: "absolute", inset: 0, width: "100%", height: "100%",
-          objectFit: "cover", opacity: background.opacity, willChange: "transform",
+          objectFit: "cover",
         }}
       />
     )
@@ -65,7 +65,7 @@ const ConfiguredBackgroundMedia = memo(function ConfiguredBackgroundMedia_({
         playsInline
         style={{
           position: "absolute", inset: 0, width: "100%", height: "100%",
-          objectFit: "cover", opacity: background.opacity, willChange: "transform",
+          objectFit: "cover",
         }}
       />
     )
