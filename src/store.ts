@@ -463,19 +463,24 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
       if (!_openBackgroundPicker) return
       _openBackgroundPicker((bg) => {
         const src = bg.src ?? ""
-        const background: BackgroundConfig = bg.type === "video"
-          ? { type: "video", value: src, opacity: 0.5 }
-          : { type: "image", value: src, opacity: 0.5 }
-        set((s) => ({
-          config: {
-            ...s.config,
-            appearance: {
-              ...s.config.appearance,
-              preset: "custom",
-              background: customBackground ?? background,
+
+        const commitBackground = (finalSrc: string) => {
+          const background: BackgroundConfig = bg.type === "video"
+            ? { type: "video", value: finalSrc, opacity: 0.5 }
+            : { type: "image", value: finalSrc, opacity: 0.5 }
+          set((s) => ({
+            config: {
+              ...s.config,
+              appearance: {
+                ...s.config.appearance,
+                preset: "custom",
+                background: customBackground ?? background,
+              },
             },
-          },
-        }))
+          }))
+          get()._saveImmediate?.()
+        }
+
         if (src.startsWith("blob:")) {
           fetch(src)
             .then((res) => res.blob())
@@ -485,21 +490,10 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
               reader.onerror = reject
               reader.readAsDataURL(blob)
             }))
-            .then((dataUrl) => {
-              set((s) => ({
-                config: {
-                  ...s.config,
-                  appearance: {
-                    ...s.config.appearance,
-                    background: { ...(customBackground ?? background), value: dataUrl },
-                  },
-                },
-              }))
-              get()._saveImmediate?.()
-            })
+            .then((dataUrl) => commitBackground(dataUrl))
             .catch(() => {})
         } else {
-          get()._saveImmediate?.()
+          commitBackground(src)
         }
       })
       return

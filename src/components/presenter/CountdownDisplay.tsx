@@ -41,19 +41,32 @@ const ConfiguredBackgroundMedia = memo(function ConfiguredBackgroundMedia_({
 
   if (background.type === "image") {
     if (imgError) return null
-    return <img key={background.value} src={background.value} alt="" onError={() => setImgError(true)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+    return (
+      <img
+        src={background.value}
+        alt=""
+        decoding="async"
+        onError={() => setImgError(true)}
+        style={{
+          position: "absolute", inset: 0, width: "100%", height: "100%",
+          objectFit: "cover", opacity: background.opacity, willChange: "transform",
+        }}
+      />
+    )
   }
 
   if (background.type === "video") {
     return (
       <video
-        key={background.value}
         src={background.value}
         autoPlay
         loop
         muted
         playsInline
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+        style={{
+          position: "absolute", inset: 0, width: "100%", height: "100%",
+          objectFit: "cover", opacity: background.opacity, willChange: "transform",
+        }}
       />
     )
   }

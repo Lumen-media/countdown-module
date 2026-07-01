@@ -40,18 +40,27 @@ const ProfileBg = memo(function ProfileBg_() {
   if (type === "video") {
     return (
       <video
-        key={src}
         src={src}
         autoPlay
         loop
         muted
         playsInline
         className="absolute inset-0 h-full w-full object-cover"
+        style={{ willChange: "transform" }}
       />
     )
   }
 
-  return <img key={src} src={src} alt="" className="absolute inset-0 h-full w-full object-cover" onError={() => setImgError(true)} />
+  return (
+    <img
+      src={src}
+      alt=""
+      decoding="async"
+      className="absolute inset-0 h-full w-full object-cover"
+      style={{ willChange: "transform" }}
+      onError={() => setImgError(true)}
+    />
+  )
 })
 
 function bgKey(bg: BackgroundConfig): string {
@@ -72,19 +81,28 @@ const ConfiguredBackgroundMedia = memo(function ConfiguredBackgroundMedia_({
 
   if (background.type === "image") {
     if (imgError) return <div className="absolute inset-0" style={{ background: "var(--background)" }} />
-    return <img key={background.value} src={background.value} alt="" className="absolute inset-0 h-full w-full object-cover" onError={() => setImgError(true)} />
+    return (
+      <img
+        src={background.value}
+        alt=""
+        decoding="async"
+        className="absolute inset-0 h-full w-full object-cover"
+        style={{ opacity: background.opacity, willChange: "transform" }}
+        onError={() => setImgError(true)}
+      />
+    )
   }
 
   if (background.type === "video") {
     return (
       <video
-        key={background.value}
         src={background.value}
         autoPlay
         loop
         muted
         playsInline
         className="absolute inset-0 h-full w-full object-cover"
+        style={{ opacity: background.opacity, willChange: "transform" }}
       />
     )
   }
