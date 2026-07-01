@@ -141,7 +141,6 @@ let _animation: ReturnType<typeof animate> | null = null
 let _completionSoundTimer: ReturnType<typeof setTimeout> | null = null
 let _completionSoundAudio: HTMLAudioElement | null = null
 let _lastTickSecond: number | null = null
-let _savedSoundCurrentTime: number | null = null
 
 function cancelAnimation() {
   if (_animation !== null) {
@@ -158,17 +157,11 @@ function clearCompletionSoundTimer() {
   }
 }
 
-function stopCompletionSound(savePosition = false) {
+function stopCompletionSound() {
   clearCompletionSoundTimer()
   if (_completionSoundAudio !== null) {
-    if (savePosition) {
-      _savedSoundCurrentTime = _completionSoundAudio.currentTime
-    }
     _completionSoundAudio.pause()
     _completionSoundAudio = null
-  }
-  if (!savePosition) {
-    _savedSoundCurrentTime = null
   }
   const { timerState } = useCountdownStore.getState()
   if (timerState.completionSoundStarted) {
@@ -176,6 +169,31 @@ function stopCompletionSound(savePosition = false) {
       timerState: { ...s.timerState, completionSoundStarted: false },
     }))
   }
+}
+
+function pauseCompletionSound() {
+  clearCompletionSoundTimer()
+  if (_completionSoundAudio !== null) {
+    _completionSoundAudio.pause()
+    // Don't null the reference — keep it alive for resume
+  }
+  const { timerState } = useCountdownStore.getState()
+  if (timerState.completionSoundStarted) {
+    useCountdownStore.setState((s) => ({
+      timerState: { ...s.timerState, completionSoundStarted: false },
+    }))
+  }
+}
+
+function resumeCompletionSound() {
+  if (_completionSoundAudio !== null) {
+    _completionSoundAudio.play().catch(() => {})
+    useCountdownStore.setState((s) => ({
+      timerState: { ...s.timerState, completionSoundStarted: true },
+    }))
+    return true
+  }
+  return false
 }
 
 function scheduleCompletionSound(get: () => CountdownStore, durationMs: number) {
@@ -215,10 +233,6 @@ function scheduleCompletionSound(get: () => CountdownStore, durationMs: number) 
         },
       }))
       _completionSoundAudio = playBundledSound(soundId)
-      if (_completionSoundAudio !== null && _savedSoundCurrentTime !== null) {
-        _completionSoundAudio.currentTime = _savedSoundCurrentTime
-        _savedSoundCurrentTime = null
-      }
       _completionSoundTimer = null
     }, delayMs)
   })
@@ -596,9 +610,18 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     if (timerState.status === "running") return
 
     cancelAnimation()
-    stopCompletionSound()
 
     const resuming = timerState.status === "paused"
+
+    let soundResumed = false
+    if (resuming) {
+      soundResumed = resumeCompletionSound()
+      if (!soundResumed) {
+        stopCompletionSound()
+      }
+    } else {
+      stopCompletionSound()
+    }
 
       if (config.countUp) {
         const startValue = resuming ? timerState.remainingSeconds : 0
@@ -610,7 +633,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
               status: "running" as const,
               pausedAt: null,
               firedTriggers: [],
-              completionSoundStarted: timerState.completionSoundStarted,
+              completionSoundStarted: soundResumed,
             }
           : {
               status: "running" as const,
@@ -648,7 +671,9 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
           { event: "timer.started", remaining: startValue, total: config.totalSeconds, countUp: true, preText: config.preText, postText: config.postText },
           config.behavior.webhookUrl,
         )
-        scheduleCompletionSound(get, durationMs)
+        if (!soundResumed) {
+          scheduleCompletionSound(get, durationMs)
+        }
         return
       }
 
@@ -665,7 +690,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
           status: "running" as const,
           pausedAt: null,
           firedTriggers: [],
-          completionSoundStarted: timerState.completionSoundStarted,
+          completionSoundStarted: soundResumed,
         }
       : {
           status: "running" as const,
@@ -705,11 +730,13 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
       { event: "timer.started", remaining: remainingSeconds, total: config.totalSeconds, countUp: false, preText: config.preText, postText: config.postText },
       config.behavior.webhookUrl,
     )
-    scheduleCompletionSound(get, soundDurationMs)
+    if (!soundResumed) {
+      scheduleCompletionSound(get, soundDurationMs)
+    }
   },
     pauseTimer: () => {
     _animation?.pause()
-    stopCompletionSound(true)
+    pauseCompletionSound()
     const { timerState, config, profileBackground, _isExternalBackdropActive } = get()
     const externalBackdropActive = _isExternalBackdropActive?.() ?? false
     const newState = { ...timerState, status: "paused" as const, pausedAt: Date.now() }
