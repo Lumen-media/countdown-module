@@ -164,18 +164,28 @@ export function CountdownPreview() {
           style={{ margin: cornerActive ? 0 : "4px 0" }}
         >
           {appearance.showProgressBar && (
-            <div className="absolute" style={{ pointerEvents: "none" }}>
+            <div
+              className="absolute"
+              style={{
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                pointerEvents: "none",
+                zIndex: 0,
+              }}
+            >
               <CircularProgress
                 remaining={remainingSeconds}
                 total={config.totalSeconds}
                 color={appearance.progressBarColor}
-                size={cornerActive ? 90 : 150}
+                size={cornerActive ? 90 : 220}
               />
             </div>
           )}
           <span
             className="relative block text-center leading-none"
             style={{
+              zIndex: 1,
               fontSize: cornerActive ? "54px" : "80px",
               fontWeight: 900,
               color: timerColor,
@@ -184,7 +194,7 @@ export function CountdownPreview() {
               transition: "font-size 260ms ease",
             }}
           >
-            <DigitDisplay seconds={remainingSeconds} animation={appearance.digitAnimation} pulseEffect={appearance.pulseEffect} />
+            <DigitDisplay seconds={remainingSeconds} animation={appearance.digitAnimation} pulseEffect={appearance.pulseEffect && remainingSeconds <= 60} />
           </span>
         </div>
 

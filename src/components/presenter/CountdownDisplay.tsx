@@ -147,18 +147,28 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
           }}
         >
           {appearance.showProgressBar && (
-            <div style={{ position: "absolute", pointerEvents: "none" }}>
+            <div
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                pointerEvents: "none",
+                zIndex: 0,
+              }}
+            >
               <CircularProgress
                 remaining={remaining}
                 total={config.totalSeconds}
                 color={appearance.progressBarColor}
-                size={cornerActive ? 90 : appearance.fontSize + 40}
+                size={cornerActive ? 90 : Math.max(appearance.fontSize * 3.5, 200)}
               />
             </div>
           )}
           <span
             style={{
               position: "relative",
+              zIndex: 1,
               fontSize: cornerActive ? "48px" : `${appearance.fontSize}px`,
               fontWeight: 900,
               color: timerColor,
@@ -168,7 +178,7 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
               transition: "font-size 260ms ease",
             }}
           >
-            <DigitDisplay seconds={remaining} animation={appearance.digitAnimation} pulseEffect={appearance.pulseEffect} />
+            <DigitDisplay seconds={remaining} animation={appearance.digitAnimation} pulseEffect={appearance.pulseEffect && remaining <= 60} />
           </span>
         </div>
 

@@ -5,12 +5,12 @@ export function CircularProgress({
   remaining,
   total,
   color,
-  size = 200,
+  size,
 }: {
   remaining: number
   total: number
   color: string
-  size?: number
+  size: number
 }) {
   const circleRef = useRef<SVGCircleElement>(null)
   const radius = 44
@@ -31,12 +31,7 @@ export function CircularProgress({
   }, [remaining, total])
 
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 100 100"
-      style={{ display: "block" }}
-    >
+    <svg width={size} height={size} viewBox="0 0 100 100">
       <circle
         cx="50"
         cy="50"
