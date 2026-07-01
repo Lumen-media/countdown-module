@@ -151,6 +151,7 @@ export function CountdownPreview() {
           <span
             className="relative block text-center font-medium leading-snug"
             style={{
+              zIndex: 1,
               fontSize: `${textFs}px`,
               color: subColor,
               textShadow: subShadow,
@@ -176,9 +177,6 @@ export function CountdownPreview() {
                   transform: "translate(-50%, -50%)",
                   width: ringSize,
                   height: ringSize,
-                  clipPath: "circle(50%)",
-                  backdropFilter: "blur(2px)",
-                  WebkitBackdropFilter: "blur(2px)",
                   pointerEvents: "none",
                   zIndex: 0,
                 }}
@@ -210,16 +208,18 @@ export function CountdownPreview() {
         </div>
 
         {postText && (
-          <TextCarousel
-            text={postText}
-            style={{
-              fontSize: `${textFs}px`,
-              color: subColor,
-              textShadow: subShadow,
-              transition: "font-size 260ms ease",
-            }}
-            className="relative block text-center font-normal leading-snug"
-          />
+          <div className="relative" style={{ zIndex: 1 }}>
+            <TextCarousel
+              text={postText}
+              style={{
+                fontSize: `${textFs}px`,
+                color: subColor,
+                textShadow: subShadow,
+                transition: "font-size 260ms ease",
+              }}
+              className="relative block text-center font-normal leading-snug"
+            />
+          </div>
         )}
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { memo, useEffect, useRef, useState } from "react"
 import { animate } from "animejs"
 import { formatTime } from "../store.js"
 
@@ -73,7 +73,7 @@ function AnimatedChar({ char, animation, skip }: { char: string; animation: stri
   )
 }
 
-export function DigitDisplay({
+export const DigitDisplay = memo(function DigitDisplay({
   seconds,
   animation = "none",
   pulseEffect = false,
@@ -112,4 +112,4 @@ export function DigitDisplay({
       ))}
     </span>
   )
-}
+})

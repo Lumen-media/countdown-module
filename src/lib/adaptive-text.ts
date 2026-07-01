@@ -225,11 +225,11 @@ export function useAdaptiveTextAppearance({
   const timerColor = appearance.timerColor
   const prePostColor = appearance.prePostColor
   const glowStrength = appearance.textShadowGlow ?? 0
-  const resolvedGlowColor = sampledColor
-    ? saturate(0.18, mix(0.55, timerColor, sampledColor))
-    : timerColor
+  const resolvedGlowColor = useMemo(() => {
+    return sampledColor ? saturate(0.18, mix(0.55, timerColor, sampledColor)) : timerColor
+  }, [sampledColor, timerColor])
 
-  return {
+  return useMemo(() => ({
     timerColor,
     prePostColor,
     timerShadow: glowStrength > 0
@@ -239,5 +239,5 @@ export function useAdaptiveTextAppearance({
       ? buildTextShadow(prePostColor, resolvedGlowColor, glowStrength * 0.72, true)
       : `0 1px 2px ${prePostColor.toUpperCase() === "#FFFFFF" ? rgba("#000000", 0.58) : rgba("#FFFFFF", 0.22)}`,
     sampledColor,
-  }
+  }), [timerColor, prePostColor, glowStrength, resolvedGlowColor, sampledColor])
 }
