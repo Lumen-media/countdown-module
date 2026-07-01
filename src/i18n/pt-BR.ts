@@ -32,13 +32,15 @@ const ptBR: Record<string, string> = {
   "appearance.color.timerText": "Texto do timer",
   "appearance.color.prePostText": "Texto pré / pós",
   "appearance.color.prePostOpacity": "Opacidade do pré / pós",
+  "appearance.color.auto": "Automático",
+  "appearance.color.manual": "Manual",
   "appearance.background.solid": "Sólido",
   "appearance.background.gradient": "Gradiente",
   "appearance.background.color": "Cor",
   "appearance.background.color1": "Cor 1",
   "appearance.background.color2": "Cor 2",
   "appearance.background.angle": "Ângulo",
-  "appearance.effect.textShadowGlow": "Sombra / brilho do texto",
+  "appearance.effect.textShadowGlow": "Intensidade do brilho",
   "appearance.displayMode.info": "O modo canto só move o timer para o canto selecionado quando já existe mídia ou letra ativa atrás dele no Lumen. Caso contrário, ele permanece centralizado e usa o fundo configurado da contagem.",
   "appearance.displayMode.fullscreen": "Tela cheia",
   "appearance.displayMode.corner": "Canto",
@@ -64,6 +66,7 @@ const ptBR: Record<string, string> = {
   "actions.chooseLibraryAudio": "Escolher áudio da biblioteca...",
   "actions.searchMedia": "Buscar mídia",
   "actions.searchLibraryAudio": "Buscar áudio da biblioteca",
+  "actions.loadingMedia": "Carregando mídia...",
   "actions.bundledAudio": "Áudios internos",
   "actions.libraryAudio": "Áudios da biblioteca",
   "actions.noMediaFound": "Nenhuma mídia encontrada.",
@@ -110,7 +113,6 @@ const ptBR: Record<string, string> = {
   "main.menu.open": "Timer de contagem",
   "main.command.open": "Abrir timer de contagem",
   "main.trigger.wait": "Aguardar (Contagem)",
-};
+}
 
-export default ptBR;
-
+export default ptBR

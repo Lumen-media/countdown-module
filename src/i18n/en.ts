@@ -32,13 +32,15 @@ const en: Record<string, string> = {
   "appearance.color.timerText": "Timer Text",
   "appearance.color.prePostText": "Pre / Post Text",
   "appearance.color.prePostOpacity": "Pre / Post Opacity",
+  "appearance.color.auto": "Auto",
+  "appearance.color.manual": "Manual",
   "appearance.background.solid": "Solid",
   "appearance.background.gradient": "Gradient",
   "appearance.background.color": "Color",
   "appearance.background.color1": "Color 1",
   "appearance.background.color2": "Color 2",
   "appearance.background.angle": "Angle",
-  "appearance.effect.textShadowGlow": "Text Shadow / Glow",
+  "appearance.effect.textShadowGlow": "Glow Intensity",
   "appearance.displayMode.info": "Corner mode only moves the timer into the selected corner when media or lyrics are already active behind it in Lumen. Otherwise it stays centered and uses the configured countdown background.",
   "appearance.displayMode.fullscreen": "Fullscreen",
   "appearance.displayMode.corner": "Corner",
@@ -64,6 +66,7 @@ const en: Record<string, string> = {
   "actions.chooseLibraryAudio": "Choose audio from library...",
   "actions.searchMedia": "Search media",
   "actions.searchLibraryAudio": "Search library audio",
+  "actions.loadingMedia": "Loading media...",
   "actions.bundledAudio": "Bundled audio",
   "actions.libraryAudio": "Library audio",
   "actions.noMediaFound": "No media found.",
@@ -110,7 +113,6 @@ const en: Record<string, string> = {
   "main.menu.open": "Countdown Timer",
   "main.command.open": "Open Countdown Timer",
   "main.trigger.wait": "Wait (Countdown)",
-};
+}
 
-export default en;
-
+export default en

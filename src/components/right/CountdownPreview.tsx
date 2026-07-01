@@ -1,4 +1,6 @@
+import { useRef } from "react"
 import { displayAnchor } from "../../lib/display-mode.js"
+import { useAdaptiveTextAppearance } from "../../lib/adaptive-text.js"
 import { useCountdownStore, formatTime } from "../../store.js"
 import type { BackgroundConfig } from "../../types.js"
 import { TextCarousel } from "../TextCarousel.js"
@@ -11,14 +13,20 @@ function formatPreText(text: string, maxChars = 28): string {
   const splitIndex = slicePoint > 0 ? slicePoint : maxChars
   return `${normalized.slice(0, splitIndex)}\n${normalized.slice(splitIndex).trimStart()}`
 }
+
 function bgToStyle(bg: BackgroundConfig): React.CSSProperties {
   if (bg.type === "solid") return { backgroundColor: bg.color }
   if (bg.type === "gradient") return { backgroundImage: bg.value }
-  if (bg.type === "image") return { backgroundImage: `url(${bg.value})`, backgroundSize: "cover", backgroundPosition: "center" }
   return {}
 }
 
-function ProfileBg() {
+function ProfileBg({
+  imageRef,
+  videoRef,
+}: {
+  imageRef: React.RefObject<HTMLImageElement | null>
+  videoRef: React.RefObject<HTMLVideoElement | null>
+}) {
   const profileBackground = useCountdownStore((s) => s.profileBackground)
 
   if (!profileBackground) {
@@ -35,6 +43,8 @@ function ProfileBg() {
   if (type === "video") {
     return (
       <video
+        key={src}
+        ref={videoRef}
         src={src}
         autoPlay
         loop
@@ -45,7 +55,38 @@ function ProfileBg() {
     )
   }
 
-  return <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
+  return <img key={src} ref={imageRef} src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
+}
+
+function ConfiguredBackgroundMedia({
+  background,
+  imageRef,
+  videoRef,
+}: {
+  background: BackgroundConfig
+  imageRef: React.RefObject<HTMLImageElement | null>
+  videoRef: React.RefObject<HTMLVideoElement | null>
+}) {
+  if (background.type === "image") {
+    return <img key={background.value} ref={imageRef} src={background.value} alt="" className="absolute inset-0 h-full w-full object-cover" />
+  }
+
+  if (background.type === "video") {
+    return (
+      <video
+        key={background.value}
+        ref={videoRef}
+        src={background.value}
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+    )
+  }
+
+  return null
 }
 
 export function CountdownPreview() {
@@ -54,19 +95,31 @@ export function CountdownPreview() {
   const { appearance, preText, postText } = config
   const remainingSeconds = config.totalSeconds
   const cornerActive = appearance.overlayMode === "corner"
+  const imageRef = useRef<HTMLImageElement | null>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
 
-  const glow = appearance.textShadowGlow ?? 0
-  const timerShadow = glow > 0 ? `0 0 ${glow * 40}px rgba(255,255,255,0.8)` : undefined
-  const subColor = `${appearance.prePostColor ?? "#ffffff"}${Math.round((appearance.prePostOpacity ?? 0.8) * 255).toString(16).padStart(2, "0")}`
-  const subShadow = glow > 0 ? `0 0 ${glow * 24}px rgba(255,255,255,0.5)` : undefined
+  const { timerColor, prePostColor, timerShadow, subShadow } = useAdaptiveTextAppearance({
+    appearance,
+    profileBackground,
+    renderConfiguredBackground: true,
+    imageRef,
+    videoRef,
+  })
+
+  const subColor = `${prePostColor ?? "#ffffff"}${Math.round((appearance.prePostOpacity ?? 0.8) * 255).toString(16).padStart(2, "0")}`
   const isProfile = appearance.background.type === "profile"
 
   return (
     <div
-      data-countdown-stage className="relative isolate h-full w-full overflow-hidden rounded-xl"
+      data-countdown-stage
+      className="relative isolate h-full w-full overflow-hidden rounded-xl"
       style={isProfile ? {} : bgToStyle(appearance.background)}
     >
-      {isProfile && <ProfileBg />}
+      {isProfile ? (
+        <ProfileBg imageRef={imageRef} videoRef={videoRef} />
+      ) : (
+        <ConfiguredBackgroundMedia background={appearance.background} imageRef={imageRef} videoRef={videoRef} />
+      )}
 
       <div
         className="absolute z-10 flex flex-col items-center text-center"
@@ -79,7 +132,7 @@ export function CountdownPreview() {
       >
         {preText && (
           <span
-            className="block text-center font-medium leading-snug"
+            className="relative block text-center font-medium leading-snug"
             style={{
               fontSize: cornerActive ? "14px" : "16px",
               color: subColor,
@@ -92,11 +145,11 @@ export function CountdownPreview() {
         )}
 
         <span
-          className="block text-center leading-none tabular-nums"
+          className="relative block text-center leading-none tabular-nums"
           style={{
             fontSize: cornerActive ? "54px" : "80px",
             fontWeight: 900,
-            color: appearance.timerColor,
+            color: timerColor,
             letterSpacing: "-2px",
             fontFamily: appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font,
             textShadow: timerShadow,
@@ -115,7 +168,7 @@ export function CountdownPreview() {
               textShadow: subShadow,
               transition: "font-size 260ms ease",
             }}
-            className="block text-center font-normal leading-snug"
+            className="relative block text-center font-normal leading-snug"
           />
         )}
       </div>

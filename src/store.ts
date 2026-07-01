@@ -46,7 +46,7 @@ const DEFAULT_CONFIG: CountdownConfig = {
     timerColor: "#FFFFFF",
     prePostColor: "#FFFFFF",
     prePostOpacity: 0.8,
-    textShadowGlow: 0,
+    textShadowGlow: 0.35,
     overlayMode: "fullscreen",
     cornerPosition: "bottom-right",
     background: { type: "profile" },
@@ -519,4 +519,5 @@ export function formatTime(seconds: number): string {
   const sign = seconds < 0 ? "-" : ""
   return `${sign}${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
 }
+
 

@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { emit, listen } from "@tauri-apps/api/event"
 import { displayAnchor, type CountdownTickPayload } from "../../lib/display-mode.js"
+import { useAdaptiveTextAppearance } from "../../lib/adaptive-text.js"
 import { formatTime } from "../../store.js"
-import type { CountdownConfig } from "../../types.js"
+import type { BackgroundConfig, CountdownConfig } from "../../types.js"
 import { TextCarousel } from "../TextCarousel.js"
 
 function formatPreText(text: string, maxChars = 28): string {
@@ -13,38 +14,74 @@ function formatPreText(text: string, maxChars = 28): string {
   const splitIndex = slicePoint > 0 ? slicePoint : maxChars
   return `${normalized.slice(0, splitIndex)}\n${normalized.slice(splitIndex).trimStart()}`
 }
+
 function bgToStyle(config: CountdownConfig): React.CSSProperties {
   const bg = config.appearance.background
   if (bg.type === "solid") return { backgroundColor: bg.color }
   if (bg.type === "gradient") return { backgroundImage: bg.value }
-  if (bg.type === "image") return { backgroundImage: `url(${bg.value})`, backgroundSize: "cover", backgroundPosition: "center" }
-  if (bg.type === "video") return {}
   return {}
+}
+
+function ConfiguredBackgroundMedia({
+  background,
+  imageRef,
+  videoRef,
+}: {
+  background: BackgroundConfig
+  imageRef: React.RefObject<HTMLImageElement | null>
+  videoRef: React.RefObject<HTMLVideoElement | null>
+}) {
+  if (background.type === "image") {
+    return <img key={background.value} ref={imageRef} src={background.value} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+  }
+
+  if (background.type === "video") {
+    return (
+      <video
+        key={background.value}
+        ref={videoRef}
+        src={background.value}
+        autoPlay
+        loop
+        muted
+        playsInline
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+      />
+    )
+  }
+
+  return null
 }
 
 export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickPayload }) {
   const [tick, setTick] = useState<CountdownTickPayload | null>(initialTick ?? null)
+  const imageRef = useRef<HTMLImageElement | null>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
 
   useEffect(() => {
-    const unlisten = listen<CountdownTickPayload>("countdown:tick", (e) => {
-      setTick(e.payload)
+    const unlisten = listen<CountdownTickPayload>("countdown:tick", (event) => {
+      setTick(event.payload)
     })
     emit("countdown:display-ready").catch(() => {})
-    return () => { unlisten.then((f) => f()).catch(() => {}) }
+    return () => {
+      unlisten.then((dispose) => dispose()).catch(() => {})
+    }
   }, [])
 
   if (!tick) {
-    return <div style={{ width: "100%", height: "100%", background: "black" }} />
+    return <div data-countdown-stage style={{ width: "100%", height: "100%", background: "black" }} />
   }
 
   const { remaining, config, cornerActive, renderConfiguredBackground } = tick
   const { appearance, preText, postText } = config
-
-  const glow = appearance.textShadowGlow ?? 0
-  const timerShadow = glow > 0 ? `0 0 ${glow * 40}px rgba(255,255,255,0.8)` : undefined
-  const subColor = `${appearance.prePostColor ?? "#ffffff"}${Math.round((appearance.prePostOpacity ?? 0.8) * 255).toString(16).padStart(2, "0")}`
-  const subShadow = glow > 0 ? `0 0 ${glow * 24}px rgba(255,255,255,0.5)` : undefined
   const bgStyle = renderConfiguredBackground ? bgToStyle(config) : {}
+  const { timerColor, prePostColor, timerShadow, subShadow } = useAdaptiveTextAppearance({
+    appearance,
+    renderConfiguredBackground,
+    imageRef,
+    videoRef,
+  })
+  const subColor = `${prePostColor ?? "#ffffff"}${Math.round((appearance.prePostOpacity ?? 0.8) * 255).toString(16).padStart(2, "0")}`
 
   return (
     <div
@@ -55,6 +92,10 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
         ...bgStyle,
       }}
     >
+      {renderConfiguredBackground && (
+        <ConfiguredBackgroundMedia background={appearance.background} imageRef={imageRef} videoRef={videoRef} />
+      )}
+
       <div
         style={{
           position: "absolute",
@@ -71,6 +112,7 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
         {preText && (
           <span
             style={{
+              position: "relative",
               fontSize: cornerActive ? "14px" : "24px",
               fontWeight: 500,
               color: subColor,
@@ -85,9 +127,10 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
 
         <span
           style={{
+            position: "relative",
             fontSize: cornerActive ? "48px" : `${appearance.fontSize}px`,
             fontWeight: 900,
-            color: appearance.timerColor,
+            color: timerColor,
             letterSpacing: "-2px",
             fontFamily: appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font,
             textShadow: timerShadow,
