@@ -34,10 +34,12 @@ function PresetThumbnail({ preset }: { preset: BackgroundPreset }) {
   const customBackground = useCountdownStore((s) =>
     s.config.appearance.preset === "custom" ? s.config.appearance.background : null
   )
+  const [defaultImgError, setDefaultImgError] = useState(false)
+  const [customImgError, setCustomImgError] = useState(false)
   const base = "w-full rounded-md overflow-hidden aspect-video flex items-center justify-center text-xs font-extrabold tracking-tight relative"
 
   if (preset === "default") {
-    const isReady = profileBackground?.src && (
+    const isReady = !defaultImgError && profileBackground?.src && (
       profileBackground.src.startsWith("blob:") ||
       profileBackground.src.startsWith("http") ||
       profileBackground.src.startsWith("data:")
@@ -47,7 +49,7 @@ function PresetThumbnail({ preset }: { preset: BackgroundPreset }) {
         {isReady && (
           profileBackground!.type === "video"
             ? <video src={profileBackground!.src} className="absolute inset-0 w-full h-full object-cover" muted />
-            : <img src={profileBackground!.thumb ?? profileBackground!.src} alt="" className="absolute inset-0 w-full h-full object-cover" />
+            : <img src={profileBackground!.thumb ?? profileBackground!.src} alt="" className="absolute inset-0 w-full h-full object-cover" onError={() => setDefaultImgError(true)} />
         )}
         <span className="relative drop-shadow text-white">05:00</span>
       </div>
@@ -55,13 +57,13 @@ function PresetThumbnail({ preset }: { preset: BackgroundPreset }) {
   }
 
   if (preset === "custom") {
-    const hasMedia = customBackground && (customBackground.type === "image" || customBackground.type === "video")
+    const hasMedia = !customImgError && customBackground && (customBackground.type === "image" || customBackground.type === "video")
     return (
       <div className={cn(base, !hasMedia && PRESET_STYLES["custom"])}>
         {hasMedia && (
           customBackground.type === "video"
             ? <video src={customBackground.value} className="absolute inset-0 w-full h-full object-cover" muted />
-            : <img src={customBackground.value} alt="" className="absolute inset-0 w-full h-full object-cover" />
+            : <img src={customBackground.value} alt="" className="absolute inset-0 w-full h-full object-cover" onError={() => setCustomImgError(true)} />
         )}
         {hasMedia
           ? <span className="relative drop-shadow text-white">05:00</span>

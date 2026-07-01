@@ -1,4 +1,4 @@
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { displayAnchor } from "../../lib/display-mode.js"
 import { useAdaptiveTextAppearance } from "../../lib/adaptive-text.js"
 import { useCountdownStore, formatTime } from "../../store.js"
@@ -28,6 +28,7 @@ function ProfileBg({
   videoRef: React.RefObject<HTMLVideoElement | null>
 }) {
   const profileBackground = useCountdownStore((s) => s.profileBackground)
+  const [imgError, setImgError] = useState(false)
 
   if (!profileBackground) {
     return <div className="absolute inset-0" style={{ background: "var(--background)" }} />
@@ -36,7 +37,7 @@ function ProfileBg({
   const { src, type } = profileBackground
   const isReady = src.startsWith("blob:") || src.startsWith("http") || src.startsWith("data:")
 
-  if (!isReady) {
+  if (!isReady || imgError) {
     return <div className="absolute inset-0" style={{ background: "var(--background)" }} />
   }
 
@@ -55,7 +56,7 @@ function ProfileBg({
     )
   }
 
-  return <img key={src} ref={imageRef} src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
+  return <img key={src} ref={imageRef} src={src} alt="" className="absolute inset-0 h-full w-full object-cover" onError={() => setImgError(true)} />
 }
 
 function ConfiguredBackgroundMedia({
@@ -67,8 +68,11 @@ function ConfiguredBackgroundMedia({
   imageRef: React.RefObject<HTMLImageElement | null>
   videoRef: React.RefObject<HTMLVideoElement | null>
 }) {
+  const [imgError, setImgError] = useState(false)
+
   if (background.type === "image") {
-    return <img key={background.value} ref={imageRef} src={background.value} alt="" className="absolute inset-0 h-full w-full object-cover" />
+    if (imgError) return <div className="absolute inset-0" style={{ background: "var(--background)" }} />
+    return <img key={background.value} ref={imageRef} src={background.value} alt="" className="absolute inset-0 h-full w-full object-cover" onError={() => setImgError(true)} />
   }
 
   if (background.type === "video") {

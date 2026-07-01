@@ -31,8 +31,11 @@ function ConfiguredBackgroundMedia({
   imageRef: React.RefObject<HTMLImageElement | null>
   videoRef: React.RefObject<HTMLVideoElement | null>
 }) {
+  const [imgError, setImgError] = useState(false)
+
   if (background.type === "image") {
-    return <img key={background.value} ref={imageRef} src={background.value} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+    if (imgError) return null
+    return <img key={background.value} ref={imageRef} src={background.value} alt="" onError={() => setImgError(true)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
   }
 
   if (background.type === "video") {

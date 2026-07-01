@@ -118,6 +118,10 @@ export default class CountdownPlugin extends LumenPlugin {
 
     hostExt.themes.onDefaultBackgroundChange?.(applyProfileBg)
 
+    useCountdownStore.getState().setSaveImmediate(() => {
+      host.data.json.set("config", useCountdownStore.getState().config).catch(() => {})
+    })
+
     useCountdownStore.getState().setOpenBackgroundPicker(
       (cb) => host.ui.openBackgroundPicker(cb)
     )

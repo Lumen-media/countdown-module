@@ -219,6 +219,8 @@ type CountdownStore = {
   setOverlay: (p: OverlayAPI) => void
   _isExternalBackdropActive: (() => boolean) | null
   setExternalBackdropActivityReader: (reader: () => boolean) => void
+  _saveImmediate: (() => void) | null
+  setSaveImmediate: (fn: () => void) => void
   sendToPresenter: () => void
   clearPresenter: () => void
   sendToOverlay: () => void
@@ -253,6 +255,8 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
   _openBackgroundPicker: null as CountdownStore["_openBackgroundPicker"],
   setOpenBackgroundPicker: (fn) => set({ _openBackgroundPicker: fn }),
   profileBackground: null,
+  _saveImmediate: null as CountdownStore["_saveImmediate"],
+  setSaveImmediate: (fn) => set({ _saveImmediate: fn }),
   setProfileBackground: (bg) => set({ profileBackground: bg }),
   _hostFs: null,
   setHostFs: (fs) => set({ _hostFs: fs }),
@@ -313,7 +317,15 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
   },
 
   setConfig: (update) =>
-    set((s) => ({ config: { ...s.config, ...update } })),
+    set((s) => ({
+      config: {
+        ...s.config,
+        ...update,
+        appearance: update.appearance ? { ...s.config.appearance, ...update.appearance } : s.config.appearance,
+        actions: update.actions ? { ...s.config.actions, ...update.actions } : s.config.actions,
+        behavior: update.behavior ? { ...s.config.behavior, ...update.behavior } : s.config.behavior,
+      },
+    })),
 
   updateAppearance: (update) =>
     set((s) => ({
@@ -342,6 +354,31 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
             },
           },
         }))
+        if (src.startsWith("blob:")) {
+          fetch(src)
+            .then((res) => res.blob())
+            .then((blob) => new Promise<string>((resolve, reject) => {
+              const reader = new FileReader()
+              reader.onload = () => resolve(reader.result as string)
+              reader.onerror = reject
+              reader.readAsDataURL(blob)
+            }))
+            .then((dataUrl) => {
+              set((s) => ({
+                config: {
+                  ...s.config,
+                  appearance: {
+                    ...s.config.appearance,
+                    background: { ...(customBackground ?? background), value: dataUrl },
+                  },
+                },
+              }))
+              get()._saveImmediate?.()
+            })
+            .catch(() => {})
+        } else {
+          get()._saveImmediate?.()
+        }
       })
       return
     }
