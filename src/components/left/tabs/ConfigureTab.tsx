@@ -89,6 +89,7 @@ export function ConfigureTab() {
   const setConfig = useCountdownStore((s) => s.setConfig)
   const setTotalSeconds = useCountdownStore((s) => s.setTotalSeconds)
   const applyPreset = useCountdownStore((s) => s.applyPreset)
+  const timerRunning = useCountdownStore((s) => s.timerState.status) === "running"
 
   const [localMinutes, setLocalMinutes] = useState(
     String(Math.floor(totalSeconds / 60)).padStart(2, "0")
@@ -171,6 +172,7 @@ export function ConfigureTab() {
                 value={value}
                 onChange={(e) => set(e.target.value)}
                 maxLength={2}
+                readOnly={timerRunning}
                 className="bg-background dark:bg-background border-none outline-none font-extrabold text-foreground w-full text-center p-0 tabular-nums"
                 style={{ fontSize: 36 }}
               />
@@ -189,6 +191,7 @@ export function ConfigureTab() {
               variant="outline"
               size="xs"
               onClick={() => addSeconds(delta)}
+              disabled={timerRunning}
               className="text-muted-foreground hover:text-foreground flex-1"
             >
               {label}
@@ -198,6 +201,7 @@ export function ConfigureTab() {
             variant="outline"
             size="xs"
             onClick={handleReset}
+            disabled={timerRunning}
             className="text-muted-foreground hover:text-foreground gap-1 flex-1"
           >
             <RotateCcw size={11} />

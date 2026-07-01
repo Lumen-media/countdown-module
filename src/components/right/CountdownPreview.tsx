@@ -165,25 +165,33 @@ export function CountdownPreview() {
           className="relative flex items-center justify-center"
           style={{ margin: cornerActive ? 0 : "4px 0" }}
         >
-          {appearance.showProgressBar && (
-            <div
-              className="absolute"
-              style={{
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                pointerEvents: "none",
-                zIndex: 0,
-              }}
-            >
-              <CircularProgress
-                remaining={remainingSeconds}
-                total={config.totalSeconds}
-                color={appearance.progressBarColor}
-                size={cornerActive ? 100 : Math.round(timerFs * 3.5)}
-              />
-            </div>
-          )}
+          {appearance.showProgressBar && (() => {
+            const ringSize = cornerActive ? 100 : Math.round(timerFs * 3.5)
+            return (
+              <div
+                className="absolute"
+                style={{
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  width: ringSize,
+                  height: ringSize,
+                  borderRadius: "50%",
+                  backdropFilter: "blur(2px)",
+                  WebkitBackdropFilter: "blur(2px)",
+                  pointerEvents: "none",
+                  zIndex: 0,
+                }}
+              >
+                <CircularProgress
+                  remaining={remainingSeconds}
+                  total={config.totalSeconds}
+                  color={appearance.progressBarColor}
+                  size={ringSize}
+                />
+              </div>
+            )
+          })()}
           <span
             className="relative block text-center leading-none"
             style={{

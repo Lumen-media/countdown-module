@@ -518,14 +518,19 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     }))
   },
 
-  setTotalSeconds: (seconds) =>
+  setTotalSeconds: (seconds) => {
+    const clamped = Math.max(0, seconds)
     set((s) => ({
-      config: { ...s.config, totalSeconds: Math.max(0, seconds) },
+      config: { ...s.config, totalSeconds: clamped },
       timerState: {
         ...s.timerState,
-        remainingSeconds: Math.max(0, seconds),
+        remainingSeconds: clamped,
       },
-    })),
+    }))
+    const { config: cfg, timerState: ts, profileBackground, _isExternalBackdropActive } = get()
+    const externalBackdropActive = _isExternalBackdropActive?.() ?? false
+    emitTick(clamped, ts.status, cfg, profileBackground, externalBackdropActive)
+  },
 
   startTimer: () => {
     const { timerState, config, _presenter, _overlay, isOverlayActive, profileBackground, _isExternalBackdropActive } = get()

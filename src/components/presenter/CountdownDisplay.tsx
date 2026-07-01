@@ -102,6 +102,7 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
       style={{
         position: "fixed",
         inset: 0,
+        overflow: "hidden",
         ...bgStyle,
       }}
     >
@@ -119,7 +120,6 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
           gap: cornerActive ? "4px" : "10px",
           textAlign: "center",
           maxWidth: "100vw",
-          overflow: "hidden",
           transition: "top 260ms ease, left 260ms ease, transform 260ms ease, gap 260ms ease",
           ...displayAnchor(appearance.cornerPosition, cornerActive),
         }}
@@ -149,25 +149,33 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
             justifyContent: "center",
           }}
         >
-          {appearance.showProgressBar && (
-            <div
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                pointerEvents: "none",
-                zIndex: 0,
-              }}
-            >
-              <CircularProgress
-                remaining={remaining}
-                total={config.totalSeconds}
-                color={appearance.progressBarColor}
-                size={cornerActive ? 90 : Math.max(appearance.fontSize * 3.5, 200)}
-              />
-            </div>
-          )}
+          {appearance.showProgressBar && (() => {
+            const ringSize = cornerActive ? 90 : Math.max(appearance.fontSize * 3.5, 200)
+            return (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  width: ringSize,
+                  height: ringSize,
+                  borderRadius: "50%",
+                  backdropFilter: "blur(2px)",
+                  WebkitBackdropFilter: "blur(2px)",
+                  pointerEvents: "none",
+                  zIndex: 0,
+                }}
+              >
+                <CircularProgress
+                  remaining={remaining}
+                  total={config.totalSeconds}
+                  color={appearance.progressBarColor}
+                  size={ringSize}
+                />
+              </div>
+            )
+          })()}
           <span
             style={{
               position: "relative",
