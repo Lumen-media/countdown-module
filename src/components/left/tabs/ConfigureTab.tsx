@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react"
-import { RotateCcw, Video } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { Clock, RotateCcw, Video } from "lucide-react"
 import { useDebounceValue } from "usehooks-ts"
 import { Button, Input, ScrollArea, Select, TextEditor } from "@lumen-media/module-sdk/ui"
 import { cn } from "../../../lib/cn.js"
@@ -81,13 +81,20 @@ function PresetThumbnail({ preset }: { preset: BackgroundPreset }) {
 }
 
 export function ConfigureTab() {
-  const { config, setConfig, setTotalSeconds, applyPreset } = useCountdownStore()
+  const totalSeconds = useCountdownStore((s) => s.config.totalSeconds)
+  const preText = useCountdownStore((s) => s.config.preText)
+  const postText = useCountdownStore((s) => s.config.postText)
+  const actionsConfig = useCountdownStore((s) => s.config.actions)
+  const appearancePreset = useCountdownStore((s) => s.config.appearance.preset)
+  const setConfig = useCountdownStore((s) => s.setConfig)
+  const setTotalSeconds = useCountdownStore((s) => s.setTotalSeconds)
+  const applyPreset = useCountdownStore((s) => s.applyPreset)
 
   const [localMinutes, setLocalMinutes] = useState(
-    String(Math.floor(config.totalSeconds / 60)).padStart(2, "0")
+    String(Math.floor(totalSeconds / 60)).padStart(2, "0")
   )
   const [localSeconds, setLocalSeconds] = useState(
-    String(config.totalSeconds % 60).padStart(2, "0")
+    String(totalSeconds % 60).padStart(2, "0")
   )
 
   const [debouncedMinutes] = useDebounceValue(localMinutes, 300)
@@ -108,21 +115,39 @@ export function ConfigureTab() {
     setTotalSeconds(m * 60 + s)
   }, [debouncedMinutes, debouncedSeconds])
 
-  function addSeconds(delta: number) {
-    const next = Math.max(0, config.totalSeconds + delta)
+  useEffect(() => {
+    const m = String(Math.floor(totalSeconds / 60)).padStart(2, "0")
+    const s = String(totalSeconds % 60).padStart(2, "0")
+    setLocalMinutes(m)
+    setLocalSeconds(s)
+    prevDebounced.current = { minutes: m, seconds: s }
+  }, [totalSeconds])
+
+  const addSeconds = useCallback((delta: number) => {
+    const next = Math.max(0, totalSeconds + delta)
     setTotalSeconds(next)
     const newMins = String(Math.floor(next / 60)).padStart(2, "0")
     const newSecs = String(next % 60).padStart(2, "0")
     setLocalMinutes(newMins)
     setLocalSeconds(newSecs)
     prevDebounced.current = { minutes: newMins, seconds: newSecs }
-  }
+  }, [totalSeconds, setTotalSeconds])
 
   function handleReset() {
-    const m = String(Math.floor(config.totalSeconds / 60)).padStart(2, "0")
-    const s = String(config.totalSeconds % 60).padStart(2, "0")
+    const m = String(Math.floor(totalSeconds / 60)).padStart(2, "0")
+    const s = String(totalSeconds % 60).padStart(2, "0")
     setLocalMinutes(m)
     setLocalSeconds(s)
+  }
+
+  function quickPreset(minutes: number) {
+    const seconds = minutes * 60
+    setTotalSeconds(seconds)
+    const newMins = String(Math.floor(seconds / 60)).padStart(2, "0")
+    const newSecs = "00"
+    setLocalMinutes(newMins)
+    setLocalSeconds(newSecs)
+    prevDebounced.current = { minutes: newMins, seconds: newSecs }
   }
 
   return (
@@ -182,11 +207,29 @@ export function ConfigureTab() {
       </div>
 
       <div>
+        <SectionLabel>{t("configure.section.quickPresets")}</SectionLabel>
+        <div className="grid grid-cols-4 gap-1.5">
+          {[5, 10, 15, 30].map((minutes) => (
+            <Button
+              key={minutes}
+              variant="outline"
+              size="xs"
+              onClick={() => quickPreset(minutes)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Clock size={11} />
+              {t("configure.quickPreset", { minutes })}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <div>
         <SectionLabel>{t("configure.section.displayText")}</SectionLabel>
         <div className="flex flex-col gap-2">
           <Input
             placeholder={t("configure.displayText.pre")}
-            value={config.preText}
+            value={preText}
             onChange={(e) => setConfig({ preText: e.target.value })}
             className="bg-background dark:bg-background"
           />
@@ -194,7 +237,7 @@ export function ConfigureTab() {
             <ScrollArea className="h-full max-h-[4.1lh]">
               <TextEditor
                 placeholder={t("configure.displayText.post")}
-                defaultValue={config.postText}
+                defaultValue={postText}
                 onChange={(e) => setConfig({ postText: e })}
                 className="[&_.tiptap]:p-1"
               />
@@ -206,13 +249,13 @@ export function ConfigureTab() {
       <div>
         <SectionLabel>{t("configure.section.onCompletion")}</SectionLabel>
         <Select
-          value={config.actions.autoAdvance.enabled ? "auto-next" : "none"}
+          value={actionsConfig.autoAdvance.enabled ? "auto-next" : "none"}
           onValueChange={(v) =>
             setConfig({
               actions: {
-                ...config.actions,
+                ...actionsConfig,
                 autoAdvance: {
-                  ...config.actions.autoAdvance,
+                  ...actionsConfig.autoAdvance,
                   enabled: v !== "none",
                 },
               },
@@ -221,7 +264,7 @@ export function ConfigureTab() {
         >
           <Select.SelectTrigger className="w-full bg-background dark:bg-background">
             <Select.SelectValue>
-              {config.actions.autoAdvance.enabled ? t("configure.onCompletion.autoNext") : t("configure.onCompletion.none")}
+              {actionsConfig.autoAdvance.enabled ? t("configure.onCompletion.autoNext") : t("configure.onCompletion.none")}
             </Select.SelectValue>
           </Select.SelectTrigger>
           <Select.SelectContent>
@@ -235,7 +278,7 @@ export function ConfigureTab() {
         <SectionLabel>{t("configure.section.backgroundPreset")}</SectionLabel>
         <div className="grid grid-cols-2 gap-2">
           {PRESETS.map((p) => {
-            const isSelected = config.appearance.preset === p.id
+            const isSelected = appearancePreset === p.id
             return (
               <button
                 key={p.id}
@@ -255,8 +298,9 @@ export function ConfigureTab() {
               </button>
             )
           })}
-        </div>
+                </div>
       </div>
     </div>
   )
 }
+

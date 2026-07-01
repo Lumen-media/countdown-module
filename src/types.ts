@@ -28,11 +28,22 @@ export type EndAction =
   | { type: "player.next-slide" }
   | { type: "player.play"; itemId: string; itemTitle: string }
 
+export type HotkeyAction = "start" | "pause" | "reset" | "add10" | "sub10"
+
+export type HotkeyConfig = Record<HotkeyAction, string>
+
+export type TimerPreset = {
+  id: string
+  name: string
+  config: CountdownConfig
+}
+
 export type CountdownConfig = {
   totalSeconds: number
   allowNegative: boolean
   preText: string
   postText: string
+  hotkeys: HotkeyConfig
   appearance: {
     font: string
     fontWeight: string

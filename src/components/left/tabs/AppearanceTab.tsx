@@ -266,9 +266,9 @@ function GradientEditor({ value, onChange }: { value: string; onChange: (v: stri
 }
 
 export function AppearanceTab() {
-  const { config, updateAppearance } = useCountdownStore()
+  const appearance = useCountdownStore((s) => s.config.appearance)
+  const updateAppearance = useCountdownStore((s) => s.updateAppearance)
   const { fonts } = useLocalFonts()
-  const { appearance } = config
   const bg = appearance.background
   const bgType = bg.type === "profile" ? null : bg.type
 

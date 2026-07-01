@@ -1,4 +1,5 @@
-import { Card, ScrollArea, Separator, Tabs } from "@lumen-media/module-sdk/ui"
+import { Card, Popover, ScrollArea, Separator, Tabs } from "@lumen-media/module-sdk/ui"
+import { Settings2 } from "lucide-react"
 import { cn } from "../lib/cn.js"
 import { useCountdownStore } from "../store.js"
 import { t } from "../i18n.js"
@@ -7,6 +8,7 @@ import { ConfigureTab } from "./left/tabs/ConfigureTab.js"
 import { AppearanceTab } from "./left/tabs/AppearanceTab.js"
 import { ActionsTab } from "./left/tabs/ActionsTab.js"
 import { RightPanel } from "./right/RightPanel.js"
+import { TimerSettings } from "./left/TimerSettings.js"
 
 export function CountdownDialog() {
   const isPreviewExpanded = useCountdownStore((s) => s.isPreviewExpanded)
@@ -17,7 +19,17 @@ export function CountdownDialog() {
         <Tabs defaultValue="configure" className="flex flex-col h-full overflow-hidden">
           <Card.CardContent className="flex-1 flex flex-col p-0 overflow-hidden gap-0" style={{ minHeight: 0 }}>
             <div className="px-4 pt-4 pb-3 shrink-0">
-              <h2 className="text-base font-bold text-foreground mb-3">{t("dialog.title")}</h2>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-base font-bold text-foreground">{t("dialog.title")}</h2>
+                <Popover>
+                  <Popover.PopoverTrigger className="text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-1 rounded-md hover:bg-card">
+                    <Settings2 size={16} />
+                  </Popover.PopoverTrigger>
+                  <Popover.PopoverContent className="p-3 bg-card border border-border rounded-xl shadow-lg" align="end" sideOffset={6}>
+                    <TimerSettings />
+                  </Popover.PopoverContent>
+                </Popover>
+              </div>
               <Tabs.TabsList className="w-full bg-background rounded-lg p-1">
                 <Tabs.TabsTrigger value="configure" className="flex-1 data-[state=active]:bg-card data-[state=active]:shadow-sm">{t("dialog.tab.configure")}</Tabs.TabsTrigger>
                 <Tabs.TabsTrigger value="appearance" className="flex-1 data-[state=active]:bg-card data-[state=active]:shadow-sm">{t("dialog.tab.appearance")}</Tabs.TabsTrigger>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type RefObject } from "react"
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react"
 import { mix, rgba, saturate } from "polished"
 import type { BackgroundConfig, CountdownConfig } from "../types.js"
 
@@ -101,6 +101,15 @@ function sampleElementColor(
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`
 }
 
+function bgConfigKey(bg: BackgroundConfig): string {
+  if (bg.type === "profile") return "profile"
+  if (bg.type === "solid") return `solid:${bg.color}`
+  if (bg.type === "gradient") return `gradient:${bg.value}`
+  if (bg.type === "image") return `image:${bg.value}:${bg.opacity}`
+  if (bg.type === "video") return `video:${bg.value}:${bg.opacity}`
+  return ""
+}
+
 function buildTextShadow(textColor: string, glowColor: string, glowStrength: number, compact = false) {
   const outlineColor = textColor.toUpperCase() === "#FFFFFF"
     ? rgba("#000000", compact ? 0.62 : 0.72)
@@ -126,13 +135,18 @@ export function useAdaptiveTextAppearance({
 }: AdaptiveTextOptions): AdaptiveTextResult {
   const [sampledMediaColor, setSampledMediaColor] = useState<string | null>(null)
   const background = appearance.background
-  const mediaToken = `${background.type === "image" || background.type === "video" ? background.value : ""}|${profileBackground?.src ?? ""}|${profileBackground?.type ?? ""}`
+  const mediaToken = `${background.type === "image" || background.type === "video" ? background.value : ""}|${profileBackground?.src ?? ""}|${profileBackground?.type ?? ""}|${appearance.overlayMode}|${appearance.cornerPosition}`
 
+  const backgroundKey = bgConfigKey(background)
   const staticSample = useMemo(() => {
     if (!renderConfiguredBackground && background.type !== "profile") return null
     if (background.type === "profile" && profileBackground?.type === "theme") return null
     return resolveStaticSample(background)
-  }, [background, profileBackground, renderConfiguredBackground])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backgroundKey, profileBackground, renderConfiguredBackground])
+
+  const appearanceRef = useRef(appearance)
+  appearanceRef.current = appearance
 
   useEffect(() => {
     let interval: number | null = null
@@ -152,14 +166,14 @@ export function useAdaptiveTextAppearance({
     const sampleImage = () => {
       const image = imageRef?.current
       if (!image || !image.complete || image.naturalWidth <= 0 || image.naturalHeight <= 0) return false
-      setSampledMediaColor(sampleElementColor(image, appearance, image.naturalWidth, image.naturalHeight))
+      setSampledMediaColor(sampleElementColor(image, appearanceRef.current, image.naturalWidth, image.naturalHeight))
       return true
     }
 
     const sampleVideo = () => {
       const video = videoRef?.current
       if (!video || video.videoWidth <= 0 || video.videoHeight <= 0) return false
-      setSampledMediaColor(sampleElementColor(video, appearance, video.videoWidth, video.videoHeight))
+      setSampledMediaColor(sampleElementColor(video, appearanceRef.current, video.videoWidth, video.videoHeight))
       return true
     }
 
@@ -205,7 +219,7 @@ export function useAdaptiveTextAppearance({
       if (raf !== null) window.cancelAnimationFrame(raf)
       cleanups.forEach((cleanup) => cleanup())
     }
-  }, [appearance, background, imageRef, mediaToken, renderConfiguredBackground, videoRef])
+  }, [imageRef, mediaToken, renderConfiguredBackground, videoRef])
 
   const sampledColor = sampledMediaColor ?? staticSample
   const timerColor = appearance.timerColor

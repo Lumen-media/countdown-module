@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { memo, useRef, useState } from "react"
 import { displayAnchor } from "../../lib/display-mode.js"
 import { useAdaptiveTextAppearance } from "../../lib/adaptive-text.js"
 import { useCountdownStore, formatTime } from "../../store.js"
@@ -20,7 +20,7 @@ function bgToStyle(bg: BackgroundConfig): React.CSSProperties {
   return {}
 }
 
-function ProfileBg({
+const ProfileBg = memo(function ProfileBg_({
   imageRef,
   videoRef,
 }: {
@@ -57,9 +57,18 @@ function ProfileBg({
   }
 
   return <img key={src} ref={imageRef} src={src} alt="" className="absolute inset-0 h-full w-full object-cover" onError={() => setImgError(true)} />
+})
+
+function bgKey(bg: BackgroundConfig): string {
+  if (bg.type === "profile") return "profile"
+  if (bg.type === "solid") return `solid:${bg.color}`
+  if (bg.type === "gradient") return `gradient:${bg.value}`
+  if (bg.type === "image") return `image:${bg.value}:${bg.opacity}`
+  if (bg.type === "video") return `video:${bg.value}:${bg.opacity}`
+  return ""
 }
 
-function ConfiguredBackgroundMedia({
+const ConfiguredBackgroundMedia = memo(function ConfiguredBackgroundMedia_({
   background,
   imageRef,
   videoRef,
@@ -91,7 +100,7 @@ function ConfiguredBackgroundMedia({
   }
 
   return null
-}
+}, (prev, next) => bgKey(prev.background) === bgKey(next.background))
 
 export function CountdownPreview() {
   const config = useCountdownStore((s) => s.config)

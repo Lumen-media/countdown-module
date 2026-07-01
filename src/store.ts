@@ -2,7 +2,7 @@ import { emit } from "@tauri-apps/api/event"
 import { create } from "zustand"
 import { isCornerActive, type CountdownTickPayload } from "./lib/display-mode.js"
 import { DEFAULT_WARNING_SOUND_ID, getBundledSoundDuration, playBundledSound, playSelectedSound } from "./lib/sounds.js"
-import type { BackgroundConfig, BackgroundPreset, CountdownConfig, CountdownState, EndAction } from "./types.js"
+import type { BackgroundConfig, BackgroundPreset, CountdownConfig, CountdownState, EndAction, HotkeyAction, HotkeyConfig, TimerPreset } from "./types.js"
 
 type PresenterAPI = { project: (viewId: string, props?: unknown) => void; clear: () => void }
 type OverlayAPI = { project: (viewId: string, props?: unknown) => void; clear: () => void; onStateChange?: (handler: (state: "idle" | "live") => void) => { dispose(): void } }
@@ -34,11 +34,20 @@ const PRESET_CONFIGS: Record<Exclude<BackgroundPreset, "custom">, Pick<Countdown
   },
 }
 
+const DEFAULT_HOTKEYS: HotkeyConfig = {
+  start: "Ctrl+Enter",
+  pause: "Ctrl+KeyP",
+  reset: "Ctrl+Backspace",
+  add10: "Ctrl+Equal",
+  sub10: "Ctrl+Minus",
+}
+
 const DEFAULT_CONFIG: CountdownConfig = {
   totalSeconds: 300,
   allowNegative: false,
   preText: "The event is about to start",
   postText: "We're live!",
+  hotkeys: DEFAULT_HOTKEYS,
   appearance: {
     font: "Inter (System Default)",
     fontWeight: "Extra Bold",
@@ -201,12 +210,19 @@ type CountdownStore = {
   setOverlayActive: (v: boolean) => void
   setConfig: (update: Partial<CountdownConfig>) => void
   updateAppearance: (update: Partial<CountdownConfig["appearance"]>) => void
+  updateHotkeys: (update: Partial<HotkeyConfig>) => void
   applyPreset: (preset: BackgroundPreset, customBackground?: BackgroundConfig) => void
   setTotalSeconds: (seconds: number) => void
   startTimer: () => void
   pauseTimer: () => void
   resetTimer: () => void
   tick: () => void
+  handleHotkey: (action: HotkeyAction) => void
+  timerPresets: TimerPreset[]
+  setTimerPresets: (presets: TimerPreset[]) => void
+  saveTimerPreset: (name: string) => void
+  loadTimerPreset: (id: string) => void
+  deleteTimerPreset: (id: string) => void
   _openBackgroundPicker: ((cb: (bg: { src: string; type: string; name: string }) => void) => void) | null
   setOpenBackgroundPicker: (fn: (cb: (bg: { src: string; type: string; name: string }) => void) => void) => void
   profileBackground: { src: string; thumb?: string; type: "theme" | "image" | "video" } | null
@@ -332,6 +348,14 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
       config: {
         ...s.config,
         appearance: { ...s.config.appearance, ...update },
+      },
+    })),
+
+  updateHotkeys: (update) =>
+    set((s) => ({
+      config: {
+        ...s.config,
+        hotkeys: { ...s.config.hotkeys, ...update },
       },
     })),
 
@@ -469,6 +493,54 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     }
     set({ timerState: newState })
     emitTick(newState.remainingSeconds, "idle", config, profileBackground, externalBackdropActive)
+  },
+
+  handleHotkey: (action) => {
+    const { timerState, config, startTimer, pauseTimer, resetTimer } = get()
+    switch (action) {
+      case "start":
+        if (timerState.status === "idle" || timerState.status === "paused") startTimer()
+        break
+      case "pause":
+        if (timerState.status === "running") pauseTimer()
+        break
+      case "reset":
+        if (timerState.status !== "idle") resetTimer()
+        break
+      case "add10":
+        get().setTotalSeconds(config.totalSeconds + 10)
+        break
+      case "sub10":
+        get().setTotalSeconds(Math.max(0, config.totalSeconds - 10))
+        break
+    }
+  },
+
+  timerPresets: [],
+  setTimerPresets: (presets) => set({ timerPresets: presets }),
+
+  saveTimerPreset: (name) => {
+    const { config, timerPresets } = get()
+    const id = `preset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+    const newPreset: TimerPreset = {
+      id,
+      name,
+      config: JSON.parse(JSON.stringify(config)),
+    }
+    const updated = [...timerPresets, newPreset]
+    set({ timerPresets: updated })
+    return updated
+  },
+
+  loadTimerPreset: (id) => {
+    const { timerPresets, setConfig } = get()
+    const preset = timerPresets.find((p) => p.id === id)
+    if (preset) setConfig(preset.config)
+  },
+
+  deleteTimerPreset: (id) => {
+    const { timerPresets } = get()
+    set({ timerPresets: timerPresets.filter((p) => p.id !== id) })
   },
 
   tick: () => {

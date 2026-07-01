@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { memo, useEffect, useRef, useState } from "react"
 import { emit, listen } from "@tauri-apps/api/event"
 import { displayAnchor, type CountdownTickPayload } from "../../lib/display-mode.js"
 import { useAdaptiveTextAppearance } from "../../lib/adaptive-text.js"
@@ -22,7 +22,16 @@ function bgToStyle(config: CountdownConfig): React.CSSProperties {
   return {}
 }
 
-function ConfiguredBackgroundMedia({
+function bgKey(bg: BackgroundConfig): string {
+  if (bg.type === "profile") return "profile"
+  if (bg.type === "solid") return `solid:${bg.color}`
+  if (bg.type === "gradient") return `gradient:${bg.value}`
+  if (bg.type === "image") return `image:${bg.value}:${bg.opacity}`
+  if (bg.type === "video") return `video:${bg.value}:${bg.opacity}`
+  return ""
+}
+
+const ConfiguredBackgroundMedia = memo(function ConfiguredBackgroundMedia_({
   background,
   imageRef,
   videoRef,
@@ -54,7 +63,7 @@ function ConfiguredBackgroundMedia({
   }
 
   return null
-}
+}, (prev, next) => bgKey(prev.background) === bgKey(next.background))
 
 export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickPayload }) {
   const [tick, setTick] = useState<CountdownTickPayload | null>(initialTick ?? null)

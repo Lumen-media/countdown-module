@@ -11,12 +11,22 @@ const STATUS_DOT: Record<string, string> = {
 }
 
 export function PanelFooter() {
-  const { config, timerState, startTimer, pauseTimer, resetTimer, sendToPresenter, clearPresenter, isPresenterActive, sendToOverlay, clearOverlay, isOverlayActive } = useCountdownStore()
-  const { status, remainingSeconds } = timerState
+  const status = useCountdownStore((s) => s.timerState.status)
+  const remainingSeconds = useCountdownStore((s) => s.timerState.remainingSeconds)
+  const allowNegative = useCountdownStore((s) => s.config.allowNegative)
+  const startTimer = useCountdownStore((s) => s.startTimer)
+  const pauseTimer = useCountdownStore((s) => s.pauseTimer)
+  const resetTimer = useCountdownStore((s) => s.resetTimer)
+  const sendToPresenter = useCountdownStore((s) => s.sendToPresenter)
+  const clearPresenter = useCountdownStore((s) => s.clearPresenter)
+  const isPresenterActive = useCountdownStore((s) => s.isPresenterActive)
+  const sendToOverlay = useCountdownStore((s) => s.sendToOverlay)
+  const clearOverlay = useCountdownStore((s) => s.clearOverlay)
+  const isOverlayActive = useCountdownStore((s) => s.isOverlayActive)
   const isRunning = status === "running"
   const isPaused = status === "paused"
   const isFinished = status === "finished"
-  const isNegative = config.allowNegative && remainingSeconds < 0
+  const isNegative = allowNegative && remainingSeconds < 0
   const handlePause = isNegative ? resetTimer : pauseTimer
   const statusLabels: Record<string, string> = {
     idle: t("footer.status.idle"),

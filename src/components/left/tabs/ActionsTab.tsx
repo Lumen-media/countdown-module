@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Bell, ChevronRight, ChevronsRight, Image, Music, Plus, SkipBack, SkipForward, Type, X } from "lucide-react"
+import { Bell, ChevronDown, ChevronRight, ChevronUp, ChevronsRight, Copy, Image, Music, Plus, SkipBack, SkipForward, Type, X } from "lucide-react"
 import { Combobox, Label, Select, Switch } from "@lumen-media/module-sdk/ui"
 import { useCountdownStore } from "../../../store.js"
 import type { CountdownSoundSelection, EndAction, TimeTrigger } from "../../../types.js"
@@ -54,7 +54,7 @@ function AudioCombobox({
   value: CountdownSoundSelection | null
   onSelect: (sound: CountdownSoundSelection | null) => void
 }) {
-  const { _library } = useCountdownStore()
+  const _library = useCountdownStore((s) => s._library)
   const [libraryItems, setLibraryItems] = useState<LibraryMediaOption[]>([])
   const [query, setQuery] = useState("")
   const [loading, setLoading] = useState(false)
@@ -202,7 +202,7 @@ function LibraryMediaCombobox({
   emptyLabel: string
   onSelect: (item: LibraryMediaOption) => void
 }) {
-  const { _library } = useCountdownStore()
+  const _library = useCountdownStore((s) => s._library)
   const [items, setItems] = useState<LibraryMediaOption[]>([])
   const [query, setQuery] = useState("")
   const [loading, setLoading] = useState(false)
@@ -277,15 +277,16 @@ function LibraryMediaCombobox({
 }
 
 function EndActionSelector() {
-  const { config, setConfig } = useCountdownStore()
-  const { autoAdvance } = config.actions
+  const actions = useCountdownStore((s) => s.config.actions)
+  const setConfig = useCountdownStore((s) => s.setConfig)
+  const { autoAdvance } = actions
   const action = autoAdvance.action
   const endActionOptions = getActionOptions().filter(
     (option) => option.value !== "warning-chime" && option.value !== "change-text"
   ) as { value: EndAction["type"]; label: string; icon: React.ReactNode }[]
 
   function updateAction(patch: EndAction) {
-    setConfig({ actions: { ...config.actions, autoAdvance: { ...autoAdvance, action: patch } } })
+    setConfig({ actions: { ...actions, autoAdvance: { ...autoAdvance, action: patch } } })
   }
 
   function handleTypeChange(type: EndAction["type"]) {
@@ -346,15 +347,16 @@ function EndActionSelector() {
   )
 }
 
-function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }) {
-  const { config, setConfig } = useCountdownStore()
+function TriggerCard({ trigger, index, total }: { trigger: TimeTrigger; index: number; total: number }) {
+  const actions = useCountdownStore((s) => s.config.actions)
+  const setConfig = useCountdownStore((s) => s.setConfig)
   const actionOptions = getActionOptions()
   const currentOption = actionOptions.find((option) => option.value === trigger.type)
   const soundPlaceholder = t("actions.selectAudio")
 
   function replaceTrigger(next: TimeTrigger) {
-    const updated = config.actions.timeTriggers.map((item, itemIndex) => itemIndex === index ? next : item)
-    setConfig({ actions: { ...config.actions, timeTriggers: updated as TimeTrigger[] } })
+    const updated = actions.timeTriggers.map((item, itemIndex) => itemIndex === index ? next : item)
+    setConfig({ actions: { ...actions, timeTriggers: updated as TimeTrigger[] } })
   }
 
   function updateTrigger(patch: Partial<TimeTrigger>) {
@@ -369,9 +371,26 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
     else replaceTrigger({ ...base, type: newType } as TimeTrigger)
   }
 
+  function duplicateTrigger() {
+    const duplicate: TimeTrigger = { ...trigger } as TimeTrigger
+    if (duplicate.type === "warning-chime") duplicate.sound = duplicate.sound ? { ...duplicate.sound } : null
+    const updated = [...actions.timeTriggers]
+    updated.splice(index + 1, 0, duplicate)
+    setConfig({ actions: { ...actions, timeTriggers: updated } })
+  }
+
+  function moveTrigger(direction: -1 | 1) {
+    const newIndex = index + direction
+    if (newIndex < 0 || newIndex >= total) return
+    const updated = [...actions.timeTriggers]
+    const [removed] = updated.splice(index, 1)
+    updated.splice(newIndex, 0, removed)
+    setConfig({ actions: { ...actions, timeTriggers: updated } })
+  }
+
   function removeTrigger() {
-    const updated = config.actions.timeTriggers.filter((_, itemIndex) => itemIndex !== index)
-    setConfig({ actions: { ...config.actions, timeTriggers: updated } })
+    const updated = actions.timeTriggers.filter((_, itemIndex) => itemIndex !== index)
+    setConfig({ actions: { ...actions, timeTriggers: updated } })
   }
 
   return (
@@ -386,13 +405,41 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
           {currentOption?.icon}
           <span className="truncate">{currentOption?.label}</span>
         </div>
-        <button
-          type="button"
-          onClick={removeTrigger}
-          className="text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0 shrink-0"
-        >
-          <X size={13} />
-        </button>
+        <div className="flex items-center gap-0.5">
+          <button
+            type="button"
+            onClick={() => moveTrigger(-1)}
+            disabled={index === 0}
+            className="text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer p-0.5"
+            title={t("actions.moveUp")}
+          >
+            <ChevronUp size={13} />
+          </button>
+          <button
+            type="button"
+            onClick={() => moveTrigger(1)}
+            disabled={index === total - 1}
+            className="text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer p-0.5"
+            title={t("actions.moveDown")}
+          >
+            <ChevronDown size={13} />
+          </button>
+          <button
+            type="button"
+            onClick={duplicateTrigger}
+            className="text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0.5"
+            title={t("actions.duplicateTrigger")}
+          >
+            <Copy size={12} />
+          </button>
+          <button
+            type="button"
+            onClick={removeTrigger}
+            className="text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0.5"
+          >
+            <X size={13} />
+          </button>
+        </div>
       </div>
 
       <Select value={trigger.type} onValueChange={(value) => changeType(value as TimeTrigger["type"])}>
@@ -493,13 +540,17 @@ function TriggerCard({ trigger, index }: { trigger: TimeTrigger; index: number }
 }
 
 export function ActionsTab() {
-  const { config, setConfig } = useCountdownStore()
-  const { autoAdvance } = config.actions
-  const { hideOnCompletion, completionSound } = config.behavior
+  const totalSeconds = useCountdownStore((s) => s.config.totalSeconds)
+  const actions = useCountdownStore((s) => s.config.actions)
+  const behavior = useCountdownStore((s) => s.config.behavior)
+  const allowNegative = useCountdownStore((s) => s.config.allowNegative)
+  const setConfig = useCountdownStore((s) => s.setConfig)
+  const { autoAdvance } = actions
+  const { hideOnCompletion, completionSound } = behavior
   const soundPlaceholder = t("actions.selectAudio")
 
   function addTrigger() {
-    const triggerAtSeconds = Math.max(0, Math.min(config.totalSeconds, Math.floor(config.totalSeconds / 2)))
+    const triggerAtSeconds = Math.max(0, Math.min(totalSeconds, Math.floor(totalSeconds / 2)))
     const newTrigger: TimeTrigger = {
       enabled: true,
       atSeconds: triggerAtSeconds,
@@ -507,7 +558,7 @@ export function ActionsTab() {
       preText: "",
       postText: "",
     }
-    setConfig({ actions: { ...config.actions, timeTriggers: [...config.actions.timeTriggers, newTrigger] } })
+    setConfig({ actions: { ...actions, timeTriggers: [...actions.timeTriggers, newTrigger] } })
   }
 
   return (
@@ -526,7 +577,7 @@ export function ActionsTab() {
             <Switch
               checked={autoAdvance.enabled}
               onCheckedChange={(checked) =>
-                setConfig({ actions: { ...config.actions, autoAdvance: { ...autoAdvance, enabled: checked } } })
+                setConfig({ actions: { ...actions, autoAdvance: { ...autoAdvance, enabled: checked } } })
               }
               className="shrink-0"
             />
@@ -541,8 +592,8 @@ export function ActionsTab() {
       <div>
         <SectionLabel>{t("actions.section.timeTriggers")}</SectionLabel>
         <div className="flex flex-col gap-2">
-          {config.actions.timeTriggers.map((trigger, index) => (
-            <TriggerCard key={index} trigger={trigger} index={index} />
+          {actions.timeTriggers.map((trigger, index) => (
+            <TriggerCard key={index} trigger={trigger} index={index} total={actions.timeTriggers.length} />
           ))}
           <button
             type="button"
@@ -566,7 +617,7 @@ export function ActionsTab() {
             {SOUND_OPTIONS.length > 0 ? (
               <Select
                 value={completionSound || NO_SOUND_VALUE}
-                onValueChange={(value) => setConfig({ behavior: { ...config.behavior, completionSound: value === NO_SOUND_VALUE ? "" : value } })}
+                onValueChange={(value) => setConfig({ behavior: { ...behavior, completionSound: value === NO_SOUND_VALUE ? "" : value } })}
               >
                 <Select.SelectTrigger className="w-full bg-card dark:bg-card text-xs">
                   <Select.SelectValue placeholder={soundPlaceholder} />
@@ -593,14 +644,14 @@ export function ActionsTab() {
             {t("actions.hideOnCompletion")}
             <Switch
               checked={hideOnCompletion}
-              onCheckedChange={(checked) => setConfig({ behavior: { ...config.behavior, hideOnCompletion: checked } })}
+              onCheckedChange={(checked) => setConfig({ behavior: { ...behavior, hideOnCompletion: checked } })}
               className="shrink-0"
             />
           </Label>
           <Label className="flex w-full items-center justify-between text-sm text-foreground">
             {t("actions.allowNegative")}
             <Switch
-              checked={config.allowNegative}
+              checked={allowNegative}
               onCheckedChange={(checked) => setConfig({ allowNegative: checked })}
               className="shrink-0"
             />
