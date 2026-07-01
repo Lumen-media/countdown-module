@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Bell, ChevronDown, ChevronRight, ChevronUp, ChevronsRight, Copy, Image, Music, Plus, SkipBack, SkipForward, Type, X } from "lucide-react"
+import { Bell, ChevronDown, ChevronRight, ChevronUp, ChevronsRight, Copy, Globe, Image, Layers, Monitor, Music, Plus, SkipBack, SkipForward, Type, X } from "lucide-react"
 import { Combobox, Label, Select, Switch } from "@lumen-media/module-sdk/ui"
 import { useCountdownStore } from "../../../store.js"
 import type { CountdownSoundSelection, EndAction, TimeTrigger } from "../../../types.js"
@@ -44,6 +44,9 @@ function getActionOptions(): ActionOption[] {
     { value: "queue.previous", label: t("actions.option.previousInQueue"), icon: <SkipBack size={13} /> },
     { value: "player.next-slide", label: t("actions.option.nextSlide"), icon: <ChevronRight size={13} /> },
     { value: "player.play", label: t("actions.option.playSpecificMedia"), icon: <Image size={13} /> },
+    { value: "change-scene", label: t("actions.option.changeScene"), icon: <Monitor size={13} /> },
+    { value: "open-overlay", label: t("actions.option.openOverlay"), icon: <Layers size={13} /> },
+    { value: "send-webhook", label: t("actions.option.sendWebhook"), icon: <Globe size={13} /> },
   ]
 }
 
@@ -292,6 +295,12 @@ function EndActionSelector() {
   function handleTypeChange(type: EndAction["type"]) {
     if (type === "player.play") {
       updateAction({ type: "player.play", itemId: "", itemTitle: "" })
+    } else if (type === "change-scene") {
+      updateAction({ type: "change-scene", sceneId: "", sceneName: "" })
+    } else if (type === "open-overlay") {
+      updateAction({ type: "open-overlay", overlayId: "", overlayName: "" })
+    } else if (type === "send-webhook") {
+      updateAction({ type: "send-webhook", payload: undefined })
     } else {
       updateAction({ type } as EndAction)
     }
@@ -341,6 +350,42 @@ function EndActionSelector() {
               onSelect={(item) => updateAction({ type: "player.play", itemId: item.id, itemTitle: item.name })}
             />
           )}
+        </div>
+      )}
+
+      {action.type === "change-scene" && (
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder={t("actions.chooseScene")}
+            value={(action as { type: "change-scene"; sceneId: string; sceneName: string }).sceneName}
+            onChange={(event) => updateAction({ type: "change-scene", sceneId: event.target.value, sceneName: event.target.value })}
+            className="flex-1 bg-card rounded-md px-2 py-1.5 text-xs border-none outline-none text-foreground placeholder:text-muted-foreground"
+          />
+        </div>
+      )}
+
+      {action.type === "open-overlay" && (
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder={t("actions.chooseOverlay")}
+            value={(action as { type: "open-overlay"; overlayId: string; overlayName: string }).overlayName}
+            onChange={(event) => updateAction({ type: "open-overlay", overlayId: event.target.value, overlayName: event.target.value })}
+            className="flex-1 bg-card rounded-md px-2 py-1.5 text-xs border-none outline-none text-foreground placeholder:text-muted-foreground"
+          />
+        </div>
+      )}
+
+      {action.type === "send-webhook" && (
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder={t("actions.webhookPayload")}
+            value={(action as { type: "send-webhook"; payload?: string }).payload ?? ""}
+            onChange={(event) => updateAction({ type: "send-webhook", payload: event.target.value || undefined })}
+            className="flex-1 bg-card rounded-md px-2 py-1.5 text-xs border-none outline-none text-foreground placeholder:text-muted-foreground"
+          />
         </div>
       )}
     </div>
@@ -544,9 +589,10 @@ export function ActionsTab() {
   const actions = useCountdownStore((s) => s.config.actions)
   const behavior = useCountdownStore((s) => s.config.behavior)
   const allowNegative = useCountdownStore((s) => s.config.allowNegative)
+  const countUp = useCountdownStore((s) => s.config.countUp)
   const setConfig = useCountdownStore((s) => s.setConfig)
   const { autoAdvance } = actions
-  const { hideOnCompletion, completionSound } = behavior
+  const { hideOnCompletion, completionSound, webhookUrl } = behavior
   const soundPlaceholder = t("actions.selectAudio")
 
   function addTrigger() {
@@ -656,6 +702,27 @@ export function ActionsTab() {
               className="shrink-0"
             />
           </Label>
+          <Label className="flex w-full items-center justify-between text-sm text-foreground">
+            {t("actions.countUp")}
+            <Switch
+              checked={countUp}
+              onCheckedChange={(checked) => {
+                setConfig({ countUp: checked })
+                useCountdownStore.getState().setTotalSeconds(totalSeconds)
+              }}
+              className="shrink-0"
+            />
+          </Label>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs text-muted-foreground">{t("actions.webhookUrl")}</span>
+            <input
+              type="text"
+              value={webhookUrl}
+              onChange={(event) => setConfig({ behavior: { ...behavior, webhookUrl: event.target.value } })}
+              placeholder="https://example.com/webhook"
+              className="w-full bg-card rounded-md px-2 py-1.5 text-xs border-none outline-none text-foreground placeholder:text-muted-foreground"
+            />
+          </div>
         </div>
       </div>
     </div>

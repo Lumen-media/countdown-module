@@ -16,6 +16,8 @@ type HostExt = {
   overlay?: { project: (viewId: string, props?: unknown) => void; clear: () => void; onStateChange?: (handler: (state: "idle" | "live") => void) => { dispose(): void } }
   player?: { current?: () => unknown; state?: () => "playing" | "paused" | "idle" }
   lyrics?: { currentSlide?: () => unknown | null }
+  sceneSwitcher?: (sceneId: string) => void
+  overlayOpener?: (overlayId: string) => void
   themes: {
     onDefaultBackgroundChange?: (handler: (bg: { src: string; type: string; name: string } | null) => void) => { dispose(): void }
   }
@@ -88,6 +90,8 @@ export default class CountdownPlugin extends LumenPlugin {
 
     if (hostExt.fs) useCountdownStore.getState().setHostFs(hostExt.fs)
     if (hostExt.library?.list && hostExt.library?.get) useCountdownStore.getState().setLibrary({ list: hostExt.library.list, get: hostExt.library.get })
+    if (hostExt.sceneSwitcher) useCountdownStore.getState().setSceneSwitcher(hostExt.sceneSwitcher)
+    if (hostExt.overlayOpener) useCountdownStore.getState().setOverlayOpener(hostExt.overlayOpener)
     if (hostExt.overlay) {
       useCountdownStore.getState().setOverlay(hostExt.overlay)
       const overlayState = hostExt.overlay.onStateChange?.((state) => {

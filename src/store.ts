@@ -3,7 +3,7 @@ import { emit } from "@tauri-apps/api/event"
 import { create } from "zustand"
 import { isCornerActive, type CountdownTickPayload } from "./lib/display-mode.js"
 import { DEFAULT_WARNING_SOUND_ID, getBundledSoundDuration, playBundledSound, playSelectedSound } from "./lib/sounds.js"
-import type { BackgroundConfig, BackgroundPreset, CountdownConfig, CountdownState, EndAction, HotkeyAction, HotkeyConfig, TimerPreset } from "./types.js"
+import type { BackgroundConfig, BackgroundPreset, CountdownConfig, CountdownState, EndAction, HotkeyAction, HotkeyConfig, TimerPreset, WebhookEvent } from "./types.js"
 
 type PresenterAPI = { project: (viewId: string, props?: unknown) => void; clear: () => void }
 type OverlayAPI = { project: (viewId: string, props?: unknown) => void; clear: () => void; onStateChange?: (handler: (state: "idle" | "live") => void) => { dispose(): void } }
@@ -46,6 +46,7 @@ const DEFAULT_HOTKEYS: HotkeyConfig = {
 const DEFAULT_CONFIG: CountdownConfig = {
   totalSeconds: 300,
   allowNegative: false,
+  countUp: false,
   preText: "The event is about to start",
   postText: "We're live!",
   hotkeys: DEFAULT_HOTKEYS,
@@ -73,6 +74,7 @@ const DEFAULT_CONFIG: CountdownConfig = {
   behavior: {
     hideOnCompletion: true,
     completionSound: DEFAULT_WARNING_SOUND_ID,
+    webhookUrl: "",
   },
 }
 
@@ -99,6 +101,16 @@ function emitTick(
   }
 
   emit("countdown:tick", payload).catch(() => {})
+}
+
+function postWebhook(event: WebhookEvent, url?: string) {
+  if (!url) return
+  fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(event),
+    keepalive: true,
+  }).catch(() => {})
 }
 
 function projectionProps(
@@ -195,13 +207,13 @@ function scheduleCompletionSound(get: () => CountdownStore, durationMs: number) 
   })
 }
 
-function handleTickCompletion(get: () => CountdownStore) {
+function handleTickCompletion(get: () => CountdownStore, remainingOnFinish = 0) {
   const { timerState, config, profileBackground, _isExternalBackdropActive } = get()
   const externalBackdropActive = _isExternalBackdropActive?.() ?? false
   if (timerState.status !== "running") return
 
   clearCompletionSoundTimer()
-  setFinishedState(timerState, config, profileBackground, externalBackdropActive)
+  setFinishedState(timerState, config, profileBackground, externalBackdropActive, remainingOnFinish)
 }
 
 function setFinishedState(
@@ -209,11 +221,17 @@ function setFinishedState(
   config: CountdownConfig,
   profileBackground: CountdownStore["profileBackground"],
   externalBackdropActive: boolean,
+  remainingOnFinish = 0,
 ) {
   useCountdownStore.setState((s) => ({
-    timerState: { ...s.timerState, status: "finished", remainingSeconds: 0 },
+    timerState: { ...s.timerState, status: "finished", remainingSeconds: remainingOnFinish },
   }))
-  emitTick(0, "finished", config, profileBackground, externalBackdropActive)
+  emitTick(remainingOnFinish, "finished", config, profileBackground, externalBackdropActive)
+
+  postWebhook(
+    { event: "timer.finished", remaining: remainingOnFinish, total: config.totalSeconds, countUp: config.countUp },
+    config.behavior.webhookUrl,
+  )
 
   if (config.behavior.hideOnCompletion) {
     const { _presenter, _overlay, isOverlayActive } = useCountdownStore.getState()
@@ -226,12 +244,21 @@ function setFinishedState(
     }
   }
   if (config.actions.autoAdvance.enabled) {
-    const { _queue, _player } = useCountdownStore.getState()
+    const { _queue, _player, _sceneSwitcher, _overlayOpener } = useCountdownStore.getState()
     const action = config.actions.autoAdvance.action
     if (action.type === "queue.next") _queue?.next()
     else if (action.type === "queue.previous") _queue?.previous()
     else if (action.type === "player.next-slide") _player?.nextSlide()
     else if (action.type === "player.play") _player?.play(action.itemId)
+    else if (action.type === "change-scene") _sceneSwitcher?.(action.sceneId)
+    else if (action.type === "play-media") _player?.play(action.mediaId)
+    else if (action.type === "open-overlay") _overlayOpener?.(action.overlayId)
+    else if (action.type === "send-webhook") {
+      postWebhook(
+        { event: "timer.finished", remaining: remainingOnFinish, total: config.totalSeconds, countUp: config.countUp },
+        action.payload ?? config.behavior.webhookUrl,
+      )
+    }
   }
 }
 
@@ -247,10 +274,12 @@ function onAnimationUpdate(remaining: number) {
   const animTime = _animation?.currentTime ?? 0
   const displaySecond = Math.floor(remaining)
 
-  if (!config.allowNegative && remaining <= 0) {
-    cancelAnimation()
-    handleTickCompletion(() => useCountdownStore.getState())
-    return
+  if (!config.allowNegative) {
+    if (config.countUp ? remaining >= config.totalSeconds : remaining <= 0) {
+      cancelAnimation()
+      handleTickCompletion(() => useCountdownStore.getState())
+      return
+    }
   }
 
   if (displaySecond !== _lastTickSecond) {
@@ -259,14 +288,14 @@ function onAnimationUpdate(remaining: number) {
 
     let updatedConfig = config
     const newFiredTriggers = [...timerState.firedTriggers]
-    const { _queue, _player, _hostFs } = store
+    const { _queue, _player, _hostFs, _sceneSwitcher, _overlayOpener } = store
 
     for (const trigger of config.actions.timeTriggers) {
-      if (
-        trigger.enabled &&
+      const shouldFire = trigger.enabled &&
         !newFiredTriggers.includes(trigger.atSeconds) &&
-        remaining <= trigger.atSeconds
-      ) {
+        (config.countUp ? remaining >= trigger.atSeconds : remaining <= trigger.atSeconds)
+
+      if (shouldFire) {
         if (trigger.type === "change-text") {
           updatedConfig = { ...updatedConfig, preText: trigger.preText, postText: trigger.postText }
         } else if (trigger.type === "warning-chime") {
@@ -279,10 +308,20 @@ function onAnimationUpdate(remaining: number) {
           _player?.nextSlide()
         } else if (trigger.type === "player.play") {
           _player?.play(trigger.itemId)
+        } else if (trigger.type === "send-webhook") {
+          postWebhook(
+            { event: "timer.trigger", atSeconds: trigger.atSeconds, triggerType: trigger.type, remaining },
+            config.behavior.webhookUrl,
+          )
         }
         newFiredTriggers.push(trigger.atSeconds)
       }
     }
+
+    postWebhook(
+      { event: "timer.tick", remaining, total: config.totalSeconds, countUp: config.countUp },
+      config.behavior.webhookUrl,
+    )
 
     if (updatedConfig !== config) {
       useCountdownStore.setState((s) => ({
@@ -348,6 +387,10 @@ type CountdownStore = {
   setLibrary: (library: LibraryLookupAPI) => void
   _openMediaPicker: ((cb: (item: LibraryItem) => void) => void) | null
   setOpenMediaPicker: (fn: (cb: (item: LibraryItem) => void) => void) => void
+  _sceneSwitcher: ((sceneId: string) => void) | null
+  setSceneSwitcher: (fn: (sceneId: string) => void) => void
+  _overlayOpener: ((overlayId: string) => void) | null
+  setOverlayOpener: (fn: (overlayId: string) => void) => void
 }
 
 export const useCountdownStore = create<CountdownStore>((set, get) => ({
@@ -388,6 +431,10 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
   setLibrary: (library) => set({ _library: library }),
   _openMediaPicker: null as CountdownStore["_openMediaPicker"],
   setOpenMediaPicker: (fn) => set({ _openMediaPicker: fn }),
+  _sceneSwitcher: null as CountdownStore["_sceneSwitcher"],
+  setSceneSwitcher: (fn) => set({ _sceneSwitcher: fn }),
+  _overlayOpener: null as CountdownStore["_overlayOpener"],
+  setOverlayOpener: (fn) => set({ _overlayOpener: fn }),
 
   sendToPresenter: () => {
     const { _presenter, _overlay, timerState, config, isOverlayActive, profileBackground, _isExternalBackdropActive } = get()
@@ -518,7 +565,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
       config: { ...s.config, totalSeconds: clamped },
       timerState: {
         ...s.timerState,
-        remainingSeconds: clamped,
+        remainingSeconds: s.config.countUp ? 0 : clamped,
       },
     }))
     const { config: cfg, timerState: ts, profileBackground, _isExternalBackdropActive } = get()
@@ -535,6 +582,59 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     stopCompletionSound()
 
     const resuming = timerState.status === "paused"
+
+      if (config.countUp) {
+        const startValue = resuming ? timerState.remainingSeconds : 0
+        const durationMs = (config.totalSeconds - startValue) * 1000
+
+        const newState = resuming
+          ? {
+              ...timerState,
+              status: "running" as const,
+              pausedAt: null,
+              firedTriggers: [],
+              completionSoundStarted: timerState.completionSoundStarted,
+            }
+          : {
+              status: "running" as const,
+              remainingSeconds: 0,
+              startedAt: null,
+              pausedAt: null,
+              firedTriggers: [],
+              completionSoundStarted: false,
+            }
+
+        set({ timerState: newState })
+
+        const targetObj = { value: startValue }
+        _animation = animate(targetObj, {
+          value: [startValue, config.totalSeconds],
+          duration: durationMs,
+          ease: "linear",
+          onUpdate: () => { onAnimationUpdate(targetObj.value) },
+          onComplete: () => {
+            _animation = null
+            _lastTickSecond = null
+            handleTickCompletion(() => useCountdownStore.getState(), config.totalSeconds)
+          },
+        })
+
+        if (isOverlayActive) {
+          _overlay?.project(PRESENTER_PANEL_ID, projectionProps(config, newState, profileBackground, externalBackdropActive))
+        } else {
+          _presenter?.project(PRESENTER_PANEL_ID, projectionProps(config, newState, profileBackground, externalBackdropActive))
+          set({ isPresenterActive: true })
+        }
+
+        emitTick(newState.remainingSeconds, "running", config, profileBackground, externalBackdropActive)
+        postWebhook(
+          { event: "timer.started", remaining: startValue, total: config.totalSeconds, countUp: true, preText: config.preText, postText: config.postText },
+          config.behavior.webhookUrl,
+        )
+        scheduleCompletionSound(get, durationMs)
+        return
+      }
+
     const remainingSeconds = resuming ? timerState.remainingSeconds : config.totalSeconds
     const endValue = config.allowNegative ? -(config.totalSeconds) : 0
     const durationMs = config.allowNegative
@@ -584,6 +684,10 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     }
 
     emitTick(newState.remainingSeconds, "running", config, profileBackground, externalBackdropActive)
+    postWebhook(
+      { event: "timer.started", remaining: remainingSeconds, total: config.totalSeconds, countUp: false, preText: config.preText, postText: config.postText },
+      config.behavior.webhookUrl,
+    )
     scheduleCompletionSound(get, soundDurationMs)
   },
   pauseTimer: () => {
@@ -594,6 +698,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     const newState = { ...timerState, status: "paused" as const, pausedAt: Date.now() }
     set({ timerState: newState })
     emitTick(newState.remainingSeconds, "paused", config, profileBackground, externalBackdropActive)
+    postWebhook({ event: "timer.paused", remaining: newState.remainingSeconds }, config.behavior.webhookUrl)
   },
 
   resetTimer: () => {
@@ -611,6 +716,10 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     }
     set({ timerState: newState })
     emitTick(newState.remainingSeconds, "idle", config, profileBackground, externalBackdropActive)
+    postWebhook(
+      { event: "timer.reset", remaining: config.totalSeconds, total: config.totalSeconds },
+      config.behavior.webhookUrl,
+    )
   },
 
   handleHotkey: (action) => {

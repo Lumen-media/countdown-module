@@ -395,3 +395,30 @@ The Lumen-side implementation (module store, aside-panel context menu, trigger i
 13. Test main ↔ presenter communication via bus
 14. SDK extensions as needed (pinned window, actions)
 15. Publish `.lumenpack`
+
+---
+
+## WIP Ideas
+
+### Run of Show / Queue Duration Sync
+
+Status: WIP / parked for later exploration.
+
+Idea:
+- Allow the countdown to pull duration from the current queue or run-of-show item instead of requiring manual timer input every time.
+- Optionally reuse the queue item title as countdown text.
+
+Possible directions:
+- Manual action: "Use current queue item duration"
+- Toggle: sync countdown duration with current queue item
+- Advanced mode: react automatically when the active queue item changes
+
+Why it could be valuable:
+- Reduces operator error
+- Keeps countdown aligned with the event plan
+- Speeds up live workflows for services, shows, and run-of-show driven events
+
+Open questions:
+- Where duration metadata should come from in Lumen
+- Whether sync should be one-shot or live
+- How this should interact with auto-advance and existing time triggers

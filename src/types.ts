@@ -12,6 +12,7 @@ export type TimeTrigger =
   | { enabled: boolean; atSeconds: number; type: "queue.previous" }
   | { enabled: boolean; atSeconds: number; type: "player.next-slide" }
   | { enabled: boolean; atSeconds: number; type: "player.play"; itemId: string; itemTitle: string }
+  | { enabled: boolean; atSeconds: number; type: "send-webhook" }
 
 export type BackgroundConfig =
   | { type: "profile" }
@@ -27,6 +28,10 @@ export type EndAction =
   | { type: "queue.previous" }
   | { type: "player.next-slide" }
   | { type: "player.play"; itemId: string; itemTitle: string }
+  | { type: "change-scene"; sceneId: string; sceneName: string }
+  | { type: "play-media"; mediaId: string; mediaName: string }
+  | { type: "open-overlay"; overlayId: string; overlayName: string }
+  | { type: "send-webhook"; payload?: string }
 
 export type HotkeyAction = "start" | "pause" | "reset" | "add10" | "sub10"
 
@@ -41,6 +46,7 @@ export type TimerPreset = {
 export type CountdownConfig = {
   totalSeconds: number
   allowNegative: boolean
+  countUp: boolean
   preText: string
   postText: string
   hotkeys: HotkeyConfig
@@ -68,6 +74,7 @@ export type CountdownConfig = {
   behavior: {
     hideOnCompletion: boolean
     completionSound: string
+    webhookUrl: string
   }
 }
 
@@ -81,3 +88,11 @@ export type CountdownState = {
   firedTriggers: number[]
   completionSoundStarted: boolean
 }
+
+export type WebhookEvent =
+  | { event: "timer.started"; remaining: number; total: number; countUp: boolean; preText: string; postText: string }
+  | { event: "timer.tick"; remaining: number; total: number; countUp: boolean }
+  | { event: "timer.trigger"; atSeconds: number; triggerType: string; remaining: number }
+  | { event: "timer.finished"; remaining: number; total: number; countUp: boolean }
+  | { event: "timer.paused"; remaining: number }
+  | { event: "timer.reset"; remaining: number; total: number }
