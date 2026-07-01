@@ -4,12 +4,15 @@
 
 ## 1. Module Entry Points
 
-The module registers two entry points that open the main dialog:
+The module registers multiple entry points related to configuration, output, and runtime access:
 
 | Entry point | Location |
 |---|---|
 | Menu item "Countdown Timer" | Tools menu |
-| Command "Open Countdown Timer" | Commander (command palette) |
+| Command "Open Countdown Timer" | Commander |
+| Header status pill | App header trailing slot while timer is active |
+| Presenter panel | `presenter.content` |
+| Queue trigger provider | `countdown.wait` |
 
 ---
 
@@ -17,16 +20,16 @@ The module registers two entry points that open the main dialog:
 
 - Opens as a `dialog` slot
 - Occupies ~90% of the viewport width and height
-- Internal content respects a **16/10 aspect ratio** — free space on the borders is acceptable
-- Layout: **left panel** (3-tab panel, fixed width) + **right panel** (Live Preview Stage)
+- Internal content respects a **16/10 aspect ratio**
+- Layout: **left panel** (3 tabs, fixed width) + **right panel** (Live Preview Stage)
+
+The left panel content scrolls independently and the footer remains visible.
 
 ---
 
 ## 3. Left Panel — Tabs
 
 The left panel has three tabs: **Configure · Appearance · Actions**
-
-The tab bar is always visible. Below the tabs, the content area scrolls independently. The footer (status + controls) is always visible below the content.
 
 ---
 
@@ -38,56 +41,61 @@ Two large number inputs side by side:
 - `MM` — minutes (0–99)
 - `SS` — seconds (0–59)
 
-Below the inputs, three adjustment buttons:
-- `+ 10s` — adds 10 seconds to the current duration
-- `− 10s` — subtracts 10 seconds (minimum 0)
-- `Reset` — restores the duration to the last saved value
+Below the inputs:
+- `+ 10s`
+- `− 10s`
+- `Reset`
 
-Toggle below the duration controls:
-- **Allow negative time** — OFF by default
-  - OFF: timer stops at 00:00
-  - ON: timer continues into negative values (-0:01, -0:02, ...)
-
----
+Current implementation notes:
+- Inputs and quick adjustment controls are disabled while the timer is running.
+- There are also **quick duration presets** for `5`, `10`, `15`, and `30` minutes.
 
 #### DISPLAY TEXT
 
 Two text input fields:
 
-**Pre text** — single-line text field
+**Pre text**
+- Single-line text field
 - Displayed above the timer number on the presenter
 
-**Post text** — auto-expanding textarea (height grows with content, no fixed max)
-- Displayed below the timer number on the presenter
-- Always visible on the presenter while there is content
+**Post text**
+- Multi-line text content displayed below the timer
 - Each line is treated as an independent message
-- If more than one line exists, messages rotate as an animated carousel, one at a time, every ~10 seconds
-- Transition between lines is animated (fade or slide via Anime.js)
+- When there is more than one line, lines rotate through the animated text carousel
 
----
+Current implementation notes:
+- Post text is currently edited through the shared text editor component.
 
 #### ON COMPLETION
 
-Single dropdown — shortcut for the primary completion action.
-- Acts as a summary of what is configured in the Actions tab
-- Example options: "Auto-switch to next Scene", "None"
+Single dropdown shortcut for the primary completion action.
 
----
+Originally intended as:
+- summary of the main completion action
+- example options such as "Auto-switch to next Scene" or "None"
+
+Current implementation notes:
+- The selector currently toggles the simple `None` / `Auto-switch to next Scene` path by updating `autoAdvance.enabled`.
+- Full end-action configuration lives in the Actions tab.
 
 #### BACKGROUND PRESET
 
-A 2×2 grid of preset cards. Each card shows a small thumbnail preview of how the countdown will look with that preset applied.
+Preset grid with thumbnail previews.
 
-| Preset | Description |
-|---|---|
-| Dark Minimal | Dark solid background, white text |
-| Light Clean | White/light background, dark text |
-| Vibrant Blur | Colorful gradient background |
-| Custom Video | Placeholder for a user-selected video file |
+Current presets:
+- `Default`
+- `Dark Minimal`
+- `Light Clean`
+- `Custom`
 
-- Selecting a preset applies a complete appearance configuration (background, colors, typography defaults)
-- The active preset has a visible selected state (border highlight)
-- "Custom Video" opens a video file picker
+Behavior:
+- `Default` uses the active profile background
+- `Dark Minimal` applies dark solid defaults
+- `Light Clean` applies light solid defaults
+- `Custom` stores an image or video selected through `host.ui.openBackgroundPicker`
+
+Historical design note:
+- Earlier planning docs referenced richer preset naming such as vibrant/custom-video concepts. The current shipped preset set is the four items above.
 
 ---
 
@@ -97,48 +105,70 @@ A 2×2 grid of preset cards. Each card shows a small thumbnail preview of how th
 
 | Control | Type | Description |
 |---|---|---|
-| Font family | Combobox with search | Populated via `host.fonts.list()`. Default: "Inter (System Default)" |
-| Font weight | Dropdown | Options: Thin, Light, Regular, Medium, Semi Bold, Bold, Extra Bold, Black |
-| Font size | Number input (px) | Controls the size of the timer digits. Default: 140px |
-
----
+| Font family | Combobox with search | Populated from local/system fonts |
+| Font weight | Dropdown | Thin → Black |
+| Font size | Number input (px) | Controls timer digit size |
 
 #### COLORS
 
 | Control | Type | Description |
 |---|---|---|
-| Timer Text | Color picker | Color of the countdown digits. Default: suggested by auto-contrast via `polished.readableColor` |
-| Pre / Post Text | Color picker + opacity slider | Color and opacity of the pre/post text. Default: #FFFFFF at 80% |
+| Timer Text | Color picker | Manual timer color |
+| Pre / Post Text | Color picker | Manual pre/post text color |
+| Pre / Post Opacity | Slider | Opacity for pre/post text |
 
-> Auto-contrast behavior: when no color has been manually set, the default color value is calculated by sampling the background pixels in the text region and using `polished.readableColor` to return the highest-contrast option (black or white).
-
----
+Important note:
+- Older docs described automatic text color selection via `polished`. That is **not** the current behavior anymore.
+- Current implementation uses **manual text color selection**.
+- Glow/shadow is still adaptive in spirit, but text color is user-controlled.
 
 #### BACKGROUND LAYER
 
-Four tabs that switch the background type:
+Originally planned background editing modes:
+- Solid
+- Gradient
+- Image
+- Video
 
-**Solid**
-- Color picker — fills the background with a solid color
-
-**Gradient**
-- Gradient editor — defines a CSS gradient as background
-
-**Image**
-- "Change Background Image" button — opens `host.ui.openBackgroundPicker`
-- **Opacity Overlay** — slider 0–100% — darkens or lightens the image over the content
-
-**Video**
-- Video file picker — selects a looping video file
-- **Opacity Overlay** — slider 0–100%
-
----
+Current implementation notes:
+- The runtime still supports `profile`, `solid`, `gradient`, `image`, and `video` backgrounds.
+- The current Appearance tab directly exposes editing controls for:
+  - `Solid`
+  - `Gradient`
+- Image/video selection currently enters mainly through Configure → Background Preset → `Custom`.
 
 #### VISUAL EFFECTS
 
 | Control | Type | Description |
 |---|---|---|
-| Text Shadow / Glow | Slider 0–100% | Controls the intensity of the shadow/glow effect behind all text on the presenter |
+| Glow Intensity | Slider 0–100% | Controls shadow/glow intensity behind text |
+
+#### ANIMATIONS
+
+Current implementation includes:
+- Digit animation:
+  - `none`
+  - `flip`
+  - `blur`
+- Pulse effect toggle
+- Progress bar toggle
+- Progress bar color picker
+
+#### DISPLAY MODE
+
+Display modes:
+- `Fullscreen`
+- `Corner`
+
+Corner positions:
+- `top-left`
+- `top-right`
+- `bottom-left`
+- `bottom-right`
+
+Current implementation note:
+- Corner mode is conditioned by whether there is external backdrop content active in the host.
+- If no competing backdrop is active, the module may stay centered even with corner mode selected.
 
 ---
 
@@ -146,116 +176,108 @@ Four tabs that switch the background type:
 
 #### END ACTION
 
-**Auto-Advance**
-- Toggle ON/OFF
-- Label: "Automatically transition to the next item in the playlist when timer reaches zero."
-- When ON: shows a dropdown to select the destination — e.g. "Go to Next Item"
-- When OFF: no action is taken on completion
-
----
+Auto-Advance can be enabled and configured with one of these actions:
+- `queue.next`
+- `queue.previous`
+- `player.next-slide`
+- `player.play`
+- `change-scene`
+- `open-overlay`
+- `send-webhook`
 
 #### TIME TRIGGERS
 
-A list of trigger cards. Each card represents one timed action with its own enable/disable toggle.
+A list of trigger cards. Each card supports:
+- enable / disable
+- reordering
+- duplication
+- deletion
+- `MM:SS` time editing
 
-Available trigger types:
+Current trigger types:
+- `change-text`
+- `warning-chime`
+- `queue.next`
+- `queue.previous`
+- `player.next-slide`
+- `player.play`
+- `send-webhook`
 
-**Warning Chime**
-- Time field — "when X time is remaining" (e.g. `01:00`)
-- Sound picker — icon button (music note) to select the chime sound
+Trigger defaults:
+- new triggers are created at **half of the configured timer duration**
+- warning chime defaults to a bundled sound selection
 
-**Change Pre/Post Text**
-- Time field — "when X time is remaining"
-- Text fields to define the new pre and/or post text that will be applied at that moment
+#### AUDIO
 
-Adding triggers:
-- `+ Add Time Trigger` button at the bottom of the list — opens a selector to choose the trigger type
+Completion sound:
+- bundled module audio only
 
-Each card has:
-- Toggle ON/OFF (enable/disable without deleting)
-- Delete button
-
----
+Warning-chime trigger sound:
+- bundled audio
+- or audio from the Lumen media library
 
 #### BEHAVIOR
 
-| Toggle | Default | Description |
-|---|---|---|
-| Hide on completion | ON | When ON, removes the countdown from the presenter output when the timer finishes |
+Current toggles / fields:
+- Hide on completion
+- Allow negative time
+- Count up mode
+- Webhook URL
 
 ---
 
 ### 3.4 Fixed Footer
 
-Visible on all three tabs, always at the bottom of the left panel.
+Visible across the configurator.
 
-**Status bar**
-- Colored dot indicator:
-  - Yellow: "Ready to start"
-  - Green: "Running"
-  - Gray: "Paused"
-  - Red: "Finished"
-- Current time display (e.g. `05:00`) — shows remaining time
+Contains:
+- status indicator + current time
+- Start / Pause primary action
+- Preview button
+- Overlay button (or close overlay when active)
 
-**Primary button**
-- **Start Countdown** — when idle or paused
-- **Pause** — when running
-- Toggles between Start and Pause; resumes from where it stopped
-
-**Secondary buttons**
-- **Preview** — sends the current countdown layout to the media-screen without starting the timer (allows checking the visual before going live)
-- **Overlay** — opens a pinned floating window of the app showing the countdown (new feature to be exposed by the Lumen SDK)
+Current implementation notes:
+- Preview sends the countdown to the presenter/media output path
+- Overlay opens the dedicated overlay window path
+- When overlay mode is active, presenter projection prefers overlay behavior instead of the media screen path
 
 ---
 
 ## 4. Right Panel — Live Preview Stage
 
-- Displays a live preview of the countdown with the current configuration applied
-- The preview area is contained with padding — does not fill the full panel width
-- "Fullscreen" button (top-right) — expands the preview to fill the entire right panel
-- The preview updates in real time as settings change
+- Displays a live styling preview of the countdown
+- Shows current output card
+- Shows next action card
 
-**Info cards below the preview** (two cards side by side):
-
-| Card | Icon | Content |
-|---|---|---|
-| Current Output | Monitor icon | Active output screen and resolution — e.g. "Main Hall Screen • 1920x1080" |
-| Next Action | Lightning icon | What will happen when the timer reaches zero — e.g. `Auto-switch to "Welcome Video"` |
+Important implementation note:
+- The preview is intended to communicate style and layout
+- It is not a full substitute for presenter / overlay runtime behavior
+- Preview behavior may intentionally differ from the live timer in some runtime-specific areas
 
 ---
 
 ## 5. Presenter Display
 
-Registered via `presenter.content` slot. Renders differently based on `overlayMode`.
+Registered via `presenter.content`.
 
 ### 5.1 Fullscreen Mode
 
-Covers the entire presenter output. Layout (all elements centered):
+Centered timer layout with background rendering from the configured appearance.
 
-```
-┌──────────────────────────────┐
-│                              │
-│      Pre text                │  ← font: configured, color: timerColor or auto-contrast
-│                              │
-│         05:00                │  ← large digits, bold, configured size
-│                              │
-│      Post text               │  ← font: configured, color: prePostColor at prePostOpacity
-│                              │
-└──────────────────────────────┘
-```
-
-- Background: configured via BACKGROUND LAYER (solid / gradient / image / video)
-- Text shadow/glow applied to all text elements per `textShadowGlow` value
-- Post text: if multiple lines, rotates as animated carousel every 10s
+Supported runtime backgrounds:
+- profile background
+- solid
+- gradient
+- image
+- video
 
 ### 5.2 Corner Mode
 
-Floating text overlay in one of 4 corners of the presenter while the underlying media continues to play.
+Floating text overlay in one of four corners while respecting host backdrop content.
 
-- No own background — text floats directly over the media
-- Corners: `top-left` · `top-right` · `bottom-left` · `bottom-right`
-- Content: timer digits only (no pre/post text in corner mode — TBD)
-- Text color: same as configured in Appearance
+Current implementation notes:
+- The timer can remain centered when there is no competing background media.
+- When host backdrop content is active, corner mode moves into the selected corner.
 
 ---
 
@@ -263,135 +285,60 @@ Floating text overlay in one of 4 corners of the presenter while the underlying 
 
 ### 6.1 Precision
 
-The timer uses `Date.now()` as an absolute anchor (`startedAt`) — never accumulates drift from `setInterval`.
-
-```ts
-getRemainingSeconds() = totalSeconds - (Date.now() - startedAt) / 1000
-```
-
-When `allowNegative` is OFF, clamps at 0. When ON, returns negative values.
+The timer uses `Date.now()` as an anchor and does not depend on naive accumulated interval timing.
 
 ### 6.2 Resync by Acceleration
 
-On each tick, the engine compares the last rendered value against the calculated value from the anchor:
-
-- **Drift ≤ 3s** → normal tick interval (1000ms)
-- **Drift > 3s** → fast tick interval (100ms) until the display catches up, then returns to 1000ms
-
-This prevents jarring jumps on the display — the number catches up smoothly.
+When drift grows too large, the store increases tick frequency temporarily to catch up.
 
 ### 6.3 State Machine
 
-```
-idle ──[start]──► running ──[pause]──► paused
-                     │                    │
-                  [reset]              [start]
-                     │                    │
-                   idle ◄────────────────┘
-                     ▲
-running ──[zero reached]──► finished ──[reset]──► idle
+```text
+idle -> running -> paused -> running
+  \-> finished -> idle
 ```
 
 ### 6.4 Main ↔ Presenter Communication
 
-The timer runs in the main window. On each tick it emits via the event bus:
+Timer state is emitted through Tauri events.
+
+Important current behavior:
+- main window emits `countdown:tick`
+- presenter/overlay listens for `countdown:tick`
+- presenter display emits `countdown:display-ready` on mount
+- main window rebroadcasts current state when display becomes ready
+
+---
+
+## 7. Persistence
+
+Persisted data currently includes:
+- `config`
+- `timerPresets`
+
+Runtime state is not persisted as an always-running timer session.
+
+---
+
+## 8. Queue Trigger Integration
+
+The module registers a queue trigger provider:
 
 ```ts
-host.bus.emit("countdown:tick", {
-  remaining: number,
-  status: "idle" | "running" | "paused" | "finished",
-  config: CountdownConfig
-})
+countdown.wait
 ```
 
-`CountdownDisplay` and `CountdownCorner` on the presenter window listen to `countdown:tick` and re-render.
+Purpose:
+- allow a queue item to start a countdown with a configured duration
+
+This is already implemented at the integration level, and broader queue/run-of-show sync ideas remain parked as WIP in `docs/plan.md`.
 
 ---
 
-## 7. Background Preset System
+## 9. Notes on Historical vs Current Behavior
 
-Each preset defines a full `appearance` snapshot applied atomically when selected:
+This spec keeps the richer original design intent while marking where implementation evolved.
 
-| Preset | theme | background | timerColor | fontWeight |
-|---|---|---|---|---|
-| Dark Minimal | dark | solid #000000 | #FFFFFF | Extra Bold |
-| Light Clean | light | solid #FFFFFF | #000000 | Extra Bold |
-| Vibrant Blur | dark | gradient (purple/blue) | #FFFFFF | Extra Bold |
-| Custom Video | dark | video (user-selected) | auto-contrast | Extra Bold |
-
-Selecting a preset overwrites the current appearance settings. Individual fields can be further customized in the Appearance tab afterwards.
-
----
-
-## 8. Data Persistence
-
-```ts
-// Stored in host.data.json
-type PersistedData = {
-  config: CountdownConfig
-}
-```
-
-Runtime state (`status`, `startedAt`, `pausedAt`) is **not** persisted — resets when the app restarts.
-
-Config is saved automatically on every change (debounced).
-
----
-
-## 9. Data Types
-
-```ts
-type TimeTrigger =
-  | { enabled: boolean; atSeconds: number; type: "warning-chime"; sound: string }
-  | { enabled: boolean; atSeconds: number; type: "change-text"; preText: string; postText: string }
-
-type CountdownConfig = {
-  totalSeconds: number
-  allowNegative: boolean
-  preText: string
-  postText: string              // lines separated by \n → 10s carousel each
-  appearance: {
-    font: string
-    fontWeight: string
-    fontSize: number            // px
-    timerColor: string          // hex — defaults to auto-contrast
-    prePostColor: string        // hex
-    prePostOpacity: number      // 0–1
-    textShadowGlow: number      // 0–1
-    overlayMode: "fullscreen" | "corner"
-    cornerPosition: "top-left" | "top-right" | "bottom-left" | "bottom-right"
-    background:
-      | { type: "solid"; color: string }
-      | { type: "gradient"; value: string }
-      | { type: "image"; value: string; opacity: number }
-      | { type: "video"; value: string; opacity: number }
-  }
-  actions: {
-    autoAdvance: { enabled: boolean; target: string }
-    timeTriggers: TimeTrigger[]
-  }
-  behavior: {
-    hideOnCompletion: boolean
-  }
-}
-
-type CountdownState = {
-  status: "idle" | "running" | "paused" | "finished"
-  remainingSeconds: number
-  startedAt: number | null      // Date.now() anchor
-  pausedAt: number | null
-}
-```
-
----
-
-## 10. Dependencies
-
-| Package | Use |
-|---|---|
-| `@lumen-media/module-sdk` | UI components, host API, hooks |
-| `zustand` | Global state (config + runtime state) |
-| `usehooks-ts` | React hooks (useInterval, useDebounce, etc.) |
-| `lucide-react` | Icons |
-| `animejs` | Text carousel transitions, zero-hit animation |
-| `polished` | Auto-contrast color detection (`readableColor`) |
+Use this reading model:
+- sections written as concrete controls or runtime capabilities are current unless noted otherwise
+- sections marked as historical / older / planned reflect earlier design context that may not fully match the current shipped UI

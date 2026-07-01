@@ -141,6 +141,7 @@ let _animation: ReturnType<typeof animate> | null = null
 let _completionSoundTimer: ReturnType<typeof setTimeout> | null = null
 let _completionSoundAudio: HTMLAudioElement | null = null
 let _lastTickSecond: number | null = null
+let _savedSoundCurrentTime: number | null = null
 
 function cancelAnimation() {
   if (_animation !== null) {
@@ -157,11 +158,23 @@ function clearCompletionSoundTimer() {
   }
 }
 
-function stopCompletionSound() {
+function stopCompletionSound(savePosition = false) {
   clearCompletionSoundTimer()
   if (_completionSoundAudio !== null) {
+    if (savePosition) {
+      _savedSoundCurrentTime = _completionSoundAudio.currentTime
+    }
     _completionSoundAudio.pause()
     _completionSoundAudio = null
+  }
+  if (!savePosition) {
+    _savedSoundCurrentTime = null
+  }
+  const { timerState } = useCountdownStore.getState()
+  if (timerState.completionSoundStarted) {
+    useCountdownStore.setState((s) => ({
+      timerState: { ...s.timerState, completionSoundStarted: false },
+    }))
   }
 }
 
@@ -202,6 +215,10 @@ function scheduleCompletionSound(get: () => CountdownStore, durationMs: number) 
         },
       }))
       _completionSoundAudio = playBundledSound(soundId)
+      if (_completionSoundAudio !== null && _savedSoundCurrentTime !== null) {
+        _completionSoundAudio.currentTime = _savedSoundCurrentTime
+        _savedSoundCurrentTime = null
+      }
       _completionSoundTimer = null
     }, delayMs)
   })
@@ -690,9 +707,9 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     )
     scheduleCompletionSound(get, soundDurationMs)
   },
-  pauseTimer: () => {
+    pauseTimer: () => {
     _animation?.pause()
-    stopCompletionSound()
+    stopCompletionSound(true)
     const { timerState, config, profileBackground, _isExternalBackdropActive } = get()
     const externalBackdropActive = _isExternalBackdropActive?.() ?? false
     const newState = { ...timerState, status: "paused" as const, pausedAt: Date.now() }
