@@ -127,6 +127,7 @@ const COMPLETION_SOUND_SAFETY_SECONDS = 1
 
 let _animation: ReturnType<typeof animate> | null = null
 let _completionSoundTimer: ReturnType<typeof setTimeout> | null = null
+let _completionSoundAudio: HTMLAudioElement | null = null
 let _lastTickSecond: number | null = null
 
 function cancelAnimation() {
@@ -141,6 +142,14 @@ function clearCompletionSoundTimer() {
   if (_completionSoundTimer !== null) {
     clearTimeout(_completionSoundTimer)
     _completionSoundTimer = null
+  }
+}
+
+function stopCompletionSound() {
+  clearCompletionSoundTimer()
+  if (_completionSoundAudio !== null) {
+    _completionSoundAudio.pause()
+    _completionSoundAudio = null
   }
 }
 
@@ -180,7 +189,7 @@ function scheduleCompletionSound(get: () => CountdownStore, durationMs: number) 
           completionSoundStarted: true,
         },
       }))
-      playBundledSound(soundId)
+      _completionSoundAudio = playBundledSound(soundId)
       _completionSoundTimer = null
     }, delayMs)
   })
@@ -524,7 +533,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     if (timerState.status === "running") return
 
     cancelAnimation()
-    clearCompletionSoundTimer()
+    stopCompletionSound()
 
     const resuming = timerState.status === "paused"
     const remainingSeconds = resuming ? timerState.remainingSeconds : config.totalSeconds
@@ -580,7 +589,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
   },
   pauseTimer: () => {
     _animation?.pause()
-    clearCompletionSoundTimer()
+    stopCompletionSound()
     const { timerState, config, profileBackground, _isExternalBackdropActive } = get()
     const externalBackdropActive = _isExternalBackdropActive?.() ?? false
     const newState = { ...timerState, status: "paused" as const, pausedAt: Date.now() }
@@ -590,7 +599,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
 
   resetTimer: () => {
     cancelAnimation()
-    clearCompletionSoundTimer()
+    stopCompletionSound()
     const { config, profileBackground, _isExternalBackdropActive } = get()
     const externalBackdropActive = _isExternalBackdropActive?.() ?? false
     const newState = {

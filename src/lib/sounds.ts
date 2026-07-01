@@ -46,7 +46,7 @@ function mimeTypeFromPath(filePath: string) {
   return 'audio/mpeg'
 }
 
-async function playAudioUrl(url: string, revokeOnEnd = false) {
+async function playAudioUrl(url: string, revokeOnEnd = false): Promise<HTMLAudioElement> {
   const audio = new Audio(url)
   audio.preload = 'auto'
 
@@ -59,6 +59,8 @@ async function playAudioUrl(url: string, revokeOnEnd = false) {
   await audio.play().catch(() => {
     if (revokeOnEnd) URL.revokeObjectURL(url)
   })
+
+  return audio
 }
 
 export const SOUND_OPTIONS: SoundOption[] = Object.entries(bundledSoundModules)
@@ -102,11 +104,14 @@ export function createDefaultBundledSoundSelection(): CountdownSoundSelection | 
   return createBundledSoundSelection(DEFAULT_WARNING_SOUND_ID)
 }
 
-export function playBundledSound(soundId: string) {
+export function playBundledSound(soundId: string): HTMLAudioElement | null {
   const url = resolveBundledSoundUrl(soundId)
-  if (!url) return
+  if (!url) return null
 
-  void playAudioUrl(url)
+  const audio = new Audio(url)
+  audio.preload = 'auto'
+  audio.play().catch(() => {})
+  return audio
 }
 
 export function getBundledSoundDuration(soundId: string): Promise<number | null> {

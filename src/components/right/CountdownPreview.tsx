@@ -121,6 +121,8 @@ export function CountdownPreview() {
     videoRef,
   })
 
+  const timerFs = cornerActive ? 54 : 80
+  const textFs = cornerActive ? 14 : Math.round(timerFs * 0.2)
   const subColor = `${prePostColor ?? "#ffffff"}${Math.round((appearance.prePostOpacity ?? 0.8) * 255).toString(16).padStart(2, "0")}`
   const isProfile = appearance.background.type === "profile"
 
@@ -149,7 +151,7 @@ export function CountdownPreview() {
           <span
             className="relative block text-center font-medium leading-snug"
             style={{
-              fontSize: cornerActive ? "14px" : "16px",
+              fontSize: `${textFs}px`,
               color: subColor,
               textShadow: subShadow,
               transition: "font-size 260ms ease",
@@ -178,7 +180,7 @@ export function CountdownPreview() {
                 remaining={remainingSeconds}
                 total={config.totalSeconds}
                 color={appearance.progressBarColor}
-                size={cornerActive ? 90 : 220}
+                size={cornerActive ? 100 : Math.round(timerFs * 3.5)}
               />
             </div>
           )}
@@ -186,7 +188,7 @@ export function CountdownPreview() {
             className="relative block text-center leading-none"
             style={{
               zIndex: 1,
-              fontSize: cornerActive ? "54px" : "80px",
+              fontSize: `${timerFs}px`,
               fontWeight: 900,
               color: timerColor,
               fontFamily: appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font,
@@ -202,7 +204,7 @@ export function CountdownPreview() {
           <TextCarousel
             text={postText}
             style={{
-              fontSize: "16px",
+              fontSize: `${textFs}px`,
               color: subColor,
               textShadow: subShadow,
               transition: "font-size 260ms ease",
