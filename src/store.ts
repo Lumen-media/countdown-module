@@ -1,3 +1,4 @@
+import { animate } from "animejs"
 import { emit } from "@tauri-apps/api/event"
 import { create } from "zustand"
 import { isCornerActive, type CountdownTickPayload } from "./lib/display-mode.js"
@@ -120,14 +121,16 @@ function projectionProps(
 
 const COMPLETION_SOUND_SAFETY_SECONDS = 1
 
-let _tickTimer: ReturnType<typeof setTimeout> | null = null
+let _animation: ReturnType<typeof animate> | null = null
 let _completionSoundTimer: ReturnType<typeof setTimeout> | null = null
+let _lastTickSecond: number | null = null
 
-function clearTick() {
-  if (_tickTimer !== null) {
-    clearTimeout(_tickTimer)
-    _tickTimer = null
+function cancelAnimation() {
+  if (_animation !== null) {
+    _animation.cancel()
+    _animation = null
   }
+  _lastTickSecond = null
 }
 
 function clearCompletionSoundTimer() {
@@ -137,30 +140,24 @@ function clearCompletionSoundTimer() {
   }
 }
 
-function scheduleCompletionSound(get: () => CountdownStore) {
+function scheduleCompletionSound(get: () => CountdownStore, durationMs: number) {
   clearCompletionSoundTimer()
 
   const { timerState, config } = get()
   const soundId = config.behavior.completionSound
-  if (timerState.status !== "running" || timerState.startedAt === null || !soundId || timerState.completionSoundStarted) {
-    return
-  }
+  if (timerState.status !== "running" || !soundId || timerState.completionSoundStarted) return
 
   void getBundledSoundDuration(soundId).then((durationSeconds) => {
     const { timerState: latestTimerState, config: latestConfig } = get()
     if (
       latestTimerState.status !== "running" ||
-      latestTimerState.startedAt === null ||
       latestTimerState.completionSoundStarted ||
       latestConfig.behavior.completionSound !== soundId
-    ) {
-      return
-    }
+    ) return
 
-    const elapsed = (Date.now() - latestTimerState.startedAt) / 1000
-    const remainingSeconds = Math.max(0, latestConfig.totalSeconds - elapsed)
-    const leadSeconds = Math.max(0, (durationSeconds ?? 0) - COMPLETION_SOUND_SAFETY_SECONDS)
-    const delayMs = Math.max(0, (remainingSeconds - leadSeconds) * 1000)
+    const leadMs = Math.max(0, (durationSeconds ?? 0) * 1000 - COMPLETION_SOUND_SAFETY_SECONDS * 1000)
+    const currentTimeMs = _animation?.currentTime ?? 0
+    const delayMs = Math.max(0, durationMs - currentTimeMs - leadMs)
 
     _completionSoundTimer = setTimeout(() => {
       const { timerState: currentTimerState, config: currentConfig } = get()
@@ -185,19 +182,108 @@ function scheduleCompletionSound(get: () => CountdownStore) {
   })
 }
 
-function scheduleTick(get: () => CountdownStore) {
-  const { timerState, config } = get()
-  if (timerState.status !== "running" || timerState.startedAt === null) return
+function handleTickCompletion(get: () => CountdownStore) {
+  const { timerState, config, profileBackground, _isExternalBackdropActive } = get()
+  const externalBackdropActive = _isExternalBackdropActive?.() ?? false
+  if (timerState.status !== "running") return
 
-  const elapsed = (Date.now() - timerState.startedAt) / 1000
-  const trueRemaining = config.totalSeconds - elapsed
-  const drift = Math.abs(trueRemaining - timerState.remainingSeconds)
-  const interval = drift > 3 ? 100 : 1000
+  clearCompletionSoundTimer()
+  setFinishedState(timerState, config, profileBackground, externalBackdropActive)
+}
 
-  _tickTimer = setTimeout(() => {
-    get().tick()
-    scheduleTick(get)
-  }, interval)
+function setFinishedState(
+  timerState: CountdownState,
+  config: CountdownConfig,
+  profileBackground: CountdownStore["profileBackground"],
+  externalBackdropActive: boolean,
+) {
+  useCountdownStore.setState((s) => ({
+    timerState: { ...s.timerState, status: "finished", remainingSeconds: 0 },
+  }))
+  emitTick(0, "finished", config, profileBackground, externalBackdropActive)
+
+  if (config.behavior.hideOnCompletion) {
+    const { _presenter, _overlay, isOverlayActive } = useCountdownStore.getState()
+    if (isOverlayActive) {
+      _overlay?.clear()
+      useCountdownStore.setState({ isOverlayActive: false })
+    } else {
+      _presenter?.clear()
+      useCountdownStore.setState({ isPresenterActive: false })
+    }
+  }
+  if (config.actions.autoAdvance.enabled) {
+    const { _queue, _player } = useCountdownStore.getState()
+    const action = config.actions.autoAdvance.action
+    if (action.type === "queue.next") _queue?.next()
+    else if (action.type === "queue.previous") _queue?.previous()
+    else if (action.type === "player.next-slide") _player?.nextSlide()
+    else if (action.type === "player.play") _player?.play(action.itemId)
+  }
+}
+
+function onAnimationUpdate(remaining: number) {
+  const store = useCountdownStore.getState()
+  if (store.timerState.status !== "running") {
+    cancelAnimation()
+    return
+  }
+
+  const { timerState, config, profileBackground, _isExternalBackdropActive } = store
+  const externalBackdropActive = _isExternalBackdropActive?.() ?? false
+  const animTime = _animation?.currentTime ?? 0
+  const displaySecond = Math.floor(remaining)
+
+  if (!config.allowNegative && remaining <= 0) {
+    cancelAnimation()
+    handleTickCompletion(() => useCountdownStore.getState())
+    return
+  }
+
+  if (displaySecond !== _lastTickSecond) {
+    if (_lastTickSecond === null && animTime < 500) return
+    _lastTickSecond = displaySecond
+
+    let updatedConfig = config
+    const newFiredTriggers = [...timerState.firedTriggers]
+    const { _queue, _player, _hostFs } = store
+
+    for (const trigger of config.actions.timeTriggers) {
+      if (
+        trigger.enabled &&
+        !newFiredTriggers.includes(trigger.atSeconds) &&
+        remaining <= trigger.atSeconds
+      ) {
+        if (trigger.type === "change-text") {
+          updatedConfig = { ...updatedConfig, preText: trigger.preText, postText: trigger.postText }
+        } else if (trigger.type === "warning-chime") {
+          void playSelectedSound(trigger.sound, _hostFs)
+        } else if (trigger.type === "queue.next") {
+          _queue?.next()
+        } else if (trigger.type === "queue.previous") {
+          _queue?.previous()
+        } else if (trigger.type === "player.next-slide") {
+          _player?.nextSlide()
+        } else if (trigger.type === "player.play") {
+          _player?.play(trigger.itemId)
+        }
+        newFiredTriggers.push(trigger.atSeconds)
+      }
+    }
+
+    if (updatedConfig !== config) {
+      useCountdownStore.setState((s) => ({
+        config: updatedConfig,
+        timerState: { ...s.timerState, remainingSeconds: remaining, firedTriggers: newFiredTriggers },
+      }))
+    } else {
+      useCountdownStore.setState((s) => ({
+        timerState: { ...s.timerState, remainingSeconds: remaining, firedTriggers: newFiredTriggers },
+      }))
+    }
+
+    emitTick(remaining, "running", updatedConfig, profileBackground, externalBackdropActive)
+  }
 }
 
 type CountdownStore = {
@@ -216,7 +302,6 @@ type CountdownStore = {
   startTimer: () => void
   pauseTimer: () => void
   resetTimer: () => void
-  tick: () => void
   handleHotkey: (action: HotkeyAction) => void
   timerPresets: TimerPreset[]
   setTimerPresets: (presets: TimerPreset[]) => void
@@ -434,14 +519,21 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     const externalBackdropActive = _isExternalBackdropActive?.() ?? false
     if (timerState.status === "running") return
 
-    clearTick()
+    cancelAnimation()
     clearCompletionSoundTimer()
 
-    const newState = timerState.status === "paused" && timerState.pausedAt !== null && timerState.startedAt !== null
+    const resuming = timerState.status === "paused"
+    const remainingSeconds = resuming ? timerState.remainingSeconds : config.totalSeconds
+    const endValue = config.allowNegative ? -(config.totalSeconds) : 0
+    const durationMs = config.allowNegative
+      ? (remainingSeconds + config.totalSeconds) * 1000
+      : remainingSeconds * 1000
+    const soundDurationMs = remainingSeconds * 1000
+
+    const newState = resuming
       ? {
           ...timerState,
           status: "running" as const,
-          startedAt: (timerState.startedAt ?? 0) + (Date.now() - timerState.pausedAt),
           pausedAt: null,
           firedTriggers: [],
           completionSoundStarted: timerState.completionSoundStarted,
@@ -449,13 +541,28 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
       : {
           status: "running" as const,
           remainingSeconds: config.totalSeconds,
-          startedAt: Date.now(),
+          startedAt: null,
           pausedAt: null,
           firedTriggers: [],
           completionSoundStarted: false,
         }
 
     set({ timerState: newState })
+
+    const targetObj = { value: remainingSeconds }
+    _animation = animate(targetObj, {
+      value: [remainingSeconds, endValue],
+      duration: durationMs,
+      ease: "linear",
+      onUpdate: () => { onAnimationUpdate(targetObj.value) },
+      onComplete: () => {
+        _animation = null
+        _lastTickSecond = null
+        if (!config.allowNegative) {
+          handleTickCompletion(() => useCountdownStore.getState())
+        }
+      },
+    })
 
     if (isOverlayActive) {
       _overlay?.project(PRESENTER_PANEL_ID, projectionProps(config, newState, profileBackground, externalBackdropActive))
@@ -465,11 +572,10 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     }
 
     emitTick(newState.remainingSeconds, "running", config, profileBackground, externalBackdropActive)
-    scheduleCompletionSound(get)
-    scheduleTick(get)
+    scheduleCompletionSound(get, soundDurationMs)
   },
   pauseTimer: () => {
-    clearTick()
+    _animation?.pause()
     clearCompletionSoundTimer()
     const { timerState, config, profileBackground, _isExternalBackdropActive } = get()
     const externalBackdropActive = _isExternalBackdropActive?.() ?? false
@@ -479,7 +585,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
   },
 
   resetTimer: () => {
-    clearTick()
+    cancelAnimation()
     clearCompletionSoundTimer()
     const { config, profileBackground, _isExternalBackdropActive } = get()
     const externalBackdropActive = _isExternalBackdropActive?.() ?? false
@@ -543,82 +649,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     set({ timerPresets: timerPresets.filter((p) => p.id !== id) })
   },
 
-  tick: () => {
-    const { timerState, config, profileBackground, _isExternalBackdropActive } = get()
-    const externalBackdropActive = _isExternalBackdropActive?.() ?? false
-    if (timerState.status !== "running" || timerState.startedAt === null) return
 
-    const elapsed = (Date.now() - timerState.startedAt) / 1000
-    const raw = config.totalSeconds - elapsed
-    const remaining = config.allowNegative ? raw : Math.max(0, raw)
-
-    if (!config.allowNegative && remaining <= 0) {
-      clearCompletionSoundTimer()
-      set((s) => ({
-        timerState: { ...s.timerState, status: "finished", remainingSeconds: 0 },
-      }))
-      emitTick(0, "finished", config, profileBackground, externalBackdropActive)
-      if (config.behavior.hideOnCompletion) {
-        const { _presenter, _overlay, isOverlayActive } = get()
-        if (isOverlayActive) {
-          _overlay?.clear()
-          set({ isOverlayActive: false })
-        } else {
-          _presenter?.clear()
-          set({ isPresenterActive: false })
-        }
-      }
-      if (config.actions.autoAdvance.enabled) {
-        const { _queue, _player, _hostFs } = get()
-        const action = config.actions.autoAdvance.action
-        if (action.type === "queue.next") _queue?.next()
-        else if (action.type === "queue.previous") _queue?.previous()
-        else if (action.type === "player.next-slide") _player?.nextSlide()
-        else if (action.type === "player.play") _player?.play(action.itemId)
-      }
-      return
-    }
-
-    let updatedConfig = config
-    const newFiredTriggers = [...timerState.firedTriggers]
-
-    const { _queue, _player, _hostFs } = get()
-    for (const trigger of config.actions.timeTriggers) {
-      if (
-        trigger.enabled &&
-        !newFiredTriggers.includes(trigger.atSeconds) &&
-        remaining <= trigger.atSeconds
-      ) {
-        if (trigger.type === "change-text") {
-          updatedConfig = { ...updatedConfig, preText: trigger.preText, postText: trigger.postText }
-        } else if (trigger.type === "warning-chime") {
-          void playSelectedSound(trigger.sound, _hostFs)
-        } else if (trigger.type === "queue.next") {
-          _queue?.next()
-        } else if (trigger.type === "queue.previous") {
-          _queue?.previous()
-        } else if (trigger.type === "player.next-slide") {
-          _player?.nextSlide()
-        } else if (trigger.type === "player.play") {
-          _player?.play(trigger.itemId)
-        }
-        newFiredTriggers.push(trigger.atSeconds)
-      }
-    }
-
-    if (updatedConfig !== config) {
-      set((s) => ({
-        config: updatedConfig,
-        timerState: { ...s.timerState, remainingSeconds: remaining, firedTriggers: newFiredTriggers },
-      }))
-    } else {
-      set((s) => ({
-        timerState: { ...s.timerState, remainingSeconds: remaining, firedTriggers: newFiredTriggers },
-      }))
-    }
-
-    emitTick(remaining, "running", updatedConfig, profileBackground, externalBackdropActive)
-  },
 }))
 
 export function formatTime(seconds: number): string {
