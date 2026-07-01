@@ -1,15 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react"
+import { useMemo } from "react"
 import { mix, rgba, saturate } from "polished"
-import type { BackgroundConfig, CountdownConfig } from "../types.js"
-
-type ProfileBackground = { src: string; thumb?: string; type: "theme" | "image" | "video" } | null
+import type { BackgroundConfig } from "../types.js"
 
 type AdaptiveTextOptions = {
-  appearance: CountdownConfig["appearance"]
-  profileBackground?: ProfileBackground
-  renderConfiguredBackground?: boolean
-  imageRef?: RefObject<HTMLImageElement | null>
-  videoRef?: RefObject<HTMLVideoElement | null>
+  appearance: { timerColor: string; prePostColor: string; textShadowGlow?: number; background: BackgroundConfig }
 }
 
 type AdaptiveTextResult = {
@@ -19,9 +13,6 @@ type AdaptiveTextResult = {
   subShadow?: string
   sampledColor: string | null
 }
-
-const SAMPLE_WIDTH = 24
-const SAMPLE_HEIGHT = 16
 
 function averageHexColors(colors: string[]) {
   if (colors.length === 0) return null
@@ -37,77 +28,6 @@ function resolveStaticSample(background: BackgroundConfig) {
   if (background.type === "solid") return background.color
   if (background.type === "gradient") return sampleGradientColor(background.value)
   return null
-}
-
-function getCropRect(width: number, height: number, appearance: CountdownConfig["appearance"]) {
-  if (appearance.overlayMode !== "corner") {
-    return {
-      x: width * 0.455,
-      y: height * 0.455,
-      w: width * 0.09,
-      h: height * 0.09,
-    }
-  }
-
-  const w = width * 0.08
-  const h = height * 0.08
-  const marginX = width * 0.07
-  const marginY = height * 0.07
-
-  if (appearance.cornerPosition === "top-left") return { x: marginX, y: marginY, w, h }
-  if (appearance.cornerPosition === "top-right") return { x: width - w - marginX, y: marginY, w, h }
-  if (appearance.cornerPosition === "bottom-left") return { x: marginX, y: height - h - marginY, w, h }
-  return { x: width - w - marginX, y: height - h - marginY, w, h }
-}
-
-function sampleElementColor(
-  element: HTMLImageElement | HTMLVideoElement,
-  appearance: CountdownConfig["appearance"],
-  naturalWidth: number,
-  naturalHeight: number,
-) {
-  const canvas = document.createElement("canvas")
-  canvas.width = SAMPLE_WIDTH
-  canvas.height = SAMPLE_HEIGHT
-  const context = canvas.getContext("2d", { willReadFrequently: true })
-  if (!context) return null
-
-  const crop = getCropRect(naturalWidth, naturalHeight, appearance)
-
-  try {
-    context.drawImage(element, crop.x, crop.y, crop.w, crop.h, 0, 0, SAMPLE_WIDTH, SAMPLE_HEIGHT)
-  } catch {
-    return null
-  }
-
-  const { data } = context.getImageData(0, 0, SAMPLE_WIDTH, SAMPLE_HEIGHT)
-  let r = 0
-  let g = 0
-  let b = 0
-  let count = 0
-
-  for (let index = 0; index < data.length; index += 4) {
-    const alpha = data[index + 3]
-    if (alpha === 0) continue
-    r += data[index]
-    g += data[index + 1]
-    b += data[index + 2]
-    count += 1
-  }
-
-  if (count === 0) return null
-
-  const toHex = (value: number) => Math.round(value / count).toString(16).padStart(2, "0")
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`
-}
-
-function bgConfigKey(bg: BackgroundConfig): string {
-  if (bg.type === "profile") return "profile"
-  if (bg.type === "solid") return `solid:${bg.color}`
-  if (bg.type === "gradient") return `gradient:${bg.value}`
-  if (bg.type === "image") return `image:${bg.value}:${bg.opacity}`
-  if (bg.type === "video") return `video:${bg.value}:${bg.opacity}`
-  return ""
 }
 
 function buildTextShadow(textColor: string, glowColor: string, glowStrength: number, compact = false) {
@@ -128,106 +48,14 @@ function buildTextShadow(textColor: string, glowColor: string, glowStrength: num
 
 export function useAdaptiveTextAppearance({
   appearance,
-  profileBackground = null,
-  renderConfiguredBackground = true,
-  imageRef,
-  videoRef,
 }: AdaptiveTextOptions): AdaptiveTextResult {
-  const [sampledMediaColor, setSampledMediaColor] = useState<string | null>(null)
-  const background = appearance.background
-  const mediaToken = `${background.type === "image" || background.type === "video" ? background.value : ""}|${profileBackground?.src ?? ""}|${profileBackground?.type ?? ""}|${appearance.overlayMode}|${appearance.cornerPosition}`
-
-  const backgroundKey = bgConfigKey(background)
-  const staticSample = useMemo(() => {
-    if (!renderConfiguredBackground && background.type !== "profile") return null
-    if (background.type === "profile" && profileBackground?.type === "theme") return null
-    return resolveStaticSample(background)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [backgroundKey, profileBackground, renderConfiguredBackground])
-
-  const appearanceRef = useRef(appearance)
-  appearanceRef.current = appearance
-
-  useEffect(() => {
-    let interval: number | null = null
-    const cleanups: Array<() => void> = []
-    let raf: number | null = null
-
-    setSampledMediaColor(null)
-
-    if (!renderConfiguredBackground && background.type !== "profile") {
-      return () => {
-        if (interval !== null) window.clearInterval(interval)
-        if (raf !== null) window.cancelAnimationFrame(raf)
-        cleanups.forEach((cleanup) => cleanup())
-      }
-    }
-
-    const sampleImage = () => {
-      const image = imageRef?.current
-      if (!image || !image.complete || image.naturalWidth <= 0 || image.naturalHeight <= 0) return false
-      setSampledMediaColor(sampleElementColor(image, appearanceRef.current, image.naturalWidth, image.naturalHeight))
-      return true
-    }
-
-    const sampleVideo = () => {
-      const video = videoRef?.current
-      if (!video || video.videoWidth <= 0 || video.videoHeight <= 0) return false
-      setSampledMediaColor(sampleElementColor(video, appearanceRef.current, video.videoWidth, video.videoHeight))
-      return true
-    }
-
-    let attempts = 0
-    const tickUntilReady = () => {
-      const sampled = sampleImage() || sampleVideo()
-      attempts += 1
-      if (!sampled && attempts < 30) {
-        raf = window.requestAnimationFrame(tickUntilReady)
-      }
-    }
-    tickUntilReady()
-
-    const image = imageRef?.current
-    if (image) {
-      const handleLoad = () => {
-        window.requestAnimationFrame(() => {
-          sampleImage()
-        })
-      }
-      image.addEventListener("load", handleLoad)
-      cleanups.push(() => image.removeEventListener("load", handleLoad))
-    }
-
-    const video = videoRef?.current
-    if (video) {
-      const handleReady = () => {
-        window.requestAnimationFrame(() => {
-          sampleVideo()
-        })
-      }
-      video.addEventListener("loadeddata", handleReady)
-      video.addEventListener("canplay", handleReady)
-      cleanups.push(() => video.removeEventListener("loadeddata", handleReady))
-      cleanups.push(() => video.removeEventListener("canplay", handleReady))
-      interval = window.setInterval(() => {
-        sampleVideo()
-      }, 350)
-    }
-
-    return () => {
-      if (interval !== null) window.clearInterval(interval)
-      if (raf !== null) window.cancelAnimationFrame(raf)
-      cleanups.forEach((cleanup) => cleanup())
-    }
-  }, [imageRef, mediaToken, renderConfiguredBackground, videoRef])
-
-  const sampledColor = sampledMediaColor ?? staticSample
+  const sampledColor = resolveStaticSample(appearance.background)
   const timerColor = appearance.timerColor
   const prePostColor = appearance.prePostColor
   const glowStrength = appearance.textShadowGlow ?? 0
-  const resolvedGlowColor = useMemo(() => {
-    return sampledColor ? saturate(0.18, mix(0.55, timerColor, sampledColor)) : timerColor
-  }, [sampledColor, timerColor])
+  const resolvedGlowColor = sampledColor
+    ? saturate(0.18, mix(0.55, timerColor, sampledColor))
+    : timerColor
 
   return useMemo(() => ({
     timerColor,

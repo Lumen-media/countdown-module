@@ -1,4 +1,4 @@
-import { memo, useRef, useState } from "react"
+import { memo, useState } from "react"
 import { displayAnchor } from "../../lib/display-mode.js"
 import { useAdaptiveTextAppearance } from "../../lib/adaptive-text.js"
 import { useCountdownStore } from "../../store.js"
@@ -22,13 +22,7 @@ function bgToStyle(bg: BackgroundConfig): React.CSSProperties {
   return {}
 }
 
-const ProfileBg = memo(function ProfileBg_({
-  imageRef,
-  videoRef,
-}: {
-  imageRef: React.RefObject<HTMLImageElement | null>
-  videoRef: React.RefObject<HTMLVideoElement | null>
-}) {
+const ProfileBg = memo(function ProfileBg_() {
   const profileBackground = useCountdownStore((s) => s.profileBackground)
   const [imgError, setImgError] = useState(false)
 
@@ -47,7 +41,6 @@ const ProfileBg = memo(function ProfileBg_({
     return (
       <video
         key={src}
-        ref={videoRef}
         src={src}
         autoPlay
         loop
@@ -58,7 +51,7 @@ const ProfileBg = memo(function ProfileBg_({
     )
   }
 
-  return <img key={src} ref={imageRef} src={src} alt="" className="absolute inset-0 h-full w-full object-cover" onError={() => setImgError(true)} />
+  return <img key={src} src={src} alt="" className="absolute inset-0 h-full w-full object-cover" onError={() => setImgError(true)} />
 })
 
 function bgKey(bg: BackgroundConfig): string {
@@ -72,25 +65,20 @@ function bgKey(bg: BackgroundConfig): string {
 
 const ConfiguredBackgroundMedia = memo(function ConfiguredBackgroundMedia_({
   background,
-  imageRef,
-  videoRef,
 }: {
   background: BackgroundConfig
-  imageRef: React.RefObject<HTMLImageElement | null>
-  videoRef: React.RefObject<HTMLVideoElement | null>
 }) {
   const [imgError, setImgError] = useState(false)
 
   if (background.type === "image") {
     if (imgError) return <div className="absolute inset-0" style={{ background: "var(--background)" }} />
-    return <img key={background.value} ref={imageRef} src={background.value} alt="" className="absolute inset-0 h-full w-full object-cover" onError={() => setImgError(true)} />
+    return <img key={background.value} src={background.value} alt="" className="absolute inset-0 h-full w-full object-cover" onError={() => setImgError(true)} />
   }
 
   if (background.type === "video") {
     return (
       <video
         key={background.value}
-        ref={videoRef}
         src={background.value}
         autoPlay
         loop
@@ -106,19 +94,12 @@ const ConfiguredBackgroundMedia = memo(function ConfiguredBackgroundMedia_({
 
 export function CountdownPreview() {
   const config = useCountdownStore((s) => s.config)
-  const profileBackground = useCountdownStore((s) => s.profileBackground)
   const { appearance, preText, postText } = config
   const remainingSeconds = config.totalSeconds
   const cornerActive = appearance.overlayMode === "corner"
-  const imageRef = useRef<HTMLImageElement | null>(null)
-  const videoRef = useRef<HTMLVideoElement | null>(null)
 
   const { timerColor, prePostColor, timerShadow, subShadow } = useAdaptiveTextAppearance({
     appearance,
-    profileBackground,
-    renderConfiguredBackground: true,
-    imageRef,
-    videoRef,
   })
 
   const timerFs = cornerActive ? 54 : Math.min(appearance.fontSize, 80)
@@ -133,9 +114,9 @@ export function CountdownPreview() {
       style={isProfile ? {} : bgToStyle(appearance.background)}
     >
       {isProfile ? (
-        <ProfileBg imageRef={imageRef} videoRef={videoRef} />
+        <ProfileBg />
       ) : (
-        <ConfiguredBackgroundMedia background={appearance.background} imageRef={imageRef} videoRef={videoRef} />
+        <ConfiguredBackgroundMedia background={appearance.background} />
       )}
 
       <div

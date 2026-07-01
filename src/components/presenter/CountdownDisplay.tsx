@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from "react"
+import { memo, useEffect, useState } from "react"
 import { emit, listen } from "@tauri-apps/api/event"
 import { displayAnchor, type CountdownTickPayload } from "../../lib/display-mode.js"
 import { useAdaptiveTextAppearance } from "../../lib/adaptive-text.js"
@@ -34,25 +34,20 @@ function bgKey(bg: BackgroundConfig): string {
 
 const ConfiguredBackgroundMedia = memo(function ConfiguredBackgroundMedia_({
   background,
-  imageRef,
-  videoRef,
 }: {
   background: BackgroundConfig
-  imageRef: React.RefObject<HTMLImageElement | null>
-  videoRef: React.RefObject<HTMLVideoElement | null>
 }) {
   const [imgError, setImgError] = useState(false)
 
   if (background.type === "image") {
     if (imgError) return null
-    return <img key={background.value} ref={imageRef} src={background.value} alt="" onError={() => setImgError(true)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+    return <img key={background.value} src={background.value} alt="" onError={() => setImgError(true)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
   }
 
   if (background.type === "video") {
     return (
       <video
         key={background.value}
-        ref={videoRef}
         src={background.value}
         autoPlay
         loop
@@ -68,8 +63,6 @@ const ConfiguredBackgroundMedia = memo(function ConfiguredBackgroundMedia_({
 
 export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickPayload }) {
   const [tick, setTick] = useState<CountdownTickPayload | null>(initialTick ?? null)
-  const imageRef = useRef<HTMLImageElement | null>(null)
-  const videoRef = useRef<HTMLVideoElement | null>(null)
 
   useEffect(() => {
     const unlisten = listen<CountdownTickPayload>("countdown:tick", (event) => {
@@ -90,9 +83,6 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
   const bgStyle = renderConfiguredBackground ? bgToStyle(config) : {}
   const { timerColor, prePostColor, timerShadow, subShadow } = useAdaptiveTextAppearance({
     appearance,
-    renderConfiguredBackground,
-    imageRef,
-    videoRef,
   })
   const subColor = `${prePostColor ?? "#ffffff"}${Math.round((appearance.prePostOpacity ?? 0.8) * 255).toString(16).padStart(2, "0")}`
 
@@ -107,7 +97,7 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
       }}
     >
       {renderConfiguredBackground && (
-        <ConfiguredBackgroundMedia background={appearance.background} imageRef={imageRef} videoRef={videoRef} />
+        <ConfiguredBackgroundMedia background={appearance.background} />
       )}
 
       <div
