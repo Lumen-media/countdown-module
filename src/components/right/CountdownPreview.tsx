@@ -1,7 +1,8 @@
 import { memo, useRef, useState } from "react"
 import { displayAnchor } from "../../lib/display-mode.js"
 import { useAdaptiveTextAppearance } from "../../lib/adaptive-text.js"
-import { useCountdownStore, formatTime } from "../../store.js"
+import { useCountdownStore } from "../../store.js"
+import { DigitDisplay } from "../DigitDisplay.js"
 import type { BackgroundConfig } from "../../types.js"
 import { TextCarousel } from "../TextCarousel.js"
 
@@ -158,18 +159,17 @@ export function CountdownPreview() {
         )}
 
         <span
-          className="relative block text-center leading-none tabular-nums"
+          className="relative block text-center leading-none"
           style={{
             fontSize: cornerActive ? "54px" : "80px",
             fontWeight: 900,
             color: timerColor,
-            letterSpacing: "-2px",
             fontFamily: appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font,
             textShadow: timerShadow,
             transition: "font-size 260ms ease",
           }}
         >
-          {formatTime(remainingSeconds)}
+          <DigitDisplay seconds={remainingSeconds} />
         </span>
 
         {postText && (

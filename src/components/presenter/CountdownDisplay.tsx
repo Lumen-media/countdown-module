@@ -2,7 +2,7 @@ import { memo, useEffect, useRef, useState } from "react"
 import { emit, listen } from "@tauri-apps/api/event"
 import { displayAnchor, type CountdownTickPayload } from "../../lib/display-mode.js"
 import { useAdaptiveTextAppearance } from "../../lib/adaptive-text.js"
-import { formatTime } from "../../store.js"
+import { DigitDisplay } from "../DigitDisplay.js"
 import type { BackgroundConfig, CountdownConfig } from "../../types.js"
 import { TextCarousel } from "../TextCarousel.js"
 
@@ -143,15 +143,13 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
             fontSize: cornerActive ? "48px" : `${appearance.fontSize}px`,
             fontWeight: 900,
             color: timerColor,
-            letterSpacing: "-2px",
             fontFamily: appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font,
             textShadow: timerShadow,
             lineHeight: 1,
-            fontVariantNumeric: "tabular-nums",
             transition: "font-size 260ms ease",
           }}
         >
-          {formatTime(remaining)}
+          <DigitDisplay seconds={remaining} />
         </span>
 
         {postText && (
