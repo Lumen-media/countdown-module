@@ -118,6 +118,8 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
           alignItems: "center",
           gap: cornerActive ? "4px" : "10px",
           textAlign: "center",
+          maxWidth: "100vw",
+          overflow: "hidden",
           transition: "top 260ms ease, left 260ms ease, transform 260ms ease, gap 260ms ease",
           ...displayAnchor(appearance.cornerPosition, cornerActive),
         }}
@@ -126,11 +128,12 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
           <span
             style={{
               position: "relative",
-              fontSize: cornerActive ? "14px" : "24px",
+              fontSize: cornerActive ? "14px" : `${Math.round(appearance.fontSize * 0.18)}px`,
               fontWeight: 500,
               color: subColor,
               textShadow: subShadow,
               lineHeight: 1.3,
+              whiteSpace: "nowrap",
               transition: "font-size 260ms ease",
             }}
           >
@@ -175,6 +178,7 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
               fontFamily: appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font,
               textShadow: timerShadow,
               lineHeight: 1,
+              whiteSpace: "nowrap",
               transition: "font-size 260ms ease",
             }}
           >
@@ -186,11 +190,12 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
           <TextCarousel
             text={postText}
             style={{
-              fontSize: cornerActive ? "14px" : "20px",
+              fontSize: cornerActive ? "14px" : `${Math.round(appearance.fontSize * 0.15)}px`,
               fontWeight: 400,
               color: subColor,
               textShadow: subShadow,
               lineHeight: 1.3,
+              whiteSpace: "nowrap",
               transition: "font-size 260ms ease",
             }}
           />

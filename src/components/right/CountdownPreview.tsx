@@ -121,7 +121,7 @@ export function CountdownPreview() {
     videoRef,
   })
 
-  const timerFs = cornerActive ? 54 : 80
+  const timerFs = cornerActive ? 54 : Math.min(appearance.fontSize, 80)
   const textFs = cornerActive ? 14 : Math.round(timerFs * 0.2)
   const subColor = `${prePostColor ?? "#ffffff"}${Math.round((appearance.prePostOpacity ?? 0.8) * 255).toString(16).padStart(2, "0")}`
   const isProfile = appearance.background.type === "profile"
@@ -193,6 +193,7 @@ export function CountdownPreview() {
               color: timerColor,
               fontFamily: appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font,
               textShadow: timerShadow,
+              whiteSpace: "nowrap",
               transition: "font-size 260ms ease",
             }}
           >
