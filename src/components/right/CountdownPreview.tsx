@@ -61,51 +61,6 @@ const ProfileBg = memo(function ProfileBg_() {
   )
 })
 
-function bgKey(bg: BackgroundConfig): string {
-  if (bg.type === "profile") return "profile"
-  if (bg.type === "solid") return `solid:${bg.color}`
-  if (bg.type === "gradient") return `gradient:${bg.value}`
-  if (bg.type === "image") return `image:${bg.value}:${bg.opacity}`
-  if (bg.type === "video") return `video:${bg.value}:${bg.opacity}`
-  return ""
-}
-
-const ConfiguredBackgroundMedia = memo(function ConfiguredBackgroundMedia_({
-  background,
-}: {
-  background: BackgroundConfig
-}) {
-  const [imgError, setImgError] = useState(false)
-
-  if (background.type === "image") {
-    if (imgError) return <div className="absolute inset-0" style={{ background: "var(--background)" }} />
-    return (
-      <img
-        src={background.value}
-        alt=""
-        decoding="async"
-        className="absolute inset-0 h-full w-full object-cover"
-        onError={() => setImgError(true)}
-      />
-    )
-  }
-
-  if (background.type === "video") {
-    return (
-      <video
-        src={background.value}
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="absolute inset-0 h-full w-full object-cover"
-      />
-    )
-  }
-
-  return null
-}, (prev, next) => bgKey(prev.background) === bgKey(next.background))
-
 export function CountdownPreview() {
   const config = useCountdownStore((s) => s.config)
   const { appearance, preText, postText } = config
@@ -119,19 +74,21 @@ export function CountdownPreview() {
   const timerFs = cornerActive ? 54 : Math.min(appearance.fontSize, 80)
   const textFs = cornerActive ? 14 : Math.round(timerFs * 0.2)
   const subColor = `${prePostColor ?? "#ffffff"}${Math.round((appearance.prePostOpacity ?? 0.8) * 255).toString(16).padStart(2, "0")}`
-  const isProfile = appearance.background.type === "profile"
+  const bg = appearance.background
 
   return (
     <div
       data-countdown-stage
       className="relative isolate h-full w-full overflow-hidden rounded-xl"
-      style={isProfile ? {} : bgToStyle(appearance.background)}
+      style={bg.type === "profile" ? {} : bgToStyle(bg)}
     >
-      {isProfile ? (
+      {bg.type === "profile" ? (
         <ProfileBg />
-      ) : (
-        <ConfiguredBackgroundMedia background={appearance.background} />
-      )}
+      ) : bg.type === "image" ? (
+        <img src={bg.value} alt="" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
+      ) : bg.type === "video" ? (
+        <video src={bg.value} autoPlay loop muted playsInline className="absolute inset-0 h-full w-full object-cover" />
+      ) : null}
 
       <div
         className="absolute z-10 flex flex-col items-center text-center"

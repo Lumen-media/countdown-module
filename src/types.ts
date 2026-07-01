@@ -18,8 +18,8 @@ export type BackgroundConfig =
   | { type: "profile" }
   | { type: "solid"; color: string }
   | { type: "gradient"; value: string }
-  | { type: "image"; value: string; opacity: number }
-  | { type: "video"; value: string; opacity: number }
+  | { type: "image"; value: string }
+  | { type: "video"; value: string }
 
 export type BackgroundPreset = "dark-minimal" | "light-clean" | "default" | "custom"
 

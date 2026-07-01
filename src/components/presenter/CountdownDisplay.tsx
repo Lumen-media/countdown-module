@@ -1,10 +1,10 @@
-import { memo, useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { emit, listen } from "@tauri-apps/api/event"
 import { displayAnchor, type CountdownTickPayload } from "../../lib/display-mode.js"
 import { useAdaptiveTextAppearance } from "../../lib/adaptive-text.js"
 import { DigitDisplay } from "../DigitDisplay.js"
 import { CircularProgress } from "../CircularProgress.js"
-import type { BackgroundConfig, CountdownConfig } from "../../types.js"
+import type { CountdownConfig } from "../../types.js"
 import { TextCarousel } from "../TextCarousel.js"
 
 function formatPreText(text: string, maxChars = 28): string {
@@ -23,63 +23,18 @@ function bgToStyle(config: CountdownConfig): React.CSSProperties {
   return {}
 }
 
-function bgKey(bg: BackgroundConfig): string {
-  if (bg.type === "profile") return "profile"
-  if (bg.type === "solid") return `solid:${bg.color}`
-  if (bg.type === "gradient") return `gradient:${bg.value}`
-  if (bg.type === "image") return `image:${bg.value}:${bg.opacity}`
-  if (bg.type === "video") return `video:${bg.value}:${bg.opacity}`
-  return ""
-}
-
-const ConfiguredBackgroundMedia = memo(function ConfiguredBackgroundMedia_({
-  background,
-}: {
-  background: BackgroundConfig
-}) {
-  const [imgError, setImgError] = useState(false)
-
-  if (background.type === "image") {
-    if (imgError) return null
-    return (
-      <img
-        src={background.value}
-        alt=""
-        decoding="async"
-        onError={() => setImgError(true)}
-        style={{
-          position: "absolute", inset: 0, width: "100%", height: "100%",
-          objectFit: "cover",
-        }}
-      />
-    )
-  }
-
-  if (background.type === "video") {
-    return (
-      <video
-        src={background.value}
-        autoPlay
-        loop
-        muted
-        playsInline
-        style={{
-          position: "absolute", inset: 0, width: "100%", height: "100%",
-          objectFit: "cover",
-        }}
-      />
-    )
-  }
-
-  return null
-}, (prev, next) => bgKey(prev.background) === bgKey(next.background))
-
 export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickPayload }) {
   const [tick, setTick] = useState<CountdownTickPayload | null>(initialTick ?? null)
+  const cachedConfigRef = useRef<CountdownConfig | null>(initialTick?.config ?? null)
+  const [imgError, setImgError] = useState(false)
 
   useEffect(() => {
     const unlisten = listen<CountdownTickPayload>("countdown:tick", (event) => {
-      setTick(event.payload)
+      const payload = event.payload
+      if (payload.config) {
+        cachedConfigRef.current = payload.config
+      }
+      setTick(payload)
     })
     emit("countdown:display-ready").catch(() => {})
     return () => {
@@ -87,11 +42,13 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
     }
   }, [])
 
-  if (!tick) {
+  const config = tick?.config ?? cachedConfigRef.current
+
+  if (!tick || !config) {
     return <div data-countdown-stage style={{ width: "100%", height: "100%", background: "black" }} />
   }
 
-  const { remaining, config, cornerActive, renderConfiguredBackground } = tick
+  const { remaining, cornerActive, renderConfiguredBackground } = tick
   const { appearance, preText, postText } = config
   const bgStyle = renderConfiguredBackground ? bgToStyle(config) : {}
   const { timerColor, prePostColor, timerShadow, subShadow } = useAdaptiveTextAppearance({
@@ -109,8 +66,11 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
         ...bgStyle,
       }}
     >
-      {renderConfiguredBackground && (
-        <ConfiguredBackgroundMedia background={appearance.background} />
+      {renderConfiguredBackground && !imgError && appearance.background.type === "image" && (
+        <img src={appearance.background.value} alt="" decoding="async" onError={() => setImgError(true)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+      )}
+      {renderConfiguredBackground && appearance.background.type === "video" && (
+        <video src={appearance.background.value} autoPlay loop muted playsInline style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
       )}
 
       <div

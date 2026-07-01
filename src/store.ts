@@ -93,10 +93,15 @@ function emitTick(
   externalBackdropActive: boolean,
 ) {
   const presentationFlags = getPresentationFlags(config, profileBackground, externalBackdropActive)
+  const configJson = JSON.stringify(config)
+  const configChanged = configJson !== _lastEmittedConfigJson
+  if (configChanged) {
+    _lastEmittedConfigJson = configJson
+  }
   const payload: CountdownTickPayload = {
     remaining,
     status,
-    config,
+    ...(configChanged ? { config } : {}),
     ...presentationFlags,
   }
 
@@ -137,6 +142,7 @@ function projectionProps(
 
 const COMPLETION_SOUND_SAFETY_SECONDS = 1
 
+let _lastEmittedConfigJson: string | null = null
 let _animation: ReturnType<typeof animate> | null = null
 let _completionSoundTimer: ReturnType<typeof setTimeout> | null = null
 let _completionSoundAudio: HTMLAudioElement | null = null
@@ -541,38 +547,20 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
       if (!_openBackgroundPicker) return
       _openBackgroundPicker((bg) => {
         const src = bg.src ?? ""
-
-        const commitBackground = (finalSrc: string) => {
-          const background: BackgroundConfig = bg.type === "video"
-            ? { type: "video", value: finalSrc, opacity: 0.5 }
-            : { type: "image", value: finalSrc, opacity: 0.5 }
-          set((s) => ({
-            config: {
-              ...s.config,
-              appearance: {
-                ...s.config.appearance,
-                preset: "custom",
-                background: customBackground ?? background,
-              },
+        const background: BackgroundConfig = bg.type === "video"
+          ? { type: "video", value: src }
+          : { type: "image", value: src }
+        set((s) => ({
+          config: {
+            ...s.config,
+            appearance: {
+              ...s.config.appearance,
+              preset: "custom",
+              background: customBackground ?? background,
             },
-          }))
-          get()._saveImmediate?.()
-        }
-
-        if (src.startsWith("blob:")) {
-          fetch(src)
-            .then((res) => res.blob())
-            .then((blob) => new Promise<string>((resolve, reject) => {
-              const reader = new FileReader()
-              reader.onload = () => resolve(reader.result as string)
-              reader.onerror = reject
-              reader.readAsDataURL(blob)
-            }))
-            .then((dataUrl) => commitBackground(dataUrl))
-            .catch(() => {})
-        } else {
-          commitBackground(src)
-        }
+          },
+        }))
+        get()._saveImmediate?.()
       })
       return
     }

@@ -10,7 +10,7 @@ type ProfileBackground = {
 export type CountdownTickPayload = {
   remaining: number
   status: CountdownStatus
-  config: CountdownConfig
+  config?: CountdownConfig
   cornerActive: boolean
   renderConfiguredBackground: boolean
 }
