@@ -128,6 +128,7 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
           <span
             style={{
               position: "relative",
+              zIndex: 1,
               fontSize: cornerActive ? "14px" : `${Math.round(appearance.fontSize * 0.18)}px`,
               fontWeight: 500,
               color: subColor,
@@ -160,6 +161,9 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
                   transform: "translate(-50%, -50%)",
                   width: ringSize,
                   height: ringSize,
+                  clipPath: "circle(50%)",
+                  backdropFilter: "blur(2px)",
+                  WebkitBackdropFilter: "blur(2px)",
                   pointerEvents: "none",
                   zIndex: 0,
                 }}
@@ -192,18 +196,20 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
         </div>
 
         {postText && (
-          <TextCarousel
-            text={postText}
-            style={{
-              fontSize: cornerActive ? "14px" : `${Math.round(appearance.fontSize * 0.15)}px`,
-              fontWeight: 400,
-              color: subColor,
-              textShadow: subShadow,
-              lineHeight: 1.3,
-              whiteSpace: "nowrap",
-              transition: "font-size 260ms ease",
-            }}
-          />
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <TextCarousel
+              text={postText}
+              style={{
+                fontSize: cornerActive ? "14px" : `${Math.round(appearance.fontSize * 0.15)}px`,
+                fontWeight: 400,
+                color: subColor,
+                textShadow: subShadow,
+                lineHeight: 1.3,
+                whiteSpace: "nowrap",
+                transition: "font-size 260ms ease",
+              }}
+            />
+          </div>
         )}
       </div>
     </div>

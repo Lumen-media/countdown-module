@@ -176,6 +176,9 @@ export function CountdownPreview() {
                   transform: "translate(-50%, -50%)",
                   width: ringSize,
                   height: ringSize,
+                  clipPath: "circle(50%)",
+                  backdropFilter: "blur(2px)",
+                  WebkitBackdropFilter: "blur(2px)",
                   pointerEvents: "none",
                   zIndex: 0,
                 }}
