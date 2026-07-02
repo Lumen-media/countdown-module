@@ -173,7 +173,7 @@ export function ConfigureTab() {
                 onChange={(e) => set(e.target.value)}
                 maxLength={2}
                 readOnly={timerRunning}
-                className="bg-background dark:bg-background border-none outline-none font-extrabold text-foreground w-full text-center p-0 tabular-nums"
+                className="bg-background dark:bg-background border-none outline-none focus:ring-0 font-extrabold text-foreground w-full text-center p-0 tabular-nums"
                 style={{ fontSize: 36 }}
               />
               <span className="text-xs font-semibold" style={{ color: "var(--primary)" }}>{label}</span>
@@ -236,7 +236,7 @@ export function ConfigureTab() {
             placeholder={t("configure.displayText.pre")}
             value={preText}
             onChange={(e) => setConfig({ preText: e.target.value })}
-            className="bg-background dark:bg-background"
+            className="bg-background dark:bg-background ring-0 focus:right-0 focus:border-input"
           />
           <label className="max-h-[4.1lh] p-1 overflow-hidden rounded-md border border-input bg-background">
             <ScrollArea className="h-full max-h-[4.1lh]">
@@ -303,7 +303,7 @@ export function ConfigureTab() {
               </button>
             )
           })}
-                </div>
+        </div>
       </div>
     </div>
   )
