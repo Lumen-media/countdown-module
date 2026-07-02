@@ -592,7 +592,7 @@ export function ActionsTab() {
   const countUp = useCountdownStore((s) => s.config.countUp)
   const setConfig = useCountdownStore((s) => s.setConfig)
   const { autoAdvance } = actions
-  const { hideOnCompletion, completionSound, webhookUrl } = behavior
+  const { hideOnCompletion, completionSound } = behavior
   const soundPlaceholder = t("actions.selectAudio")
 
   function addTrigger() {
@@ -698,7 +698,9 @@ export function ActionsTab() {
             {t("actions.allowNegative")}
             <Switch
               checked={allowNegative}
-              onCheckedChange={(checked) => setConfig({ allowNegative: checked })}
+              onCheckedChange={(checked) => {
+                setConfig({ allowNegative: checked, countUp: checked ? false : countUp })
+              }}
               className="shrink-0"
             />
           </Label>
@@ -707,22 +709,12 @@ export function ActionsTab() {
             <Switch
               checked={countUp}
               onCheckedChange={(checked) => {
-                setConfig({ countUp: checked })
+                setConfig({ countUp: checked, allowNegative: checked ? false : allowNegative })
                 useCountdownStore.getState().setTotalSeconds(totalSeconds)
               }}
               className="shrink-0"
             />
           </Label>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-muted-foreground">{t("actions.webhookUrl")}</span>
-            <input
-              type="text"
-              value={webhookUrl}
-              onChange={(event) => setConfig({ behavior: { ...behavior, webhookUrl: event.target.value } })}
-              placeholder="https://example.com/webhook"
-              className="w-full bg-card rounded-md px-2 py-1.5 text-xs border-none outline-none text-foreground placeholder:text-muted-foreground"
-            />
-          </div>
         </div>
       </div>
     </div>

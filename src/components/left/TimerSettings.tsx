@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Save, Trash2, Upload } from "lucide-react"
-import { Button } from "@lumen-media/module-sdk/ui"
+import { Button, ScrollArea } from "@lumen-media/module-sdk/ui"
 import { useCountdownStore } from "../../store.js"
 import type { HotkeyAction } from "../../types.js"
 import { t } from "../../i18n.js"
@@ -35,7 +35,7 @@ const HOTKEY_ACTIONS: { action: HotkeyAction; labelKey: string }[] = [
 ]
 
 export function TimerSettings() {
-  const { config, timerPresets, saveTimerPreset, loadTimerPreset, deleteTimerPreset, updateHotkeys } = useCountdownStore()
+  const { config, timerPresets, saveTimerPreset, loadTimerPreset, deleteTimerPreset, updateHotkeys, setConfig } = useCountdownStore()
   const timerRunning = useCountdownStore((s) => s.timerState.status) === "running"
   const [presetName, setPresetName] = useState("")
   const [recordingHotkey, setRecordingHotkey] = useState<HotkeyAction | null>(null)
@@ -71,7 +71,7 @@ export function TimerSettings() {
               size="xs"
               disabled={timerRunning}
               onClick={() => { saveTimerPreset(presetName || `Preset ${timerPresets.length + 1}`); setPresetName("") }}
-              className="shrink-0"
+              className="shrink-0 h-auto"
             >
               <Save size={11} />
               {t("configure.timerPresets.save")}
@@ -80,31 +80,46 @@ export function TimerSettings() {
           {timerPresets.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-2">{t("configure.timerPresets.noPresets")}</p>
           ) : (
-            <div className="flex flex-col gap-1 max-h-40 overflow-y-auto">
-              {timerPresets.map((p) => (
-                <div key={p.id} className="flex items-center gap-1.5 bg-background rounded-lg px-2 py-1.5">
-                  <span className="flex-1 text-xs text-foreground truncate">{p.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => loadTimerPreset(p.id)}
-                    disabled={timerRunning}
-                    className="text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                    title={t("configure.timerPresets.load")}
-                  >
-                    <Upload size={12} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => deleteTimerPreset(p.id)}
-                    className="text-muted-foreground hover:text-red-400 transition-colors bg-transparent border-none cursor-pointer p-0.5"
-                    title={t("configure.timerPresets.delete")}
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-              ))}
-            </div>
+            <ScrollArea className="flex flex-col max-h-40">
+              <div className="flex flex-col flex-1 gap-1 pr-3">
+                {timerPresets.map((p) => (
+                  <div key={p.id} className="flex items-center gap-1.5 bg-background rounded-lg px-2 py-1.5">
+                    <span className="flex-1 text-xs text-foreground truncate">{p.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => loadTimerPreset(p.id)}
+                      disabled={timerRunning}
+                      className="text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                      title={t("configure.timerPresets.load")}
+                    >
+                      <Upload size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteTimerPreset(p.id)}
+                      className="text-muted-foreground hover:text-red-400 transition-colors bg-transparent border-none cursor-pointer p-0.5"
+                      title={t("configure.timerPresets.delete")}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
           )}
+        </div>
+      </div>
+
+      <div>
+        <SectionLabel>{t("configure.section.webhook")}</SectionLabel>
+        <div className="flex flex-col gap-1.5">
+          <input
+            type="text"
+            value={config.behavior.webhookUrl}
+            onChange={(event) => setConfig({ behavior: { ...config.behavior, webhookUrl: event.target.value } })}
+            placeholder="https://example.com/webhook"
+            className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs outline-none text-foreground placeholder:text-muted-foreground"
+          />
         </div>
       </div>
 
@@ -117,11 +132,10 @@ export function TimerSettings() {
               <button
                 type="button"
                 onClick={() => setRecordingHotkey(recordingHotkey === action ? null : action)}
-                className={`text-xs font-mono font-semibold px-2 py-0.5 rounded border bg-transparent cursor-pointer transition-colors min-w-[4rem] text-center ${
-                  recordingHotkey === action
-                    ? "border-primary text-primary"
-                    : "border-border text-muted-foreground hover:text-foreground"
-                }`}
+                className={`text-xs font-mono font-semibold px-2 py-0.5 rounded border bg-transparent cursor-pointer transition-colors min-w-[4rem] text-center ${recordingHotkey === action
+                  ? "border-primary text-primary"
+                  : "border-border text-muted-foreground hover:text-foreground"
+                  }`}
               >
                 {recordingHotkey === action ? t("configure.hotkeys.record") : formatHotkey(config.hotkeys[action])}
               </button>
