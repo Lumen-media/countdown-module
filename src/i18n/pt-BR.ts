@@ -150,6 +150,10 @@ const ptBR: Record<string, string> = {
 
   "main.menu.open": "Timer de contagem",
   "main.command.open": "Abrir timer de contagem",
+  "main.command.start": "Contagem: Iniciar",
+  "main.command.pause": "Contagem: Pausar / Retomar",
+  "main.command.reset": "Contagem: Resetar",
+  "main.command.app": "Contagem: Controles",
   "main.trigger.wait": "Aguardar (Contagem)",
 }
 

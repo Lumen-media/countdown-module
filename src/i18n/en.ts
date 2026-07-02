@@ -150,6 +150,10 @@ const en: Record<string, string> = {
 
   "main.menu.open": "Countdown Timer",
   "main.command.open": "Open Countdown Timer",
+  "main.command.start": "Countdown: Start",
+  "main.command.pause": "Countdown: Pause / Resume",
+  "main.command.reset": "Countdown: Reset",
+  "main.command.app": "Countdown: Controls",
   "main.trigger.wait": "Wait (Countdown)",
 }
 

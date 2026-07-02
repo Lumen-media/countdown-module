@@ -65,6 +65,7 @@ Toda mutação de estado passa por `set()` do Zustand, garantindo reatividade no
 | `host.data.json` | Persistência de config e presets |
 | `host.app.locale` | Internacionalização (en / pt-BR) |
 | `host.fonts` | Listagem de fontes do sistema |
+| `host.commands` | Registro de comandos no Commander |
 
 ---
 
@@ -291,7 +292,32 @@ A detecção é feita via `host.app.locale` no momento do `onload`.
 
 ---
 
-## 10. Estrutura de Arquivos
+## 10. Commander
+
+O módulo registra comandos no Commander do Lumen para acesso rápido sem abrir o dialog.
+
+### 10.1 Ações Diretas
+
+| Comando | Descrição |
+|---|---|
+| `Countdown: Start` | Inicia ou retoma o timer |
+| `Countdown: Pause / Resume` | Pausa se rodando, retoma se pausado |
+| `Countdown: Reset` | Reseta o timer para o estado inicial |
+| `Open Countdown Timer` | Abre o dialog completo de configuração |
+
+### 10.2 App do Commander
+
+O comando `Countdown: Controls` (`type: "app"`) abre uma interface compacta dentro do próprio Commander com:
+
+- **Presets rápidos**: botões para 5, 10, 15, 30 minutos
+- **Controles**: Start, Pause/Resume, Reset
+- **Fechar**: botão para voltar
+
+Cada preset define a duração do timer (substitui a config atual). Os controles agem imediatamente no timer em execução.
+
+---
+
+## 11. Estrutura de Arquivos
 
 ```
 src/
@@ -308,6 +334,7 @@ src/
 │   ├── display-mode.ts            # Lógica de modo canto vs tela cheia
 │   └── sounds.ts                  # Gerenciamento de áudios bundled/library
 ├── components/
+│   ├── CountdownCommanderApp.tsx  # App do Commander (presets + controles)
 │   ├── CountdownDialog.tsx        # Dialog principal (layout esquerda/direita)
 │   ├── CountdownHeaderStatus.tsx  # Pill no header do Lumen
 │   ├── CircularProgress.tsx       # Componente de barra circular

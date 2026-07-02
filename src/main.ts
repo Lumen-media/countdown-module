@@ -1,9 +1,11 @@
 import css from "./styles.css?inline"
 import { type LumenHost, LumenPlugin } from "@lumen-media/module-sdk"
 import { createElement, type ComponentProps } from "react"
+import { Timer } from "lucide-react"
 import { listen } from "@tauri-apps/api/event"
 import { CountdownDialog } from "./components/CountdownDialog.js"
 import { CountdownHeaderStatus } from "./components/CountdownHeaderStatus.js"
+import { CountdownCommanderApp } from "./components/CountdownCommanderApp.js"
 import { CountdownDisplay } from "./components/presenter/CountdownDisplay.js"
 import { QueueTriggerConfigComponent, CountdownSummary, type QueueTriggerConfig } from "./components/QueueTriggerConfig.js"
 import { useCountdownStore } from "./store.js"
@@ -75,6 +77,38 @@ export default class CountdownPlugin extends LumenPlugin {
       id: "countdown.open",
       title: t("main.command.open"),
       run: () => host.ui.openDialog("countdown.dialog"),
+    })
+
+    host.commands.add({
+      id: "countdown.start",
+      title: t("main.command.start"),
+      keywords: ["timer", "play"],
+      run: () => useCountdownStore.getState().startTimer(),
+    })
+    host.commands.add({
+      id: "countdown.pause",
+      title: t("main.command.pause"),
+      keywords: ["timer", "stop"],
+      run: () => {
+        const s = useCountdownStore.getState()
+        if (s.timerState.status === "paused") s.startTimer()
+        else s.pauseTimer()
+      },
+    })
+    host.commands.add({
+      id: "countdown.reset",
+      title: t("main.command.reset"),
+      keywords: ["timer", "clear"],
+      run: () => useCountdownStore.getState().resetTimer(),
+    })
+
+    host.commands.add({
+      id: "countdown.app",
+      title: t("main.command.app"),
+      type: "app",
+      icon: Timer,
+      keywords: ["timer", "quick", "preset", "start", "pause", "reset"],
+      component: CountdownCommanderApp,
     })
 
     useCountdownStore.getState().setBus(host.bus)
