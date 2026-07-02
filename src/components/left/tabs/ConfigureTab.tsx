@@ -241,6 +241,7 @@ export function ConfigureTab() {
           <label className="max-h-[4.1lh] p-1 overflow-hidden rounded-md border border-input bg-background">
             <ScrollArea className="h-full max-h-[4.1lh]">
               <TextEditor
+                key={postText}
                 placeholder={t("configure.displayText.post")}
                 defaultValue={postText}
                 onChange={(e) => setConfig({ postText: e })}

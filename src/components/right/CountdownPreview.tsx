@@ -64,7 +64,7 @@ const ProfileBg = memo(function ProfileBg_() {
 export function CountdownPreview() {
   const config = useCountdownStore((s) => s.config)
   const { appearance, preText, postText } = config
-  const remainingSeconds = config.totalSeconds
+  const previewSeconds = config.countUp ? 0 : config.totalSeconds
   const cornerActive = appearance.overlayMode === "corner"
 
   const { timerColor, prePostColor, timerShadow, subShadow } = useAdaptiveTextAppearance({
@@ -134,7 +134,7 @@ export function CountdownPreview() {
                 }}
               >
                 <CircularProgress
-                  remaining={remainingSeconds}
+                  remaining={previewSeconds}
                   total={config.totalSeconds}
                   color={appearance.progressBarColor}
                   size={ringSize}
@@ -155,7 +155,7 @@ export function CountdownPreview() {
               transition: "font-size 260ms ease",
             }}
           >
-            <DigitDisplay seconds={remainingSeconds} animation={appearance.digitAnimation} pulseEffect={appearance.pulseEffect && remainingSeconds <= 60} />
+            <DigitDisplay seconds={previewSeconds} animation={appearance.digitAnimation} pulseEffect={false} />
           </span>
         </div>
 
