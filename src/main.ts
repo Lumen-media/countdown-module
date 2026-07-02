@@ -77,6 +77,7 @@ export default class CountdownPlugin extends LumenPlugin {
       run: () => host.ui.openDialog("countdown.dialog"),
     })
 
+    useCountdownStore.getState().setBus(host.bus)
     useCountdownStore.getState().setPresenter(host.presentation)
     useCountdownStore.getState().setQueue(host.queue)
     useCountdownStore.getState().setPlayer(host.player)

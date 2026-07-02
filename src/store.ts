@@ -264,6 +264,7 @@ function setFinishedState(
     timerState: { ...s.timerState, status: "finished", remainingSeconds: remainingOnFinish },
   }))
   emitTick(remainingOnFinish, "finished", config, profileBackground, externalBackdropActive)
+  emitBusEvent("countdown-module:timer.finished", { remaining: remainingOnFinish, total: config.totalSeconds, countUp: config.countUp })
 
   postWebhook(
     { event: "timer.finished", remaining: remainingOnFinish, total: config.totalSeconds, countUp: config.countUp },
@@ -332,8 +333,9 @@ function onAnimationUpdate(remaining: number) {
         !newFiredTriggers.includes(trigger.atSeconds) &&
         (config.countUp ? remaining >= trigger.atSeconds : remaining <= trigger.atSeconds)
 
-      if (shouldFire) {
-        if (trigger.type === "change-text") {
+        if (shouldFire) {
+          emitBusEvent("countdown-module:timer.trigger", { atSeconds: trigger.atSeconds, triggerType: trigger.type, remaining })
+          if (trigger.type === "change-text") {
           updatedConfig = { ...updatedConfig, preText: trigger.preText, postText: trigger.postText }
         } else if (trigger.type === "warning-chime") {
           void playSelectedSound(trigger.sound, _hostFs)
@@ -359,6 +361,7 @@ function onAnimationUpdate(remaining: number) {
       { event: "timer.tick", remaining, total: config.totalSeconds, countUp: config.countUp },
       config.behavior.webhookUrl,
     )
+    emitBusEvent("countdown-module:timer.tick", { remaining, total: config.totalSeconds, countUp: config.countUp })
 
     if (updatedConfig !== config) {
       useCountdownStore.setState((s) => ({
@@ -427,6 +430,8 @@ type CountdownStore = {
   _sceneSwitcher: ((sceneId: string) => void) | null
   setSceneSwitcher: (fn: (sceneId: string) => void) => void
   _overlayOpener: ((overlayId: string) => void) | null
+  _bus: { emit: (topic: string, payload?: unknown) => void } | null
+  setBus: (bus: { emit: (topic: string, payload?: unknown) => void }) => void
   setOverlayOpener: (fn: (overlayId: string) => void) => void
 }
 
@@ -472,6 +477,8 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
   setSceneSwitcher: (fn) => set({ _sceneSwitcher: fn }),
   _overlayOpener: null as CountdownStore["_overlayOpener"],
   setOverlayOpener: (fn) => set({ _overlayOpener: fn }),
+  _bus: null,
+  setBus: (bus) => set({ _bus: bus }),
 
   sendToPresenter: () => {
     const { _presenter, _overlay, timerState, config, isOverlayActive, profileBackground, _isExternalBackdropActive } = get()
@@ -655,6 +662,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
         }
 
         emitTick(newState.remainingSeconds, "running", config, profileBackground, externalBackdropActive)
+        emitBusEvent("countdown-module:timer.started", { remaining: startValue, total: config.totalSeconds, countUp: true, preText: config.preText, postText: config.postText })
         postWebhook(
           { event: "timer.started", remaining: startValue, total: config.totalSeconds, countUp: true, preText: config.preText, postText: config.postText },
           config.behavior.webhookUrl,
@@ -714,6 +722,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     }
 
     emitTick(newState.remainingSeconds, "running", config, profileBackground, externalBackdropActive)
+    emitBusEvent("countdown-module:timer.started", { remaining: remainingSeconds, total: config.totalSeconds, countUp: false, preText: config.preText, postText: config.postText })
     postWebhook(
       { event: "timer.started", remaining: remainingSeconds, total: config.totalSeconds, countUp: false, preText: config.preText, postText: config.postText },
       config.behavior.webhookUrl,
@@ -730,6 +739,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     const newState = { ...timerState, status: "paused" as const, pausedAt: Date.now() }
     set({ timerState: newState })
     emitTick(newState.remainingSeconds, "paused", config, profileBackground, externalBackdropActive)
+    emitBusEvent("countdown-module:timer.paused", { remaining: newState.remainingSeconds })
     postWebhook({ event: "timer.paused", remaining: newState.remainingSeconds }, config.behavior.webhookUrl)
   },
 
@@ -748,6 +758,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
     }
     set({ timerState: newState })
     emitTick(newState.remainingSeconds, "idle", config, profileBackground, externalBackdropActive)
+    emitBusEvent("countdown-module:timer.reset", { remaining: config.totalSeconds, total: config.totalSeconds })
     postWebhook(
       { event: "timer.reset", remaining: config.totalSeconds, total: config.totalSeconds },
       config.behavior.webhookUrl,
@@ -804,6 +815,11 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
 
 
 }))
+
+function emitBusEvent(topic: string, payload?: unknown) {
+  const { _bus } = useCountdownStore.getState()
+  _bus?.emit(topic, payload)
+}
 
 export function formatTime(seconds: number): string {
   const abs = Math.abs(seconds)

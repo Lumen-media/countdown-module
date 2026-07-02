@@ -176,3 +176,69 @@ Open questions:
 - Where duration metadata should come from in Lumen
 - Whether sync should be one-shot or live
 - How this should interact with auto-advance and existing time triggers
+
+---
+
+### Absolute Date/Time Countdown
+
+Status: WIP / parked for later exploration.
+
+Idea:
+- Allow setting a target date/time (e.g. "20:30" or "2026-12-25 18:00") instead of only MM:SS
+- Timer automatically calculates remaining time until the target
+- Useful for event start countdowns, service times, or deadline reminders
+
+Possible directions:
+- Simple mode: pick a time-of-day (HH:MM) for today
+- Advanced mode: full date+time picker with timezone support
+- Show absolute time alongside countdown on presenter
+
+---
+
+### Multiple Simultaneous Timers
+
+Status: WIP / parked for later exploration.
+
+Idea:
+- Run multiple countdowns at the same time, each in its own tab
+- Each timer has independent duration, appearance, triggers, and state
+- Useful for multi-segment events, A/B switches, or parallel timing
+
+Possible directions:
+- Tabbed interface in the dialog
+- Each timer can be individually projected to presenter/overlay
+- Visual indicator showing which timer is "live" on screen
+- Shared or independent trigger/end-action execution
+
+---
+
+### Rehearsal Mode
+
+Status: WIP / parked for later exploration.
+
+Idea:
+- Run the timer without executing real actions (no webhook, no scene change, no queue advance)
+- Visual indicator that rehearsal is active (e.g. watermark "REHEARSAL")
+- Timer still ticks and displays normally, but side effects are suppressed
+
+Possible directions:
+- Toggle in the Actions tab or footer
+- Suppressed during rehearsal: auto-advance, time triggers (except warning-chime), webhook, hide-on-completion
+- Option to log what *would* have fired for post-rehearsal review
+
+---
+
+### Remote Control (WebSocket / HTTP)
+
+Status: WIP / parked for later exploration.
+
+Idea:
+- Expose control endpoints so external devices (Stream Deck, phone, tablet) can start/pause/reset the timer
+- Allow reading current state (remaining, status) remotely
+
+Possible directions:
+- Lightweight HTTP server embedded in the module (or piggyback on Lumen's network layer)
+- WebSocket for real-time state sync
+- Simple REST API: `GET /state`, `POST /start`, `POST /pause`, `POST /reset`
+- Optional CORS config for network access
+- Companion mobile web UI as an optional panel

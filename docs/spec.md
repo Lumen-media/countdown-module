@@ -335,7 +335,31 @@ This is already implemented at the integration level, and broader queue/run-of-s
 
 ---
 
-## 9. Notes on Historical vs Current Behavior
+## 9. Cross-Module Events (`host.bus`)
+
+The module emits lifecycle events on the Lumen cross-module event bus so other modules can react to timer state changes without depending on the countdown module directly.
+
+All events use the `countdown-module:` prefix.
+
+| Topic | Payload | When |
+|---|---|---|
+| `countdown-module:timer.started` | `{ remaining, total, countUp, preText, postText }` | Timer starts or resumes |
+| `countdown-module:timer.tick` | `{ remaining, total, countUp }` | Each displayed second changes |
+| `countdown-module:timer.trigger` | `{ atSeconds, triggerType, remaining }` | A time trigger fires |
+| `countdown-module:timer.paused` | `{ remaining }` | Timer is paused |
+| `countdown-module:timer.finished` | `{ remaining, total, countUp }` | Timer reaches zero (or max in count-up) |
+| `countdown-module:timer.reset` | `{ remaining, total }` | Timer is manually reset |
+
+### Listening from another module
+
+```ts
+const disposable = host.bus.on("countdown-module:timer.tick", (payload) => {
+  console.log(payload.remaining)
+})
+// later: disposable.dispose()
+```
+
+## 10. Notes on Historical vs Current Behavior
 
 This spec keeps the richer original design intent while marking where implementation evolved.
 
