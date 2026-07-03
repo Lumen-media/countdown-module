@@ -527,6 +527,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
         ...s.config,
         ...update,
         appearance: update.appearance ? { ...s.config.appearance, ...update.appearance } : s.config.appearance,
+        hotkeys: update.hotkeys ? { ...s.config.hotkeys, ...update.hotkeys } : s.config.hotkeys,
         actions: update.actions ? { ...s.config.actions, ...update.actions } : s.config.actions,
         behavior: update.behavior ? { ...s.config.behavior, ...update.behavior } : s.config.behavior,
       },
