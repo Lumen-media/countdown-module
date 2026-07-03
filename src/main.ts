@@ -143,7 +143,7 @@ export default class CountdownPlugin extends LumenPlugin {
     useCountdownStore.subscribe(() => {
       if (saveTimer) clearTimeout(saveTimer)
       saveTimer = setTimeout(() => {
-        host.data.json.set("config", useCountdownStore.getState().config).catch(() => {})
+        host.data.json.set("config", useCountdownStore.getState().config).catch((err) => console.warn("[countdown-module] save config", err))
       }, 800)
     })
 
@@ -160,7 +160,7 @@ export default class CountdownPlugin extends LumenPlugin {
     hostExt.themes.onDefaultBackgroundChange?.(applyProfileBg)
 
     useCountdownStore.getState().setSaveImmediate(() => {
-      host.data.json.set("config", useCountdownStore.getState().config).catch(() => {})
+      host.data.json.set("config", useCountdownStore.getState().config).catch((err) => console.warn("[countdown-module]", err))
     })
 
     useCountdownStore.getState().setOpenBackgroundPicker(
@@ -196,7 +196,7 @@ export default class CountdownPlugin extends LumenPlugin {
     useCountdownStore.subscribe(() => {
       if (presetsTimer) clearTimeout(presetsTimer)
       presetsTimer = setTimeout(() => {
-        host.data.json.set("timerPresets", useCountdownStore.getState().timerPresets).catch(() => {})
+        host.data.json.set("timerPresets", useCountdownStore.getState().timerPresets).catch((err) => console.warn("[countdown-module]", err))
       }, 800)
     })
 

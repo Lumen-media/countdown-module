@@ -15,7 +15,7 @@ export function useLocalFonts() {
   useEffect(() => {
     invoke<string[]>("get_system_fonts")
       .then((families) => { if (families.length > 0) setFonts(families) })
-      .catch(() => {})
+      .catch((err) => console.warn("[countdown-module] get system fonts", err))
   }, [])
 
   return { fonts }

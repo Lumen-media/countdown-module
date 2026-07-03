@@ -46,9 +46,9 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
       }
       setTick(payload)
     })
-    emit("countdown:display-ready").catch(() => {})
+    emit("countdown:display-ready").catch((err) => console.warn("[countdown-module] display ready", err))
     return () => {
-      unlisten.then((dispose) => dispose()).catch(() => {})
+      unlisten.then((dispose) => dispose()).catch((err) => console.warn("[countdown-module] unlisten", err))
     }
   }, [])
 

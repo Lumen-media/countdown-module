@@ -105,7 +105,7 @@ function emitTick(
     ...presentationFlags,
   }
 
-  emit("countdown:tick", payload).catch(() => {})
+  emit("countdown:tick", payload).catch((err) => console.warn("[countdown-module]", err))
 }
 
 function postWebhook(event: WebhookEvent, url?: string) {
@@ -115,7 +115,7 @@ function postWebhook(event: WebhookEvent, url?: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(event),
     keepalive: true,
-  }).catch(() => {})
+  }).catch((err) => console.warn("[countdown-module]", err))
 }
 
 function projectionProps(
@@ -193,7 +193,7 @@ function pauseCompletionSound() {
 
 function resumeCompletionSound() {
   if (_completionSoundAudio !== null) {
-    _completionSoundAudio.play().catch(() => {})
+    _completionSoundAudio.play().catch((err) => console.warn("[countdown-module]", err))
     useCountdownStore.setState((s) => ({
       timerState: { ...s.timerState, completionSoundStarted: true },
     }))

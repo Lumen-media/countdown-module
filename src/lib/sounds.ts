@@ -56,7 +56,8 @@ async function playAudioUrl(url: string, revokeOnEnd = false): Promise<HTMLAudio
     audio.addEventListener('error', cleanup, { once: true })
   }
 
-  await audio.play().catch(() => {
+  await audio.play().catch((err) => {
+    console.warn("[countdown-module] play audio", err)
     if (revokeOnEnd) URL.revokeObjectURL(url)
   })
 
@@ -110,7 +111,7 @@ export function playBundledSound(soundId: string): HTMLAudioElement | null {
 
   const audio = new Audio(url)
   audio.preload = 'auto'
-  audio.play().catch(() => {})
+  audio.play().catch((err) => console.warn("[countdown-module] play bundled sound", err))
   return audio
 }
 
