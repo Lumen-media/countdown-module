@@ -11,8 +11,7 @@ type FlipClockDigitProps = {
 
 const CARD_BG = "#171717"
 const CARD_BG_ALT = "#202020"
-const DIVIDER_BG = "rgba(255,255,255,0.14)"
-const MONO_FONT_STACK = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace"
+const DIVIDER_BG = "rgba(255,255,255,0.06)"
 
 function HalfDigit({
   digit,
@@ -36,10 +35,11 @@ function HalfDigit({
         alignItems: "center",
         justifyContent: "center",
         color,
-        fontFamily: `${MONO_FONT_STACK}, ${fontFamily}`,
+        fontFamily: fontFamily.includes("system-ui") ? "\"Jersey 15\", Roboto Mono, Menlo, SFMono-Regular, Lucida Console, Consolas, monospace" : fontFamily,
         fontSize,
-        fontWeight: 800,
+        fontWeight: 400,
         fontVariantNumeric: "tabular-nums",
+        fontFeatureSettings: '"tnum" 1, "zero" 0',
         lineHeight: 1,
         textShadow: "0 0.08em 0.2em rgba(0,0,0,0.55)",
       }}
@@ -51,6 +51,7 @@ function HalfDigit({
 
 function StaticHalf(props: FlipClockDigitProps & { half: "top" | "bottom"; height: number }) {
   const halfHeight = props.height / 2
+  const seamOverlap = 1
   const isTop = props.half === "top"
 
   return (
@@ -59,15 +60,15 @@ function StaticHalf(props: FlipClockDigitProps & { half: "top" | "bottom"; heigh
         position: "absolute",
         left: 0,
         right: 0,
-        top: isTop ? 0 : halfHeight,
-        height: halfHeight,
+        top: isTop ? 0 : halfHeight - seamOverlap,
+        height: halfHeight + seamOverlap,
         overflow: "hidden",
         background: isTop ? CARD_BG_ALT : CARD_BG,
         borderTopLeftRadius: isTop ? 6 : 0,
         borderTopRightRadius: isTop ? 6 : 0,
         borderBottomLeftRadius: isTop ? 0 : 6,
         borderBottomRightRadius: isTop ? 0 : 6,
-        borderBottom: isTop ? `1px solid ${DIVIDER_BG}` : undefined,
+        boxShadow: isTop ? `inset 0 -1px 0 ${DIVIDER_BG}` : undefined,
       }}
     >
       <HalfDigit {...props} />
@@ -121,9 +122,10 @@ export function FlipClockDigit({ digit, color, fontFamily, fontSize }: FlipClock
     }
   }, [isFlipping])
 
-  const width = Math.round(fontSize * 0.72)
-  const height = Math.round(fontSize * 1.05)
+  const width = Math.round(fontSize * 0.7)
+  const height = Math.round(fontSize * 1.02)
   const halfHeight = height / 2
+  const seamOverlap = 1
   const common = { color, fontFamily, fontSize, height }
 
   return (
@@ -152,12 +154,12 @@ export function FlipClockDigit({ digit, color, fontFamily, fontSize }: FlipClock
               left: 0,
               right: 0,
               top: 0,
-              height: halfHeight,
+              height: halfHeight + seamOverlap,
               overflow: "hidden",
               background: CARD_BG_ALT,
               borderTopLeftRadius: 6,
               borderTopRightRadius: 6,
-              borderBottom: `1px solid ${DIVIDER_BG}`,
+              boxShadow: `inset 0 -1px 0 ${DIVIDER_BG}`,
               transformOrigin: "bottom",
               backfaceVisibility: "hidden",
               zIndex: 2,
@@ -171,8 +173,8 @@ export function FlipClockDigit({ digit, color, fontFamily, fontSize }: FlipClock
               position: "absolute",
               left: 0,
               right: 0,
-              top: halfHeight,
-              height: halfHeight,
+              top: halfHeight - seamOverlap,
+              height: halfHeight + seamOverlap,
               overflow: "hidden",
               background: CARD_BG,
               borderBottomLeftRadius: 6,

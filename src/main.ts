@@ -1,4 +1,5 @@
 import css from "./styles.css?inline"
+import jersey15FontUrl from "../assets/fonts/Jersey15-Regular.ttf?url"
 import { type LumenHost, LumenPlugin } from "@lumen-media/module-sdk"
 import { createElement, type ComponentProps } from "react"
 import { Timer } from "lucide-react"
@@ -34,7 +35,7 @@ export default class CountdownPlugin extends LumenPlugin {
   async onload(host: LumenHost): Promise<void> {
     this.styleEl = document.createElement("style")
     this.styleEl.setAttribute("data-module", host.meta.id)
-    this.styleEl.textContent = css
+    this.styleEl.textContent = css.replace("__JERSEY_15_FONT_URL__", jersey15FontUrl)
     document.head.appendChild(this.styleEl)
 
     setupI18n(host.app.locale)
