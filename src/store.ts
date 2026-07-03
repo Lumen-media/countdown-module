@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { TimerEngine, projectionProps } from "./lib/timer-engine.js"
+import { DEFAULT_WARNING_SOUND_ID } from "./lib/sounds.js"
 import type { BackgroundConfig, BackgroundPreset, CountdownConfig, CountdownState, EndAction, HotkeyAction, HotkeyConfig, TimerPreset } from "./types.js"
 
 type PresenterAPI = { project: (viewId: string, props?: unknown) => void; clear: () => void }
@@ -70,7 +71,7 @@ const DEFAULT_CONFIG: CountdownConfig = {
   },
   behavior: {
     hideOnCompletion: true,
-    completionSound: "",
+    completionSound: DEFAULT_WARNING_SOUND_ID,
     webhookUrl: "",
   },
 }

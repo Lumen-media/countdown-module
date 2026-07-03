@@ -2,7 +2,7 @@ import { animate } from "animejs"
 import { emit } from "@tauri-apps/api/event"
 import { isCornerActive, type CountdownTickPayload } from "./display-mode.js"
 import { getBundledSoundDuration, playBundledSound, playSelectedSound } from "./sounds.js"
-import type { BackgroundConfig, CountdownConfig, CountdownState, EndAction, TimerPreset, WebhookEvent } from "../types.js"
+import type { CountdownConfig, CountdownState, WebhookEvent } from "../types.js"
 
 type ProfileBackground = { src: string; thumb?: string; type: "theme" | "image" | "video" } | null
 
