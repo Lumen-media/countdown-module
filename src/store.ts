@@ -397,7 +397,7 @@ type CountdownStore = {
   handleHotkey: (action: HotkeyAction) => void
   timerPresets: TimerPreset[]
   setTimerPresets: (presets: TimerPreset[]) => void
-  saveTimerPreset: (name: string) => void
+  saveTimerPreset: (name: string) => TimerPreset[]
   loadTimerPreset: (id: string) => void
   deleteTimerPreset: (id: string) => void
   _openBackgroundPicker: ((cb: (bg: { src: string; type: string; name: string }) => void) => void) | null
