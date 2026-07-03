@@ -3,6 +3,7 @@ import { emit, listen } from "@tauri-apps/api/event"
 import { displayAnchor, type CountdownTickPayload } from "../../lib/display-mode.js"
 import { useAdaptiveTextAppearance } from "../../lib/adaptive-text.js"
 import { DigitDisplay } from "../DigitDisplay.js"
+import { FlipClockDisplay } from "../FlipClockDigit.js"
 import { CircularProgress } from "../CircularProgress.js"
 import type { CountdownConfig } from "../../types.js"
 import { TextCarousel } from "../TextCarousel.js"
@@ -27,6 +28,15 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
   const [tick, setTick] = useState<CountdownTickPayload | null>(initialTick ?? null)
   const cachedConfigRef = useRef<CountdownConfig | null>(initialTick?.config ?? null)
   const [imgError, setImgError] = useState(false)
+
+  useEffect(() => {
+    if (!initialTick) return
+    if (initialTick.config) {
+      cachedConfigRef.current = initialTick.config
+    }
+    setTick(initialTick)
+    setImgError(false)
+  }, [initialTick])
 
   useEffect(() => {
     const unlisten = listen<CountdownTickPayload>("countdown:tick", (event) => {
@@ -114,7 +124,10 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
           }}
         >
           {appearance.showProgressBar && (() => {
-            const ringSize = cornerActive ? 90 : Math.max(appearance.fontSize * 3.5, 200)
+            const isFlipClock = appearance.digitAnimation === "flip"
+            const ringSize = cornerActive
+              ? (isFlipClock ? 118 : 90)
+              : Math.max(appearance.fontSize * (isFlipClock ? 4.6 : 3.5), 200)
             return (
               <div
                 style={{
@@ -151,7 +164,16 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
               transition: "font-size 260ms ease",
             }}
           >
-            <DigitDisplay seconds={remaining} animation={appearance.digitAnimation} pulseEffect={appearance.pulseEffect && remaining <= 60} />
+            {appearance.digitAnimation === "flip" ? (
+              <FlipClockDisplay
+                seconds={remaining}
+                color={timerColor}
+                fontFamily={appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font}
+                fontSize={cornerActive ? 48 : appearance.fontSize}
+              />
+            ) : (
+              <DigitDisplay seconds={remaining} animation={appearance.digitAnimation} pulseEffect={appearance.pulseEffect && remaining <= 60} />
+            )}
           </span>
         </div>
 

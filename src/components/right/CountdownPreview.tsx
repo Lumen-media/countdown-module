@@ -4,6 +4,7 @@ import { useAdaptiveTextAppearance } from "../../lib/adaptive-text.js"
 import { useCountdownStore } from "../../store.js"
 import { DigitDisplay } from "../DigitDisplay.js"
 import { CircularProgress } from "../CircularProgress.js"
+import { FlipClockDisplay } from "../FlipClockDigit.js"
 import type { BackgroundConfig } from "../../types.js"
 import { TextCarousel } from "../TextCarousel.js"
 
@@ -119,7 +120,10 @@ export function CountdownPreview() {
           style={{ margin: cornerActive ? 0 : "4px 0" }}
         >
           {appearance.showProgressBar && (() => {
-            const ringSize = cornerActive ? 110 : Math.round(timerFs * 4.2)
+            const isFlipClock = appearance.digitAnimation === "flip"
+            const ringSize = cornerActive
+              ? (isFlipClock ? 132 : 110)
+              : Math.round(timerFs * (isFlipClock ? 5 : 4.2))
             return (
               <div
                 className="absolute"
@@ -155,7 +159,16 @@ export function CountdownPreview() {
               transition: "font-size 260ms ease",
             }}
           >
-            <DigitDisplay seconds={previewSeconds} animation={appearance.digitAnimation} pulseEffect={false} />
+            {appearance.digitAnimation === "flip" ? (
+              <FlipClockDisplay
+                seconds={previewSeconds}
+                color={timerColor}
+                fontFamily={appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font}
+                fontSize={timerFs}
+              />
+            ) : (
+              <DigitDisplay seconds={previewSeconds} animation={appearance.digitAnimation} pulseEffect={false} />
+            )}
           </span>
         </div>
 
