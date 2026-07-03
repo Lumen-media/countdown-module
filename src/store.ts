@@ -522,16 +522,20 @@ export const useCountdownStore = create<CountdownStore>((set, get) => ({
   },
 
   setConfig: (update) =>
-    set((s) => ({
-      config: {
+    set((s) => {
+      const merged = {
         ...s.config,
         ...update,
         appearance: update.appearance ? { ...s.config.appearance, ...update.appearance } : s.config.appearance,
         hotkeys: update.hotkeys ? { ...s.config.hotkeys, ...update.hotkeys } : s.config.hotkeys,
         actions: update.actions ? { ...s.config.actions, ...update.actions } : s.config.actions,
         behavior: update.behavior ? { ...s.config.behavior, ...update.behavior } : s.config.behavior,
-      },
-    })),
+      }
+      if ("countUp" in update && update.countUp) merged.allowNegative = false
+      if ("allowNegative" in update && update.allowNegative) merged.countUp = false
+      if (merged.countUp && merged.allowNegative) merged.allowNegative = false
+      return { config: merged }
+    }),
 
   updateAppearance: (update) =>
     set((s) => ({
