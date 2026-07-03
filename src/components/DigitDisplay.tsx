@@ -61,10 +61,9 @@ function AnimatedChar({ char, animation, skip }: { char: string; animation: stri
   return (
     <span
       ref={ref}
+      className="inline-block text-center"
       style={{
-        display: "inline-block",
         width: isDigit ? "0.6em" : "0.3em",
-        textAlign: "center",
         backfaceVisibility: "hidden",
       }}
     >
@@ -105,7 +104,8 @@ export const DigitDisplay = memo(function DigitDisplay({
   return (
     <span
       ref={containerRef}
-      style={{ fontVariantNumeric: "tabular-nums", lineHeight: 1, letterSpacing: "-2px" }}
+      className="tabular-nums leading-none"
+      style={{ letterSpacing: "-2px" }}
     >
       {formatted.split("").map((char, i) => (
         <AnimatedChar key={i} char={char} animation={animation} skip={!ready} />

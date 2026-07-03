@@ -173,10 +173,9 @@ export function ConfigureTab() {
                 onChange={(e) => set(e.target.value)}
                 maxLength={2}
                 readOnly={timerRunning}
-                className="bg-background dark:bg-background border-none outline-none focus:ring-0 font-extrabold text-foreground w-full text-center p-0 tabular-nums"
-                style={{ fontSize: 36 }}
+                className="bg-background dark:bg-background border-none outline-none focus:ring-0 font-extrabold text-foreground w-full text-center p-0 tabular-nums text-[36px]"
               />
-              <span className="text-xs font-semibold" style={{ color: "var(--primary)" }}>{label}</span>
+              <span className="text-xs font-semibold text-primary">{label}</span>
             </div>
           ))}
         </div>
@@ -289,11 +288,11 @@ export function ConfigureTab() {
               <button
                 key={p.id}
                 onClick={() => applyPreset(p.id)}
-                className="bg-transparent rounded-xl p-1.5 cursor-pointer flex flex-col gap-1.5 transition-colors border-2"
-                style={{
-                  borderColor: isSelected ? "var(--primary)" : "var(--border)",
-                  borderStyle: p.id === "custom" && !isSelected ? "dashed" : "solid",
-                }}
+                className={cn(
+                  "bg-transparent rounded-xl p-1.5 cursor-pointer flex flex-col gap-1.5 transition-colors border-2",
+                  isSelected ? "border-primary" : "border-border",
+                  p.id === "custom" && !isSelected ? "border-dashed" : "border-solid",
+                )}
               >
                 <PresetThumbnail preset={p.id} />
                 <span

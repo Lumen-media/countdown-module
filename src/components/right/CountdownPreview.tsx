@@ -28,14 +28,14 @@ const ProfileBg = memo(function ProfileBg_() {
   const [imgError, setImgError] = useState(false)
 
   if (!profileBackground) {
-    return <div className="absolute inset-0" style={{ background: "var(--background)" }} />
+    return <div className="absolute inset-0 bg-background" />
   }
 
   const { src, type } = profileBackground
   const isReady = src.startsWith("blob:") || src.startsWith("http") || src.startsWith("data:")
 
   if (!isReady || imgError) {
-    return <div className="absolute inset-0" style={{ background: "var(--background)" }} />
+    return <div className="absolute inset-0 bg-background" />
   }
 
   if (type === "video") {
@@ -102,9 +102,8 @@ export function CountdownPreview() {
       >
         {preText && (
           <span
-            className="relative block text-center font-medium leading-snug"
+            className="relative block text-center font-medium leading-snug z-10"
             style={{
-              zIndex: 1,
               fontSize: `${textFs}px`,
               color: subColor,
               textShadow: subShadow,
@@ -116,8 +115,7 @@ export function CountdownPreview() {
         )}
 
         <div
-          className="relative flex items-center justify-center"
-          style={{ margin: cornerActive ? 0 : "4px 0" }}
+          className={`relative flex items-center justify-center ${cornerActive ? "my-0" : "my-1"}`}
         >
           {appearance.showProgressBar && (() => {
             const isFlipClock = appearance.digitAnimation === "flip"
@@ -126,16 +124,8 @@ export function CountdownPreview() {
               : Math.round(timerFs * (isFlipClock ? 5 : 4.2))
             return (
               <div
-                className="absolute"
-                style={{
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                  width: ringSize,
-                  height: ringSize,
-                  pointerEvents: "none",
-                  zIndex: 0,
-                }}
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0"
+                style={{ width: ringSize, height: ringSize }}
               >
                 <CircularProgress
                   remaining={previewSeconds}
@@ -147,15 +137,12 @@ export function CountdownPreview() {
             )
           })()}
           <span
-            className="relative block text-center leading-none"
+            className="relative block text-center leading-none font-black whitespace-nowrap z-10"
             style={{
-              zIndex: 1,
               fontSize: `${timerFs}px`,
-              fontWeight: 900,
               color: timerColor,
               fontFamily: appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font,
               textShadow: timerShadow,
-              whiteSpace: "nowrap",
               transition: "font-size 260ms ease",
             }}
           >
@@ -173,7 +160,7 @@ export function CountdownPreview() {
         </div>
 
         {postText && (
-          <div className="relative" style={{ zIndex: 1 }}>
+          <div className="relative z-10">
             <TextCarousel
               text={postText}
               style={{

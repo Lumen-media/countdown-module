@@ -17,7 +17,7 @@ export function CountdownDialog() {
     <div data-countdown-ui className="aspect-16/10 h-[80dvh] flex bg-background p-4">
       <Card className={cn("basis-1/4 h-full p-0 gap-0 border-0 overflow-hidden", isPreviewExpanded && "hidden")}>
         <Tabs defaultValue="configure" className="flex flex-col h-full overflow-hidden">
-          <Card.CardContent className="flex-1 flex flex-col p-0 overflow-hidden gap-0" style={{ minHeight: 0 }}>
+          <Card.CardContent className="flex-1 flex flex-col p-0 overflow-hidden gap-0 min-h-0">
             <div className="px-4 pt-4 pb-3 shrink-0">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-base font-bold text-foreground">{t("dialog.title")}</h2>

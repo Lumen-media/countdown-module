@@ -521,8 +521,7 @@ function TriggerCard({ trigger, index, total }: { trigger: TimeTrigger; index: n
               updateTrigger({ atSeconds: minutes * 60 + seconds })
             }
           }}
-          className="w-14 text-right bg-transparent border-none outline-none text-sm font-mono font-bold tabular-nums"
-          style={{ color: "var(--primary)" }}
+          className="w-14 text-right bg-transparent border-none outline-none text-sm font-mono font-bold tabular-nums text-primary"
         />
       </div>
 
@@ -614,10 +613,9 @@ export function ActionsTab() {
         <div className="bg-background rounded-xl px-3 pt-3 pb-2.5 flex flex-col gap-2.5">
           <div className="flex items-center gap-2">
             <div
-              className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
+              className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 bg-primary/20"
             >
-              <SkipForward size={13} style={{ color: "var(--primary)" }} />
+              <SkipForward size={13} className="text-primary" />
             </div>
             <span className="text-sm font-semibold text-foreground flex-1">{t("actions.autoAdvance.title")}</span>
             <Switch
