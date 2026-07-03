@@ -1,6 +1,6 @@
 import { Card, Popover, ScrollArea, Separator, Tabs } from "@lumen-media/module-sdk/ui"
 import { Settings2 } from "lucide-react"
-import { cn } from "../lib/cn.js"
+import { cn } from "../lib/utils.js"
 import { useCountdownStore } from "../store.js"
 import { t } from "../i18n.js"
 import { PanelFooter } from "./left/PanelFooter.js"
