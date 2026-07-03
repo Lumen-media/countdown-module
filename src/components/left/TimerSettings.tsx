@@ -54,7 +54,7 @@ export function TimerSettings() {
   })
 
   return (
-    <div className="flex flex-col gap-4 min-w-64">
+    <div className="flex flex-col gap-4 min-w-64 select-none">
       <div>
         <SectionLabel>{t("configure.section.timerPresets")}</SectionLabel>
         <div className="flex flex-col gap-2">
@@ -64,6 +64,7 @@ export function TimerSettings() {
               value={presetName}
               onChange={(e) => setPresetName(e.target.value)}
               placeholder={t("configure.timerPresets.namePlaceholder")}
+              onKeyDown={(e) => { if (e.key === "Enter") { saveTimerPreset(presetName || `Preset ${timerPresets.length + 1}`); setPresetName("") } }}
               className="flex-1 bg-background border border-border rounded-lg px-2 py-1.5 text-xs outline-none text-foreground placeholder:text-muted-foreground"
             />
             <Button
