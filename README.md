@@ -16,7 +16,7 @@ Countdown timer module for Lumen with presenter output, overlay support, live st
 <!-- TODO: add actual screenshots -->
 | Configure tab | Appearance tab | Actions tab |
 |---|---|---|
-| ![](./screenshots/configure-tab.png) | ![](./screenshots/appearance-tab.png) | ![](./screenshots/actions-tab.png) |
+| <img width="321" height="789" alt="image" src="https://github.com/user-attachments/assets/992215b0-7c74-4860-8353-d763f41185c7" /> | <img width="316" height="787" alt="image" src="https://github.com/user-attachments/assets/d34d4e8f-46a9-4307-a6c9-b37e3e7a3c45" /> | <img width="317" height="789" alt="image" src="https://github.com/user-attachments/assets/dca5a985-df1f-4f27-b958-bb0059b577de" /> |
 
 ## Feature set
 
