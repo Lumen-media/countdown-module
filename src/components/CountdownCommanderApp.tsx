@@ -2,7 +2,7 @@ import { useCallback } from "react"
 import { Play, Pause, RotateCcw, Timer, Clock, Square } from "lucide-react"
 import { useCountdownStore } from "../store.js"
 import { t } from "../i18n.js"
-import { formatTime } from "../store.js"
+import { formatTime } from "../lib/format-time.js"
 
 const QUICK_PRESETS = [5, 10, 15, 30] as const
 

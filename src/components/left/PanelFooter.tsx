@@ -1,5 +1,6 @@
 import { Play, Pause, RotateCcw, Eye, EyeOff, ExternalLink } from "lucide-react"
-import { useCountdownStore, formatTime } from "../../store.js"
+import { useCountdownStore } from "../../store.js"
+import { formatTime } from "../../lib/format-time.js"
 import { Button } from "@lumen-media/module-sdk/ui"
 import { t } from "../../i18n.js"
 

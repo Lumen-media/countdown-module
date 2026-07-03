@@ -1,5 +1,6 @@
 import { Clock3 } from "lucide-react"
-import { formatTime, useCountdownStore } from "../store.js"
+import { useCountdownStore } from "../store.js"
+import { formatTime } from "../lib/format-time.js"
 import { t } from "../i18n.js"
 
 type CountdownHeaderStatusProps = {

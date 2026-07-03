@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from "react"
 import { animate } from "animejs"
-import { formatTime } from "../store.js"
+import { formatTime } from "../lib/format-time.js"
 
 function AnimatedChar({ char, animation, skip }: { char: string; animation: string; skip: boolean }) {
   const ref = useRef<HTMLSpanElement>(null)

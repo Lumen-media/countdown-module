@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { animate } from "animejs"
-import { formatTime } from "../store.js"
+import { formatTime } from "../lib/format-time.js"
 
 type FlipClockDigitProps = {
   digit: string
