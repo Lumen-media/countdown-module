@@ -233,7 +233,10 @@ export const useCountdownStore = create<CountdownStore>((set, get) => {
           behavior: update.behavior ? { ...s.config.behavior, ...update.behavior } : s.config.behavior,
         }
         if ("countUp" in update && update.countUp) merged.allowNegative = false
-        if ("allowNegative" in update && update.allowNegative) merged.countUp = false
+        if ("allowNegative" in update && update.allowNegative) {
+          merged.countUp = false
+          merged.behavior = { ...merged.behavior, hideOnCompletion: false }
+        }
         if (merged.countUp && merged.allowNegative) merged.allowNegative = false
         return { config: merged }
       }),
