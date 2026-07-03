@@ -238,6 +238,9 @@ export const useCountdownStore = create<CountdownStore>((set, get) => {
           merged.countUp = false
           merged.behavior = { ...merged.behavior, hideOnCompletion: false }
         }
+        if (update.behavior?.hideOnCompletion && merged.allowNegative) {
+          merged.allowNegative = false
+        }
         if (merged.countUp && merged.allowNegative) merged.allowNegative = false
         return { config: merged }
       }),
