@@ -138,7 +138,14 @@ export default class CountdownPlugin extends LumenPlugin {
     }
 
     const saved = await host.data.json.get<Partial<CountdownConfig> | undefined>("config")
-    if (saved) useCountdownStore.getState().setConfig(saved)
+    if (saved) {
+      useCountdownStore.getState().setConfig(saved)
+    } else {
+      useCountdownStore.getState().setConfig({
+        preText: t("configure.default.preText"),
+        postText: t("configure.default.postText"),
+      })
+    }
 
     let persistTimer: ReturnType<typeof setTimeout> | null = null
     useCountdownStore.subscribe(() => {

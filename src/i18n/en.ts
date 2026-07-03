@@ -15,6 +15,8 @@ const en: Record<string, string> = {
   "configure.adjust.reset": "Reset",
   "configure.displayText.pre": "Pre text",
   "configure.displayText.post": "Each line rotates as a carousel every 10s",
+  "configure.default.preText": "The event is about to start",
+  "configure.default.postText": "We're live!",
   "configure.onCompletion.none": "None",
   "configure.onCompletion.autoNext": "Auto-switch to next Scene",
   "configure.preset.default": "Default",

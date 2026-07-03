@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import { TimerEngine, projectionProps } from "./lib/timer-engine.js"
 import { DEFAULT_WARNING_SOUND_ID } from "./lib/sounds.js"
+import { t } from "./i18n.js"
 import type { BackgroundConfig, BackgroundPreset, CountdownConfig, CountdownState, EndAction, HotkeyAction, HotkeyConfig, TimerPreset } from "./types.js"
 
 type PresenterAPI = { project: (viewId: string, props?: unknown) => void; clear: () => void }
@@ -45,8 +46,8 @@ const DEFAULT_CONFIG: CountdownConfig = {
   totalSeconds: 300,
   allowNegative: false,
   countUp: false,
-  preText: "The event is about to start",
-  postText: "We're live!",
+  preText: t("configure.default.preText"),
+  postText: t("configure.default.postText"),
   hotkeys: DEFAULT_HOTKEYS,
   appearance: {
     font: "Inter (System Default)",

@@ -15,6 +15,8 @@ const ptBR: Record<string, string> = {
   "configure.adjust.reset": "Resetar",
   "configure.displayText.pre": "Texto inicial",
   "configure.displayText.post": "Cada linha gira em carrossel a cada 10s",
+  "configure.default.preText": "O evento está prestes a começar",
+  "configure.default.postText": "Estamos ao vivo!",
   "configure.onCompletion.none": "Nenhuma",
   "configure.onCompletion.autoNext": "Trocar automaticamente para a próxima cena",
   "configure.preset.default": "Padrão",
