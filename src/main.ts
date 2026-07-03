@@ -8,6 +8,7 @@ import { CountdownDialog } from "./components/CountdownDialog.js"
 import { CountdownHeaderStatus } from "./components/CountdownHeaderStatus.js"
 import { CountdownCommanderApp } from "./components/CountdownCommanderApp.js"
 import { CountdownDisplay } from "./components/presenter/CountdownDisplay.js"
+import { ErrorBoundary } from "./components/presenter/ErrorBoundary.js"
 import { QueueTriggerConfigComponent, CountdownSummary, type QueueTriggerConfig } from "./components/QueueTriggerConfig.js"
 import { useCountdownStore } from "./store.js"
 import type { CountdownConfig, HotkeyAction, TimerPreset } from "./types.js"
@@ -43,7 +44,7 @@ export default class CountdownPlugin extends LumenPlugin {
     host.panels.add({
       id: "countdown.presenter",
       slot: "presenter.content",
-      component: (props) => createElement(CountdownDisplay, props as ComponentProps<typeof CountdownDisplay>),
+      component: (props) => createElement(ErrorBoundary, null, createElement(CountdownDisplay, props as ComponentProps<typeof CountdownDisplay>)),
     })
 
     if (host.window === "presenter") return
