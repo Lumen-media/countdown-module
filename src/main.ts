@@ -139,11 +139,13 @@ export default class CountdownPlugin extends LumenPlugin {
     const saved = await host.data.json.get<Partial<CountdownConfig> | undefined>("config")
     if (saved) useCountdownStore.getState().setConfig(saved)
 
-    let saveTimer: ReturnType<typeof setTimeout> | null = null
+    let persistTimer: ReturnType<typeof setTimeout> | null = null
     useCountdownStore.subscribe(() => {
-      if (saveTimer) clearTimeout(saveTimer)
-      saveTimer = setTimeout(() => {
-        host.data.json.set("config", useCountdownStore.getState().config).catch((err) => console.warn("[countdown-module] save config", err))
+      if (persistTimer) clearTimeout(persistTimer)
+      persistTimer = setTimeout(() => {
+        const state = useCountdownStore.getState()
+        host.data.json.set("config", state.config).catch((err) => console.warn("[countdown-module] save config", err))
+        host.data.json.set("timerPresets", state.timerPresets).catch((err) => console.warn("[countdown-module] save timerPresets", err))
       }, 800)
     })
 
@@ -191,14 +193,6 @@ export default class CountdownPlugin extends LumenPlugin {
 
     const savedPresets = await host.data.json.get<TimerPreset[] | undefined>("timerPresets")
     if (savedPresets) useCountdownStore.getState().setTimerPresets(savedPresets)
-
-    let presetsTimer: ReturnType<typeof setTimeout> | null = null
-    useCountdownStore.subscribe(() => {
-      if (presetsTimer) clearTimeout(presetsTimer)
-      presetsTimer = setTimeout(() => {
-        host.data.json.set("timerPresets", useCountdownStore.getState().timerPresets).catch((err) => console.warn("[countdown-module]", err))
-      }, 800)
-    })
 
     host.queue.registerTrigger<QueueTriggerConfig>({
       id: "countdown.wait",
