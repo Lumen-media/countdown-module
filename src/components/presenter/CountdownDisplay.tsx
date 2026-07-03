@@ -39,7 +39,7 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
   }, [initialTick])
 
   useEffect(() => {
-    const unlisten = listen<CountdownTickPayload>("countdown:tick", (event) => {
+    const unlistenPromise = listen<CountdownTickPayload>("countdown:tick", (event) => {
       const payload = event.payload
       if (payload.config) {
         cachedConfigRef.current = payload.config
@@ -48,7 +48,7 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
     })
     emit("countdown:display-ready").catch((err) => console.warn("[countdown-module] display ready", err))
     return () => {
-      unlisten.then((dispose) => dispose()).catch((err) => console.warn("[countdown-module] unlisten", err))
+      unlistenPromise.then((dispose) => void dispose()).catch((err) => console.warn("[countdown-module] unlisten", err))
     }
   }, [])
 
