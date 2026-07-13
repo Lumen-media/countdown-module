@@ -36,7 +36,13 @@ const HOTKEY_ACTIONS: { action: HotkeyAction; labelKey: string }[] = [
 
 export function TimerSettings() {
   const rootRef = useRef<HTMLDivElement>(null)
-  const { config, timerPresets, saveTimerPreset, loadTimerPreset, deleteTimerPreset, updateHotkeys, setConfig } = useCountdownStore()
+  const config = useCountdownStore((s) => s.config)
+  const timerPresets = useCountdownStore((s) => s.timerPresets)
+  const saveTimerPreset = useCountdownStore((s) => s.saveTimerPreset)
+  const loadTimerPreset = useCountdownStore((s) => s.loadTimerPreset)
+  const deleteTimerPreset = useCountdownStore((s) => s.deleteTimerPreset)
+  const updateHotkeys = useCountdownStore((s) => s.updateHotkeys)
+  const setConfig = useCountdownStore((s) => s.setConfig)
   const timerRunning = useCountdownStore((s) => s.timerState.status) === "running"
   const [presetName, setPresetName] = useState("")
   const [recordingHotkey, setRecordingHotkey] = useState<HotkeyAction | null>(null)
