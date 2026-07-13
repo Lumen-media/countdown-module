@@ -149,7 +149,9 @@ export default class CountdownPlugin extends LumenPlugin {
       })
     }
 
-    this.persistUnsubscribe = useCountdownStore.subscribe(() => {
+    this.persistUnsubscribe = useCountdownStore.subscribe((state, prevState) => {
+      if (state.config === prevState.config && state.timerPresets === prevState.timerPresets) return
+
       if (this.persistTimer) clearTimeout(this.persistTimer)
       this.persistTimer = setTimeout(() => {
         this.persistTimer = null

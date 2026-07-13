@@ -61,7 +61,7 @@ export class TimerEngine {
   private completionSoundTimer: ReturnType<typeof setTimeout> | null = null
   private completionSoundAudio: HTMLAudioElement | null = null
   private lastTickSecond: number | null = null
-  private lastEmittedConfigJson: string | null = null
+  private lastEmittedConfig: CountdownConfig | null = null
 
   constructor(private api: StoreAPI) {}
 
@@ -169,10 +169,9 @@ export class TimerEngine {
     externalBackdropActive: boolean,
   ) {
     const presentationFlags = getPresentationFlags(config, profileBackground, externalBackdropActive)
-    const configJson = JSON.stringify(config)
-    const configChanged = configJson !== this.lastEmittedConfigJson
+    const configChanged = config !== this.lastEmittedConfig
     if (configChanged) {
-      this.lastEmittedConfigJson = configJson
+      this.lastEmittedConfig = config
     }
     const payload: CountdownTickPayload = {
       remaining,
