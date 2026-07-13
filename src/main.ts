@@ -31,6 +31,9 @@ export default class CountdownPlugin extends LumenPlugin {
   private styleEl: HTMLStyleElement | null = null
   private displayReadyUnlisten: (() => void) | null = null
   private overlayStateDispose: (() => void) | null = null
+  private themeBgDispose: (() => void) | null = null
+  private persistUnsubscribe: (() => void) | null = null
+  private persistTimer: ReturnType<typeof setTimeout> | null = null
 
   async onload(host: LumenHost): Promise<void> {
     this.styleEl = document.createElement("style")
@@ -146,10 +149,10 @@ export default class CountdownPlugin extends LumenPlugin {
       })
     }
 
-    let persistTimer: ReturnType<typeof setTimeout> | null = null
-    useCountdownStore.subscribe(() => {
-      if (persistTimer) clearTimeout(persistTimer)
-      persistTimer = setTimeout(() => {
+    this.persistUnsubscribe = useCountdownStore.subscribe(() => {
+      if (this.persistTimer) clearTimeout(this.persistTimer)
+      this.persistTimer = setTimeout(() => {
+        this.persistTimer = null
         const state = useCountdownStore.getState()
         host.data.json.set("config", state.config).catch((err) => console.warn("[countdown-module] save config", err))
         host.data.json.set("timerPresets", state.timerPresets).catch((err) => console.warn("[countdown-module] save timerPresets", err))
@@ -166,7 +169,8 @@ export default class CountdownPlugin extends LumenPlugin {
       )
     }
 
-    hostExt.themes.onDefaultBackgroundChange?.(applyProfileBg)
+    const themeBgListener = hostExt.themes.onDefaultBackgroundChange?.(applyProfileBg)
+    this.themeBgDispose = themeBgListener ? () => themeBgListener.dispose() : null
 
     useCountdownStore.getState().setSaveImmediate(() => {
       host.data.json.set("config", useCountdownStore.getState().config).catch((err) => console.warn("[countdown-module]", err))
@@ -206,5 +210,13 @@ export default class CountdownPlugin extends LumenPlugin {
     this.displayReadyUnlisten = null
     this.overlayStateDispose?.()
     this.overlayStateDispose = null
+    this.themeBgDispose?.()
+    this.themeBgDispose = null
+    this.persistUnsubscribe?.()
+    this.persistUnsubscribe = null
+    if (this.persistTimer) {
+      clearTimeout(this.persistTimer)
+      this.persistTimer = null
+    }
   }
 }
