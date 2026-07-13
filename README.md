@@ -1,6 +1,39 @@
-# Countdown Module
+# Lumen Countdown Module
 
-Countdown timer module for Lumen with presenter output, overlay support, live styling preview, time triggers, bundled/library audio, and queue integration.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Lumen API](https://img.shields.io/badge/Lumen_API-%5E0.1.0-blue.svg)](https://lumen.media)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-19-blue.svg)](https://react.dev/)
+[![pnpm](https://img.shields.io/badge/pnpm-9.x-orange.svg)](https://pnpm.io/)
+
+**Module ID:** `com.example.countdown-module` &nbsp;|&nbsp; **Version:** 1.3.1 &nbsp;|&nbsp; **Lumen API:** ^0.1.0 &nbsp;|&nbsp; **License:** MIT
+
+Countdown timer module for Lumen with presenter/overlay output, live styling preview, time triggers, bundled & library audio, queue integration, corner/fullscreen modes, timer presets, and Commander quick controls. Supports English and Portuguese (pt-BR).
+
+## Overview
+
+The **Lumen Countdown Module** is a full-featured timer solution designed for live productions, worship services, events, and broadcast workflows. It integrates deeply with the Lumen platform to provide:
+
+### Core Capabilities
+
+- **Precision Timer Engine** — Built on `animejs` with drift-corrected animation, supporting countdown, count-up, and negative overrun modes
+- **Dual Output** — Render to the presenter (fullscreen or corner overlay over media/lyrics) and/or a dedicated overlay window simultaneously
+- **Live Styling Preview** — Real-time preview in the configuration dialog showing exactly how the timer will look on output
+- **Time Triggers** — Configure actions at specific timestamps: change text, play sounds, advance queue, trigger slides, send webhooks
+- **Audio System** — Bundled completion/warning sounds plus integration with Lumen's media library for custom audio
+- **Queue Integration** — Register as a `countdown.wait` trigger provider for automated show flow control
+- **Commander Quick Controls** — Launch presets and control the timer directly from Lumen's Commander palette
+- **Persistence** — Auto-saves configuration and user presets between sessions via Lumen's data store
+- **Internationalization** — English and Portuguese (pt-BR) with locale detection
+
+### Use Cases
+
+| Scenario | Features Used |
+|---|---|
+| Worship service transitions | Countdown, corner mode over lyrics, auto-advance queue, completion sound |
+| Live event segment timing | Count-up mode, time triggers for warnings, overlay window for stage display |
+| Broadcast commercial breaks | Negative overrun tracking, webhook integration, presenter fullscreen |
+| Conference session management | Timer presets, quick hotkeys, header status pill, queue triggers |
 
 ## What it does
 
@@ -146,6 +179,31 @@ pnpm validate
 - The module relies on host capabilities exposed by Lumen for presenter output, overlay control, library lookups, queue actions, and background picking.
 - The presenter window has no Tailwind CSS available, so `CountdownDisplay.tsx` and `FlipClockDigit.tsx` use inline styles exclusively.
 - Timer engine logic (`start`, `pause`, `reset`, animation, sounds, events) lives in `lib/timer-engine.ts`, separate from the Zustand store.
+
+## Quick Start
+
+```bash
+# Install dependencies
+pnpm install
+
+# Development (watch mode)
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Create .lumenpack for distribution
+pnpm pack
+
+# Validate manifest & package
+pnpm validate
+```
+
+## Install in Lumen
+
+1. Run `pnpm pack` to produce `com.example.countdown-module-X.Y.Z.lumenpack`
+2. In Lumen: **Settings → Modules → Install Module** → select the `.lumenpack` file
+3. Enable the module and open via **Tools → Countdown Timer** or Commander (`Ctrl+Shift+P` → "Countdown: Controls")
 
 ## License
 
