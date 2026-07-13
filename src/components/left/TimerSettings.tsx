@@ -50,7 +50,17 @@ export function TimerSettings() {
     if (event.shiftKey) parts.push("Shift")
     const code = event.code === "Space" ? "Space" : event.code.startsWith("Key") ? event.code : event.code
     parts.push(code)
-    updateHotkeys({ [recordingHotkey]: parts.join("+") })
+
+    const nextHotkey = parts.join("+")
+    const previousHotkey = config.hotkeys[recordingHotkey]
+    const duplicateAction = HOTKEY_ACTIONS.find(({ action }) => (
+      action !== recordingHotkey && config.hotkeys[action] === nextHotkey
+    ))?.action
+
+    updateHotkeys({
+      [recordingHotkey]: nextHotkey,
+      ...(duplicateAction ? { [duplicateAction]: previousHotkey } : {}),
+    })
     setRecordingHotkey(null)
   }, rootRef)
 
