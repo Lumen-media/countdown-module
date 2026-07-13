@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Save, Trash2, Upload } from "lucide-react"
 import { Button, ScrollArea } from "@lumen-media/module-sdk/ui"
 import { useCountdownStore } from "../../store.js"
@@ -35,6 +35,7 @@ const HOTKEY_ACTIONS: { action: HotkeyAction; labelKey: string }[] = [
 ]
 
 export function TimerSettings() {
+  const rootRef = useRef<HTMLDivElement>(null)
   const { config, timerPresets, saveTimerPreset, loadTimerPreset, deleteTimerPreset, updateHotkeys, setConfig } = useCountdownStore()
   const timerRunning = useCountdownStore((s) => s.timerState.status) === "running"
   const [presetName, setPresetName] = useState("")
@@ -51,10 +52,10 @@ export function TimerSettings() {
     parts.push(code)
     updateHotkeys({ [recordingHotkey]: parts.join("+") })
     setRecordingHotkey(null)
-  })
+  }, rootRef)
 
   return (
-    <div className="flex flex-col gap-4 min-w-64 select-none">
+    <div ref={rootRef} tabIndex={-1} className="flex flex-col gap-4 min-w-64 select-none outline-none">
       <div>
         <SectionLabel>{t("configure.section.timerPresets")}</SectionLabel>
         <div className="flex flex-col gap-2">
