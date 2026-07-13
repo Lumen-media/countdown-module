@@ -1,7 +1,7 @@
 {
   "name": "countdown-modulo",
   "description": "Countdown timer module for Lumen with presenter/overlay output, live styling preview, time triggers, bundled & library audio, queue integration, corner/fullscreen modes, timer presets, and Commander quick controls. Supports English and Portuguese (pt-BR).",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "type": "module",
   "scripts": {
