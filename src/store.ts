@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import { TimerEngine, projectionProps } from "./lib/timer-engine.js"
 import { DEFAULT_WARNING_SOUND_ID } from "./lib/sounds.js"
+import { persistentBackgroundSrc, type PickedBackground } from "./lib/persist-background.js"
 import { t } from "./i18n.js"
 import type { BackgroundConfig, BackgroundPreset, CountdownConfig, CountdownState, EndAction, HotkeyAction, HotkeyConfig, TimerPreset } from "./types.js"
 
@@ -99,8 +100,8 @@ type CountdownStore = {
   saveTimerPreset: (name: string) => TimerPreset[]
   loadTimerPreset: (id: string) => void
   deleteTimerPreset: (id: string) => void
-  _openBackgroundPicker: ((cb: (bg: { src: string; type: string; name: string }) => void) => void) | null
-  setOpenBackgroundPicker: (fn: (cb: (bg: { src: string; type: string; name: string }) => void) => void) => void
+  _openBackgroundPicker: ((cb: (bg: PickedBackground) => void) => void) | null
+  setOpenBackgroundPicker: (fn: (cb: (bg: PickedBackground) => void) => void) => void
   profileBackground: { src: string; thumb?: string; type: "theme" | "image" | "video" } | null
   setProfileBackground: (bg: { src: string; thumb?: string; type: "theme" | "image" | "video" } | null) => void
   _hostFs: { read: (path: string) => Promise<Uint8Array> } | null
@@ -266,21 +267,29 @@ export const useCountdownStore = create<CountdownStore>((set, get) => {
         const { _openBackgroundPicker } = get()
         if (!_openBackgroundPicker) return
         _openBackgroundPicker((bg) => {
-          const src = bg.src ?? ""
-          const background: BackgroundConfig = bg.type === "video"
-            ? { type: "video", value: src }
-            : { type: "image", value: src }
-          set((s) => ({
-            config: {
-              ...s.config,
-              appearance: {
-                ...s.config.appearance,
-                preset: "custom",
-                background: customBackground ?? background,
+          const applyBackground = (src: string) => {
+            const background: BackgroundConfig = bg.type === "video"
+              ? { type: "video", value: src }
+              : { type: "image", value: src }
+            set((s) => ({
+              config: {
+                ...s.config,
+                appearance: {
+                  ...s.config.appearance,
+                  preset: "custom",
+                  background: customBackground ?? background,
+                },
               },
-            },
-          }))
-          get()._saveImmediate?.()
+            }))
+            get()._saveImmediate?.()
+          }
+
+          void persistentBackgroundSrc(bg)
+            .then(applyBackground)
+            .catch((err) => {
+              console.warn("[countdown-module] persist custom background", err)
+              applyBackground(bg.src ?? "")
+            })
         })
         return
       }
