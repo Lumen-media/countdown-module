@@ -299,6 +299,8 @@ export const useCountdownStore = create<CountdownStore>((set, get) => {
     },
 
     setTotalSeconds: (seconds) => {
+      if (get().timerState.status === "running") return
+
       const clamped = Math.max(0, seconds)
       set((s) => ({
         config: { ...s.config, totalSeconds: clamped },

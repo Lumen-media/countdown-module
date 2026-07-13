@@ -106,11 +106,12 @@ export function CountdownCommanderApp({ onClose }: { onClose: () => void }) {
                 key={m}
                 type="button"
                 onClick={() => handlePreset(m)}
+                disabled={isRunning}
                 className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-left cursor-pointer border transition-all ${
                   isActive
                     ? "border-primary/40 bg-primary/8 text-primary"
                     : "border-border bg-background text-foreground hover:border-foreground/30 hover:bg-card"
-                }`}
+                } disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:bg-background`}
               >
                 <Clock size={13} className={isActive ? "text-primary" : "text-muted-foreground"} />
                 <span className={isActive ? "font-medium" : ""}>{m} {t("configure.duration.minutes")}</span>
