@@ -11,7 +11,7 @@ import { CountdownDisplay } from "./components/presenter/CountdownDisplay.js"
 import { ErrorBoundary } from "./components/presenter/ErrorBoundary.js"
 import { QueueTriggerConfigComponent, CountdownSummary, type QueueTriggerConfig } from "./components/QueueTriggerConfig.js"
 import { useCountdownStore } from "./store.js"
-import type { CountdownConfig, HotkeyAction, TimerPreset } from "./types.js"
+import type { CountdownConfig, TimerPreset } from "./types.js"
 import { setupI18n, t } from "./i18n.js"
 
 type HostExt = {
@@ -31,7 +31,6 @@ export default class CountdownPlugin extends LumenPlugin {
   private styleEl: HTMLStyleElement | null = null
   private displayReadyUnlisten: (() => void) | null = null
   private overlayStateDispose: (() => void) | null = null
-  private handleKeyDown: ((event: KeyboardEvent) => void) | null = null
 
   async onload(host: LumenHost): Promise<void> {
     this.styleEl = document.createElement("style")
@@ -177,28 +176,6 @@ export default class CountdownPlugin extends LumenPlugin {
       (cb) => host.ui.openBackgroundPicker(cb)
     )
 
-    this.handleKeyDown = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) return
-      const hotkeys = useCountdownStore.getState().config.hotkeys
-      for (const [action, stored] of Object.entries(hotkeys)) {
-        const parts = stored.split("+")
-        const key = parts.pop()!
-        const hasCtrl = parts.includes("Ctrl")
-        const hasShift = parts.includes("Shift")
-        const match = (
-          event.ctrlKey === hasCtrl &&
-          event.shiftKey === hasShift &&
-          (event.code === key || event.key === key)
-        )
-        if (match) {
-          event.preventDefault()
-          useCountdownStore.getState().handleHotkey(action as HotkeyAction)
-          break
-        }
-      }
-    }
-    document.addEventListener("keydown", this.handleKeyDown)
-
     const savedPresets = await host.data.json.get<TimerPreset[] | undefined>("timerPresets")
     if (savedPresets) useCountdownStore.getState().setTimerPresets(savedPresets)
 
@@ -229,9 +206,5 @@ export default class CountdownPlugin extends LumenPlugin {
     this.displayReadyUnlisten = null
     this.overlayStateDispose?.()
     this.overlayStateDispose = null
-    if (this.handleKeyDown) {
-      document.removeEventListener("keydown", this.handleKeyDown)
-      this.handleKeyDown = null
-    }
   }
 }

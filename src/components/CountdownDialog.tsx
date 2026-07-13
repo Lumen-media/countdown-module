@@ -1,8 +1,10 @@
+import { useEffect, useRef } from "react"
 import { Card, Popover, ScrollArea, Separator, Tabs } from "@lumen-media/module-sdk/ui"
 import { Settings2 } from "lucide-react"
 import { cn } from "../lib/utils.js"
 import { useCountdownStore } from "../store.js"
 import { t } from "../i18n.js"
+import { useCountdownHotkeys } from "../hooks/useCountdownHotkeys.js"
 import { PanelFooter } from "./left/PanelFooter.js"
 import { ConfigureTab } from "./left/tabs/ConfigureTab.js"
 import { AppearanceTab } from "./left/tabs/AppearanceTab.js"
@@ -11,10 +13,25 @@ import { RightPanel } from "./right/RightPanel.js"
 import { TimerSettings } from "./left/TimerSettings.js"
 
 export function CountdownDialog() {
+  const rootRef = useRef<HTMLDivElement>(null)
   const isPreviewExpanded = useCountdownStore((s) => s.isPreviewExpanded)
 
+  useCountdownHotkeys(rootRef)
+
+  useEffect(() => {
+    const root = rootRef.current
+    if (root && !root.contains(document.activeElement)) {
+      root.focus({ preventScroll: true })
+    }
+  }, [])
+
   return (
-    <div data-countdown-ui className="aspect-16/10 h-[80dvh] flex bg-background p-4">
+    <div
+      ref={rootRef}
+      data-countdown-ui
+      tabIndex={-1}
+      className="aspect-16/10 h-[80dvh] flex bg-background p-4 outline-none"
+    >
       <Card className={cn("basis-1/4 h-full p-0 gap-0 border-0 overflow-hidden", isPreviewExpanded && "hidden")}>
         <Tabs defaultValue="configure" className="flex flex-col h-full overflow-hidden">
           <Card.CardContent className="flex-1 flex flex-col p-0 overflow-hidden gap-0 min-h-0">
