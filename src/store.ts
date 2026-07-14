@@ -5,7 +5,7 @@ import { persistentBackgroundSrc, type PickedBackground } from "./lib/persist-ba
 import { t } from "./i18n.js"
 import type { BackgroundConfig, BackgroundPreset, CountdownConfig, CountdownState, EndAction, HotkeyAction, HotkeyConfig, TimerPreset } from "./types.js"
 
-type PresenterAPI = { project: (viewId: string, props?: unknown) => void; clear: () => void }
+type PresenterAPI = { project: (viewId: string, props?: unknown) => void; clear: () => void; onStateChange?: (handler: (state: "idle" | "live") => void) => { dispose(): void } }
 type OverlayAPI = { project: (viewId: string, props?: unknown) => void; clear: () => void; onStateChange?: (handler: (state: "idle" | "live") => void) => { dispose(): void } }
 type QueueAPI = { next: () => void; previous: () => void; goTo: (index: number) => void }
 type PlayerAPI = { nextSlide: () => void; play: (itemId: string) => void }
@@ -84,6 +84,7 @@ type CountdownStore = {
   isPreviewExpanded: boolean
   setPreviewExpanded: (v: boolean) => void
   isPresenterActive: boolean
+  setPresenterActive: (v: boolean) => void
   isOverlayActive: boolean
   setOverlayActive: (v: boolean) => void
   setConfig: (update: Partial<CountdownConfig>) => void
@@ -151,6 +152,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => {
     isPreviewExpanded: false,
     setPreviewExpanded: (v) => set({ isPreviewExpanded: v }),
     isPresenterActive: false,
+    setPresenterActive: (v) => set({ isPresenterActive: v }),
     isOverlayActive: false,
     setOverlayActive: (v) => set({ isOverlayActive: v }),
 

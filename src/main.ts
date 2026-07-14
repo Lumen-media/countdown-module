@@ -17,6 +17,7 @@ import { setupI18n, t } from "./i18n.js"
 type HostExt = {
   fs?: { read: (path: string) => Promise<Uint8Array> }
   library?: { list?: (type?: string, query?: string) => Promise<{ id: string; path: string; name: string; type: string }[]>; get?: (id: string) => Promise<{ id: string; path: string; name: string; type: string } | null> }
+  presentation?: { onStateChange?: (handler: (state: "idle" | "live") => void) => { dispose(): void } }
   overlay?: { project: (viewId: string, props?: unknown) => void; clear: () => void; onStateChange?: (handler: (state: "idle" | "live") => void) => { dispose(): void } }
   player?: { current?: () => unknown; state?: () => "playing" | "paused" | "idle" }
   lyrics?: { currentSlide?: () => unknown | null }
@@ -30,6 +31,7 @@ type HostExt = {
 export default class CountdownPlugin extends LumenPlugin {
   private styleEl: HTMLStyleElement | null = null
   private displayReadyUnlisten: (() => void) | null = null
+  private presentationStateDispose: (() => void) | null = null
   private overlayStateDispose: (() => void) | null = null
   private themeBgDispose: (() => void) | null = null
   private persistUnsubscribe: (() => void) | null = null
@@ -117,6 +119,10 @@ export default class CountdownPlugin extends LumenPlugin {
 
     useCountdownStore.getState().setBus(host.bus)
     useCountdownStore.getState().setPresenter(host.presentation)
+    const presentationState = (host.presentation as HostExt["presentation"])?.onStateChange?.((state) => {
+      if (state === "idle") useCountdownStore.getState().setPresenterActive(false)
+    })
+    this.presentationStateDispose = presentationState ? () => presentationState.dispose() : null
     useCountdownStore.getState().setQueue(host.queue)
     useCountdownStore.getState().setPlayer(host.player)
 
@@ -210,6 +216,8 @@ export default class CountdownPlugin extends LumenPlugin {
     this.styleEl = null
     this.displayReadyUnlisten?.()
     this.displayReadyUnlisten = null
+    this.presentationStateDispose?.()
+    this.presentationStateDispose = null
     this.overlayStateDispose?.()
     this.overlayStateDispose = null
     this.themeBgDispose?.()
