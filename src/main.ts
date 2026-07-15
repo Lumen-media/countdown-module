@@ -1,22 +1,30 @@
-import css from "./styles.css?inline"
-import jersey15FontUrl from "../assets/fonts/Jersey15-Regular.ttf?url"
 import { type LumenHost, LumenPlugin } from "@lumen-media/module-sdk"
-import { createElement, type ComponentProps } from "react"
-import { Timer } from "lucide-react"
 import { listen } from "@tauri-apps/api/event"
+import { Timer } from "lucide-react"
+import { type ComponentProps, createElement } from "react"
+import jersey15FontUrl from "../assets/fonts/Jersey15-Regular.ttf?url"
+import { CountdownCommanderApp } from "./components/CountdownCommanderApp.js"
 import { CountdownDialog } from "./components/CountdownDialog.js"
 import { CountdownHeaderStatus } from "./components/CountdownHeaderStatus.js"
-import { CountdownCommanderApp } from "./components/CountdownCommanderApp.js"
 import { CountdownDisplay } from "./components/presenter/CountdownDisplay.js"
 import { ErrorBoundary } from "./components/presenter/ErrorBoundary.js"
 import {
-  QueueTriggerConfigComponent,
   CountdownSummary,
   type QueueTriggerConfig,
+  QueueTriggerConfigComponent,
 } from "./components/QueueTriggerConfig.js"
-import { useCountdownStore } from "./store.js"
-import type { CountdownConfig, TimerPreset } from "./types.js"
 import { setupI18n, t } from "./i18n.js"
+import { useCountdownStore } from "./store.js"
+import css from "./styles.css?inline"
+import type { CountdownConfig, TimerPreset } from "./types.js"
+
+interface StageBackdropChangeDetail {
+  active: boolean
+  source: "player" | "lyrics" | "media" | "scene" | "unknown" | null
+  mediaType: "image" | "video" | "lyrics" | "color" | "unknown" | null
+  id?: string | null
+  name?: string | null
+}
 
 type HostExt = {
   fs?: { read: (path: string) => Promise<Uint8Array> }
@@ -153,11 +161,12 @@ export default class CountdownPlugin extends LumenPlugin {
     useCountdownStore.getState().setPlayer(host.player)
 
     const hostExt = host as unknown as HostExt
+    let stageBackdropActive = false
     useCountdownStore.getState().setExternalBackdropActivityReader(() => {
       const playerActive =
         Boolean(hostExt.player?.current?.()) && hostExt.player?.state?.() !== "idle"
       const lyricsActive = Boolean(hostExt.lyrics?.currentSlide?.())
-      return playerActive || lyricsActive
+      return stageBackdropActive || playerActive || lyricsActive
     })
 
     if (hostExt.fs) useCountdownStore.getState().setHostFs(hostExt.fs)
@@ -246,6 +255,12 @@ export default class CountdownPlugin extends LumenPlugin {
         })
         store.startTimer()
       },
+    })
+
+    host.bus.on<StageBackdropChangeDetail>("stage:backdrop-change", (detail) => {
+      stageBackdropActive = detail.active
+      console.debug("[countdown-module] stage backdrop change", detail)
+      useCountdownStore.getState().rebroadcast()
     })
   }
 

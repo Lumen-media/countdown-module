@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react"
-import { Clock, RotateCcw, Video } from "lucide-react"
-import { useDebounceValue } from "usehooks-ts"
 import { Button, Input, ScrollArea, Select, TextEditor } from "@lumen-media/module-sdk/ui"
+import { Clock, RotateCcw, Video } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { useDebounceValue } from "usehooks-ts"
+import { t } from "../../../i18n.js"
 import { cn } from "../../../lib/utils.js"
 import { useCountdownStore } from "../../../store.js"
 import type { BackgroundPreset } from "../../../types.js"
-import { t } from "../../../i18n.js"
 
 const PRESETS: { id: BackgroundPreset; labelKey: string }[] = [
   { id: "default", labelKey: "configure.preset.default" },
@@ -47,7 +47,7 @@ function PresetThumbnail({ preset }: { preset: BackgroundPreset }) {
         profileBackground.src.startsWith("http") ||
         profileBackground.src.startsWith("data:"))
     return (
-      <div className={cn(base, !isReady && PRESET_STYLES["default"])}>
+      <div className={cn(base, !isReady && PRESET_STYLES.default)}>
         {isReady &&
           (profileBackground!.type === "video" ? (
             <video
@@ -74,7 +74,7 @@ function PresetThumbnail({ preset }: { preset: BackgroundPreset }) {
       customBackground &&
       (customBackground.type === "image" || customBackground.type === "video")
     return (
-      <div className={cn(base, !hasMedia && PRESET_STYLES["custom"])}>
+      <div className={cn(base, !hasMedia && PRESET_STYLES.custom)}>
         {hasMedia &&
           (customBackground.type === "video" ? (
             <video
@@ -134,10 +134,10 @@ export function ConfigureTab() {
 
     if (!mChanged && !sChanged) return
 
-    const m = Math.min(99, Math.max(0, parseInt(debouncedMinutes) || 0))
-    const s = Math.min(59, Math.max(0, parseInt(debouncedSeconds) || 0))
+    const m = Math.min(99, Math.max(0, parseInt(debouncedMinutes, 10) || 0))
+    const s = Math.min(59, Math.max(0, parseInt(debouncedSeconds, 10) || 0))
     setTotalSeconds(m * 60 + s)
-  }, [debouncedMinutes, debouncedSeconds])
+  }, [debouncedMinutes, debouncedSeconds, setTotalSeconds])
 
   useEffect(() => {
     const m = String(Math.floor(totalSeconds / 60)).padStart(2, "0")

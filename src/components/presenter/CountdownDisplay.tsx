@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react"
 import { emit, listen } from "@tauri-apps/api/event"
-import { displayAnchor, type CountdownTickPayload } from "../../lib/display-mode.js"
+import { useEffect, useRef, useState } from "react"
 import { useAdaptiveTextAppearance } from "../../lib/adaptive-text.js"
+import { type CountdownTickPayload, displayAnchor } from "../../lib/display-mode.js"
+import type { CountdownConfig } from "../../types.js"
+import { CircularProgress } from "../CircularProgress.js"
 import { DigitDisplay } from "../DigitDisplay.js"
 import { FlipClockDisplay } from "../FlipClockDigit.js"
-import { CircularProgress } from "../CircularProgress.js"
-import type { CountdownConfig } from "../../types.js"
 import { TextCarousel } from "../TextCarousel.js"
 
 function formatPreText(text: string, maxChars = 28): string {
@@ -67,6 +67,10 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
   const { remaining, cornerActive, renderConfiguredBackground } = tick
   const { appearance, preText, postText } = config
   const bgStyle = renderConfiguredBackground ? bgToStyle(config) : {}
+  const backgroundMediaValue =
+    appearance.background.type === "image" || appearance.background.type === "video"
+      ? appearance.background.value
+      : ""
   // biome-ignore lint/correctness/useHookAtTopLevel: the display cannot derive appearance until a tick/config exists.
   const { timerColor, prePostColor, timerShadow, subShadow } = useAdaptiveTextAppearance({
     appearance,
@@ -87,37 +91,42 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
         ...bgStyle,
       }}
     >
-      {renderConfiguredBackground && !imgError && appearance.background.type === "image" && (
-        <img
-          src={appearance.background.value}
-          alt=""
-          decoding="async"
-          onError={() => setImgError(true)}
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-          }}
-        />
-      )}
-      {renderConfiguredBackground && appearance.background.type === "video" && (
-        <video
-          src={appearance.background.value}
-          autoPlay
-          loop
-          muted
-          playsInline
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-          }}
-        />
-      )}
+      {renderConfiguredBackground &&
+        !imgError &&
+        appearance.background.type === "image" &&
+        backgroundMediaValue.length > 0 && (
+          <img
+            src={backgroundMediaValue}
+            alt=""
+            decoding="async"
+            onError={() => setImgError(true)}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+          />
+        )}
+      {renderConfiguredBackground &&
+        appearance.background.type === "video" &&
+        backgroundMediaValue.length > 0 && (
+          <video
+            src={backgroundMediaValue}
+            autoPlay
+            loop
+            muted
+            playsInline
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+          />
+        )}
 
       <div
         style={{

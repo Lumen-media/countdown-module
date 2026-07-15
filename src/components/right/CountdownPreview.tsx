@@ -80,6 +80,7 @@ export function CountdownPreview() {
     .toString(16)
     .padStart(2, "0")}`
   const bg = appearance.background
+  const backgroundMediaValue = bg.type === "image" || bg.type === "video" ? bg.value : ""
 
   return (
     <div
@@ -89,16 +90,16 @@ export function CountdownPreview() {
     >
       {bg.type === "profile" ? (
         <ProfileBg />
-      ) : bg.type === "image" ? (
+      ) : bg.type === "image" && backgroundMediaValue.length > 0 ? (
         <img
-          src={bg.value}
+          src={backgroundMediaValue}
           alt=""
           decoding="async"
           className="absolute inset-0 h-full w-full object-cover"
         />
-      ) : bg.type === "video" ? (
+      ) : bg.type === "video" && backgroundMediaValue.length > 0 ? (
         <video
-          src={bg.value}
+          src={backgroundMediaValue}
           autoPlay
           loop
           muted

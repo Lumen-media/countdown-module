@@ -282,8 +282,25 @@ export const useCountdownStore = create<CountdownStore>((set, get) => {
     },
 
     rebroadcast: () => {
-      const { timerState, config, profileBackground, _isExternalBackdropActive } = get()
+      const {
+        _presenter,
+        _overlay,
+        timerState,
+        config,
+        isPresenterActive,
+        isOverlayActive,
+        profileBackground,
+        _isExternalBackdropActive,
+      } = get()
       const externalBackdropActive = _isExternalBackdropActive?.() ?? false
+      const props = projectionProps(config, timerState, profileBackground, externalBackdropActive)
+
+      if (isOverlayActive) {
+        _overlay?.project(PRESENTER_PANEL_ID, props)
+      } else if (isPresenterActive) {
+        _presenter?.project(PRESENTER_PANEL_ID, props)
+      }
+
       engine.emitTick(
         timerState.remainingSeconds,
         timerState.status,

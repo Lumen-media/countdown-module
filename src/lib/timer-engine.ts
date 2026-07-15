@@ -49,7 +49,7 @@ export function projectionProps(
 ) {
   const presentationFlags = getPresentationFlags(config, profileBackground, externalBackdropActive)
   const backgroundProps =
-    !externalBackdropActive && config.appearance.background.type === "profile"
+    presentationFlags.renderConfiguredBackground && config.appearance.background.type === "profile"
       ? { background: "default" }
       : {}
   return {

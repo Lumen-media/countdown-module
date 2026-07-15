@@ -177,9 +177,9 @@ export function TimerSettings() {
               <button
                 type="button"
                 onClick={() => setRecordingHotkey(recordingHotkey === action ? null : action)}
-                className={`text-xs font-mono font-semibold px-2 py-0.5 rounded border bg-transparent cursor-pointer transition-colors min-w-[4rem] text-center ${recordingHotkey === action
-                    ? "border-primary text-primary"
-                    : "border-border text-muted-foreground hover:text-foreground"
+                className={`text-xs font-mono font-semibold px-2 py-0.5 rounded border bg-transparent cursor-pointer transition-colors min-w-16 text-center ${recordingHotkey === action
+                  ? "border-primary text-primary"
+                  : "border-border text-muted-foreground hover:text-foreground"
                   }`}
               >
                 {recordingHotkey === action
