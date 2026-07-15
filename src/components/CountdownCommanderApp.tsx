@@ -20,7 +20,9 @@ function StatusBadge({ status }: { status: string }) {
     finished: t("footer.status.finished"),
   }
   return (
-    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${colors[status] || colors.idle}`}>
+    <span
+      className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${colors[status] || colors.idle}`}
+    >
       {labels[status] || status}
     </span>
   )
@@ -35,14 +37,16 @@ export function CountdownCommanderApp({ onClose }: { onClose: () => void }) {
   const resetTimer = useCountdownStore((s) => s.resetTimer)
   const setTotalSeconds = useCountdownStore((s) => s.setTotalSeconds)
 
-
   const isRunning = status === "running"
   const isPaused = status === "paused"
   const isIdle = status === "idle"
 
-  const handlePreset = useCallback((minutes: number) => {
-    setTotalSeconds(minutes * 60)
-  }, [setTotalSeconds])
+  const handlePreset = useCallback(
+    (minutes: number) => {
+      setTotalSeconds(minutes * 60)
+    },
+    [setTotalSeconds]
+  )
 
   function ActionButton({
     icon: Icon,
@@ -69,7 +73,9 @@ export function CountdownCommanderApp({ onClose }: { onClose: () => void }) {
         disabled={disabled}
         className={`flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-sm text-left cursor-pointer border border-border bg-card/50 ${accent ? accentStyles[accent] : "hover:border-foreground/20 hover:bg-card"} transition-all text-foreground disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:bg-card/50`}
       >
-        <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${accent === "green" ? "bg-green-500/15 text-green-400" : accent === "yellow" ? "bg-yellow-500/15 text-yellow-400" : accent === "red" ? "bg-red-500/15 text-red-400" : "bg-muted text-muted-foreground"}`}>
+        <span
+          className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${accent === "green" ? "bg-green-500/15 text-green-400" : accent === "yellow" ? "bg-yellow-500/15 text-yellow-400" : accent === "red" ? "bg-red-500/15 text-red-400" : "bg-muted text-muted-foreground"}`}
+        >
           <Icon size={14} />
         </span>
         <span className="flex-1">{label}</span>
@@ -114,7 +120,9 @@ export function CountdownCommanderApp({ onClose }: { onClose: () => void }) {
                 } disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:bg-background`}
               >
                 <Clock size={13} className={isActive ? "text-primary" : "text-muted-foreground"} />
-                <span className={isActive ? "font-medium" : ""}>{m} {t("configure.duration.minutes")}</span>
+                <span className={isActive ? "font-medium" : ""}>
+                  {m} {t("configure.duration.minutes")}
+                </span>
               </button>
             )
           })}
@@ -127,29 +135,42 @@ export function CountdownCommanderApp({ onClose }: { onClose: () => void }) {
         </span>
         {!isIdle && (
           <div className="mb-2.5 flex items-center gap-2 bg-background rounded-lg px-3 py-2 border border-border/50">
-            <span className="text-[11px] text-muted-foreground">{t("rightPanel.currentOutput")}:</span>
-            <span className="text-sm font-mono font-semibold text-foreground">{formatTime(remaining)}</span>
+            <span className="text-[11px] text-muted-foreground">
+              {t("rightPanel.currentOutput")}:
+            </span>
+            <span className="text-sm font-mono font-semibold text-foreground">
+              {formatTime(remaining)}
+            </span>
           </div>
         )}
         <div className="flex flex-col gap-1.5">
           <ActionButton
             icon={isPaused ? Play : Play}
             label={isPaused ? t("footer.resume") : t("footer.start")}
-            onClick={() => { startTimer(); onClose() }}
+            onClick={() => {
+              startTimer()
+              onClose()
+            }}
             disabled={isRunning}
             accent="green"
           />
           <ActionButton
             icon={isPaused ? Square : Pause}
             label={isPaused ? t("footer.resume") : t("footer.pause")}
-            onClick={() => { pauseTimer(); onClose() }}
+            onClick={() => {
+              pauseTimer()
+              onClose()
+            }}
             disabled={!isRunning && !isPaused}
             accent="yellow"
           />
           <ActionButton
             icon={RotateCcw}
             label={t("footer.reset")}
-            onClick={() => { resetTimer(); onClose() }}
+            onClick={() => {
+              resetTimer()
+              onClose()
+            }}
             disabled={isIdle}
             accent="red"
           />

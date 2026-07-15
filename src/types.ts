@@ -6,7 +6,12 @@ export type CountdownSoundSelection = {
 }
 
 export type TimeTrigger =
-  | { enabled: boolean; atSeconds: number; type: "warning-chime"; sound: CountdownSoundSelection | null }
+  | {
+      enabled: boolean
+      atSeconds: number
+      type: "warning-chime"
+      sound: CountdownSoundSelection | null
+    }
   | { enabled: boolean; atSeconds: number; type: "change-text"; preText: string; postText: string }
   | { enabled: boolean; atSeconds: number; type: "queue.next" }
   | { enabled: boolean; atSeconds: number; type: "queue.previous" }
@@ -90,7 +95,14 @@ export type CountdownState = {
 }
 
 export type WebhookEvent =
-  | { event: "timer.started"; remaining: number; total: number; countUp: boolean; preText: string; postText: string }
+  | {
+      event: "timer.started"
+      remaining: number
+      total: number
+      countUp: boolean
+      preText: string
+      postText: string
+    }
   | { event: "timer.tick"; remaining: number; total: number; countUp: boolean }
   | { event: "timer.trigger"; atSeconds: number; triggerType: string; remaining: number }
   | { event: "timer.finished"; remaining: number; total: number; countUp: boolean }

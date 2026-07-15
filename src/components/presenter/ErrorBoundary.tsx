@@ -16,7 +16,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      return <div data-countdown-stage style={{ width: "100%", height: "100%", background: "#000" }} />
+      return (
+        <div data-countdown-stage style={{ width: "100%", height: "100%", background: "#000" }} />
+      )
     }
     return this.props.children
   }

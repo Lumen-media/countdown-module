@@ -23,10 +23,10 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 const PRESET_STYLES: Record<BackgroundPreset, string> = {
-  "default": "bg-background text-foreground border border-border",
+  default: "bg-background text-foreground border border-border",
   "dark-minimal": "bg-black text-white",
   "light-clean": "bg-white text-black",
-  "custom": "bg-card text-muted-foreground flex-col gap-1 border border-dashed border-border",
+  custom: "bg-card text-muted-foreground flex-col gap-1 border border-dashed border-border",
 }
 
 function PresetThumbnail({ preset }: { preset: BackgroundPreset }) {
@@ -36,48 +36,73 @@ function PresetThumbnail({ preset }: { preset: BackgroundPreset }) {
   )
   const [defaultImgError, setDefaultImgError] = useState(false)
   const [customImgError, setCustomImgError] = useState(false)
-  const base = "w-full rounded-md overflow-hidden aspect-video flex items-center justify-center text-xs font-extrabold tracking-tight relative"
+  const base =
+    "w-full rounded-md overflow-hidden aspect-video flex items-center justify-center text-xs font-extrabold tracking-tight relative"
 
   if (preset === "default") {
-    const isReady = !defaultImgError && profileBackground?.src && (
-      profileBackground.src.startsWith("blob:") ||
-      profileBackground.src.startsWith("http") ||
-      profileBackground.src.startsWith("data:")
-    )
+    const isReady =
+      !defaultImgError &&
+      profileBackground?.src &&
+      (profileBackground.src.startsWith("blob:") ||
+        profileBackground.src.startsWith("http") ||
+        profileBackground.src.startsWith("data:"))
     return (
       <div className={cn(base, !isReady && PRESET_STYLES["default"])}>
-        {isReady && (
-          profileBackground!.type === "video"
-            ? <video src={profileBackground!.src} className="absolute inset-0 w-full h-full object-cover" muted />
-            : <img src={profileBackground!.thumb ?? profileBackground!.src} alt="" className="absolute inset-0 w-full h-full object-cover" onError={() => setDefaultImgError(true)} />
-        )}
+        {isReady &&
+          (profileBackground!.type === "video" ? (
+            <video
+              src={profileBackground!.src}
+              className="absolute inset-0 w-full h-full object-cover"
+              muted
+            />
+          ) : (
+            <img
+              src={profileBackground!.thumb ?? profileBackground!.src}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={() => setDefaultImgError(true)}
+            />
+          ))}
         <span className="relative drop-shadow text-white">05:00</span>
       </div>
     )
   }
 
   if (preset === "custom") {
-    const hasMedia = !customImgError && customBackground && (customBackground.type === "image" || customBackground.type === "video")
+    const hasMedia =
+      !customImgError &&
+      customBackground &&
+      (customBackground.type === "image" || customBackground.type === "video")
     return (
       <div className={cn(base, !hasMedia && PRESET_STYLES["custom"])}>
-        {hasMedia && (
-          customBackground.type === "video"
-            ? <video src={customBackground.value} className="absolute inset-0 w-full h-full object-cover" muted />
-            : <img src={customBackground.value} alt="" className="absolute inset-0 w-full h-full object-cover" onError={() => setCustomImgError(true)} />
+        {hasMedia &&
+          (customBackground.type === "video" ? (
+            <video
+              src={customBackground.value}
+              className="absolute inset-0 w-full h-full object-cover"
+              muted
+            />
+          ) : (
+            <img
+              src={customBackground.value}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={() => setCustomImgError(true)}
+            />
+          ))}
+        {hasMedia ? (
+          <span className="relative drop-shadow text-white">05:00</span>
+        ) : (
+          <>
+            <Video size={14} />
+            <span className="text-[9px]">{t("configure.preset.custom")}</span>
+          </>
         )}
-        {hasMedia
-          ? <span className="relative drop-shadow text-white">05:00</span>
-          : <><Video size={14} /><span className="text-[9px]">{t("configure.preset.custom")}</span></>
-        }
       </div>
     )
   }
 
-  return (
-    <div className={cn(base, PRESET_STYLES[preset])}>
-      05:00
-    </div>
-  )
+  return <div className={cn(base, PRESET_STYLES[preset])}>05:00</div>
 }
 
 export function ConfigureTab() {
@@ -94,9 +119,7 @@ export function ConfigureTab() {
   const [localMinutes, setLocalMinutes] = useState(
     String(Math.floor(totalSeconds / 60)).padStart(2, "0")
   )
-  const [localSeconds, setLocalSeconds] = useState(
-    String(totalSeconds % 60).padStart(2, "0")
-  )
+  const [localSeconds, setLocalSeconds] = useState(String(totalSeconds % 60).padStart(2, "0"))
 
   const [debouncedMinutes] = useDebounceValue(localMinutes, 300)
   const [debouncedSeconds] = useDebounceValue(localSeconds, 300)
@@ -124,15 +147,18 @@ export function ConfigureTab() {
     prevDebounced.current = { minutes: m, seconds: s }
   }, [totalSeconds])
 
-  const addSeconds = useCallback((delta: number) => {
-    const next = Math.max(0, totalSeconds + delta)
-    setTotalSeconds(next)
-    const newMins = String(Math.floor(next / 60)).padStart(2, "0")
-    const newSecs = String(next % 60).padStart(2, "0")
-    setLocalMinutes(newMins)
-    setLocalSeconds(newSecs)
-    prevDebounced.current = { minutes: newMins, seconds: newSecs }
-  }, [totalSeconds, setTotalSeconds])
+  const addSeconds = useCallback(
+    (delta: number) => {
+      const next = Math.max(0, totalSeconds + delta)
+      setTotalSeconds(next)
+      const newMins = String(Math.floor(next / 60)).padStart(2, "0")
+      const newSecs = String(next % 60).padStart(2, "0")
+      setLocalMinutes(newMins)
+      setLocalSeconds(newSecs)
+      prevDebounced.current = { minutes: newMins, seconds: newSecs }
+    },
+    [totalSeconds, setTotalSeconds]
+  )
 
   function handleReset() {
     const m = String(Math.floor(totalSeconds / 60)).padStart(2, "0")
@@ -269,12 +295,16 @@ export function ConfigureTab() {
         >
           <Select.SelectTrigger className="w-full bg-background dark:bg-background">
             <Select.SelectValue>
-              {actionsConfig.autoAdvance.enabled ? t("configure.onCompletion.autoNext") : t("configure.onCompletion.none")}
+              {actionsConfig.autoAdvance.enabled
+                ? t("configure.onCompletion.autoNext")
+                : t("configure.onCompletion.none")}
             </Select.SelectValue>
           </Select.SelectTrigger>
           <Select.SelectContent>
             <Select.SelectItem value="none">{t("configure.onCompletion.none")}</Select.SelectItem>
-            <Select.SelectItem value="auto-next">{t("configure.onCompletion.autoNext")}</Select.SelectItem>
+            <Select.SelectItem value="auto-next">
+              {t("configure.onCompletion.autoNext")}
+            </Select.SelectItem>
           </Select.SelectContent>
         </Select>
       </div>
@@ -291,7 +321,7 @@ export function ConfigureTab() {
                 className={cn(
                   "bg-transparent rounded-xl p-1.5 cursor-pointer flex flex-col gap-1.5 transition-colors border-2",
                   isSelected ? "border-primary" : "border-border",
-                  p.id === "custom" && !isSelected ? "border-dashed" : "border-solid",
+                  p.id === "custom" && !isSelected ? "border-dashed" : "border-solid"
                 )}
               >
                 <PresetThumbnail preset={p.id} />
@@ -308,4 +338,3 @@ export function ConfigureTab() {
     </div>
   )
 }
-

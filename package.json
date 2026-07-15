@@ -5,12 +5,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite build --watch",
+    "dev": "lumen-module dev",
     "build": "lumen-module build",
     "pack": "lumen-module build && lumen-module pack",
     "sync-manifest": "node scripts/sync-manifest.js",
     "version": "pnpm run sync-manifest && git add manifest.json",
-    "validate": "lumen-module validate"
+    "validate": "lumen-module validate",
+    "check": "biome lint .",
+    "lint": "biome lint .",
+    "format": "biome format .",
+    "format:write": "biome format . --write"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",
@@ -26,6 +30,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.2",
     "@lumen-media/module-cli": "^0.3.3",
     "@lumen-media/module-sdk": "^0.9.0",
     "@tailwindcss/postcss": "^4.3.2",

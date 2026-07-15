@@ -1,35 +1,41 @@
-import { animate } from "animejs"
 import { emit } from "@tauri-apps/api/event"
-import { isCornerActive, type CountdownTickPayload } from "./display-mode.js"
-import { getBundledSoundDuration, playBundledSound, playSelectedSound } from "./sounds.js"
+import { animate } from "animejs"
 import type { CountdownConfig, CountdownState, WebhookEvent } from "../types.js"
+import { type CountdownTickPayload, isCornerActive } from "./display-mode.js"
+import { getBundledSoundDuration, playBundledSound, playSelectedSound } from "./sounds.js"
 
 type ProfileBackground = { src: string; thumb?: string; type: "theme" | "image" | "video" } | null
 
-type StoreAPI = {
-  get: () => {
-    config: CountdownConfig
-    timerState: CountdownState
-    profileBackground: ProfileBackground
-    isOverlayActive: boolean
-    isPresenterActive: boolean
-    _isExternalBackdropActive: (() => boolean) | null
-    _presenter: { project: (viewId: string, props?: unknown) => void; clear: () => void } | null
-    _overlay: { project: (viewId: string, props?: unknown) => void; clear: () => void } | null
-    _queue: { next: () => void; previous: () => void; goTo: (index: number) => void } | null
-    _player: { nextSlide: () => void; play: (itemId: string) => void } | null
-    _hostFs: { read: (path: string) => Promise<Uint8Array> } | null
-    _sceneSwitcher: ((sceneId: string) => void) | null
-    _overlayOpener: ((overlayId: string) => void) | null
-    _bus: { emit: (topic: string, payload?: unknown) => void } | null
-  }
-  set: (fn: (state: Record<string, unknown>) => Record<string, unknown>) => void
+type StoreState = {
+  config: CountdownConfig
+  timerState: CountdownState
+  profileBackground: ProfileBackground
+  isOverlayActive: boolean
+  isPresenterActive: boolean
+  _isExternalBackdropActive: (() => boolean) | null
+  _presenter: { project: (viewId: string, props?: unknown) => void; clear: () => void } | null
+  _overlay: { project: (viewId: string, props?: unknown) => void; clear: () => void } | null
+  _queue: { next: () => void; previous: () => void; goTo: (index: number) => void } | null
+  _player: { nextSlide: () => void; play: (itemId: string) => void } | null
+  _hostFs: { read: (path: string) => Promise<Uint8Array> } | null
+  _sceneSwitcher: ((sceneId: string) => void) | null
+  _overlayOpener: ((overlayId: string) => void) | null
+  _bus: { emit: (topic: string, payload?: unknown) => void } | null
+}
+
+export type TimerEngineStoreAPI = {
+  get: () => StoreState
+  set: (update: Partial<StoreState> | ((state: StoreState) => Partial<StoreState>)) => void
 }
 
 const PRESENTER_PANEL_ID = "countdown.presenter"
 const COMPLETION_SOUND_SAFETY_SECONDS = 1
 
-function getPresentationFlags(config: CountdownConfig, profileBackground: ProfileBackground, externalBackdropActive: boolean) {
+function getPresentationFlags(
+  config: CountdownConfig,
+  profileBackground: ProfileBackground,
+  externalBackdropActive: boolean
+) {
   const cornerActive = isCornerActive(config, profileBackground, externalBackdropActive)
   const renderConfiguredBackground = !externalBackdropActive
   return { cornerActive, renderConfiguredBackground }
@@ -39,12 +45,13 @@ export function projectionProps(
   config: CountdownConfig,
   timerState: CountdownState,
   profileBackground: ProfileBackground,
-  externalBackdropActive: boolean,
+  externalBackdropActive: boolean
 ) {
   const presentationFlags = getPresentationFlags(config, profileBackground, externalBackdropActive)
-  const backgroundProps = !externalBackdropActive && config.appearance.background.type === "profile"
-    ? { background: "default" }
-    : {}
+  const backgroundProps =
+    !externalBackdropActive && config.appearance.background.type === "profile"
+      ? { background: "default" }
+      : {}
   return {
     ...backgroundProps,
     initialTick: {
@@ -63,7 +70,7 @@ export class TimerEngine {
   private lastTickSecond: number | null = null
   private lastEmittedConfig: CountdownConfig | null = null
 
-  constructor(private api: StoreAPI) {}
+  constructor(private api: TimerEngineStoreAPI) {}
 
   private cancelAnimation() {
     if (this.animation !== null) {
@@ -124,9 +131,13 @@ export class TimerEngine {
         latest.timerState.status !== "running" ||
         latest.timerState.completionSoundStarted ||
         latest.config.behavior.completionSound !== soundId
-      ) return
+      )
+        return
 
-      const leadMs = Math.max(0, (durationSeconds ?? 0) * 1000 - COMPLETION_SOUND_SAFETY_SECONDS * 1000)
+      const leadMs = Math.max(
+        0,
+        (durationSeconds ?? 0) * 1000 - COMPLETION_SOUND_SAFETY_SECONDS * 1000
+      )
       const currentTimeMs = this.animation?.currentTime ?? 0
       const delayMs = Math.max(0, durationMs - currentTimeMs - leadMs)
 
@@ -166,9 +177,13 @@ export class TimerEngine {
     status: CountdownState["status"],
     config: CountdownConfig,
     profileBackground: ProfileBackground,
-    externalBackdropActive: boolean,
+    externalBackdropActive: boolean
   ) {
-    const presentationFlags = getPresentationFlags(config, profileBackground, externalBackdropActive)
+    const presentationFlags = getPresentationFlags(
+      config,
+      profileBackground,
+      externalBackdropActive
+    )
     const configChanged = config !== this.lastEmittedConfig
     if (configChanged) {
       this.lastEmittedConfig = config
@@ -183,30 +198,39 @@ export class TimerEngine {
   }
 
   private setFinishedState(
-    timerState: CountdownState,
+    _timerState: CountdownState,
     config: CountdownConfig,
     profileBackground: ProfileBackground,
     externalBackdropActive: boolean,
-    remainingOnFinish = 0,
+    remainingOnFinish = 0
   ) {
     this.api.set((s) => ({
       timerState: { ...s.timerState, status: "finished", remainingSeconds: remainingOnFinish },
     }))
     this.emitTick(remainingOnFinish, "finished", config, profileBackground, externalBackdropActive)
-    this.emitBusEvent("countdown-module:timer.finished", { remaining: remainingOnFinish, total: config.totalSeconds, countUp: config.countUp })
+    this.emitBusEvent("countdown-module:timer.finished", {
+      remaining: remainingOnFinish,
+      total: config.totalSeconds,
+      countUp: config.countUp,
+    })
     this.postWebhook(
-      { event: "timer.finished", remaining: remainingOnFinish, total: config.totalSeconds, countUp: config.countUp },
-      config.behavior.webhookUrl,
+      {
+        event: "timer.finished",
+        remaining: remainingOnFinish,
+        total: config.totalSeconds,
+        countUp: config.countUp,
+      },
+      config.behavior.webhookUrl
     )
 
     const state = this.api.get()
     if (config.behavior.hideOnCompletion) {
       if (state.isOverlayActive) {
         state._overlay?.clear()
-        this.api.set({ isOverlayActive: false } as Record<string, unknown>)
+        this.api.set({ isOverlayActive: false })
       } else {
         state._presenter?.clear()
-        this.api.set({ isPresenterActive: false } as Record<string, unknown>)
+        this.api.set({ isPresenterActive: false })
       }
     }
     if (config.actions.autoAdvance.enabled) {
@@ -220,8 +244,13 @@ export class TimerEngine {
       else if (action.type === "open-overlay") state._overlayOpener?.(action.overlayId)
       else if (action.type === "send-webhook") {
         this.postWebhook(
-          { event: "timer.finished", remaining: remainingOnFinish, total: config.totalSeconds, countUp: config.countUp },
-          action.payload ?? config.behavior.webhookUrl,
+          {
+            event: "timer.finished",
+            remaining: remainingOnFinish,
+            total: config.totalSeconds,
+            countUp: config.countUp,
+          },
+          action.payload ?? config.behavior.webhookUrl
         )
       }
     }
@@ -232,7 +261,13 @@ export class TimerEngine {
     const externalBackdropActive = _isExternalBackdropActive?.() ?? false
     if (timerState.status !== "running") return
     this.clearCompletionSoundTimer()
-    this.setFinishedState(timerState, config, profileBackground, externalBackdropActive, remainingOnFinish)
+    this.setFinishedState(
+      timerState,
+      config,
+      profileBackground,
+      externalBackdropActive,
+      remainingOnFinish
+    )
   }
 
   private onAnimationUpdate(remaining: number) {
@@ -264,14 +299,23 @@ export class TimerEngine {
       const { _queue, _player, _hostFs, _sceneSwitcher, _overlayOpener } = store
 
       for (const trigger of config.actions.timeTriggers) {
-        const shouldFire = trigger.enabled &&
+        const shouldFire =
+          trigger.enabled &&
           !newFiredTriggers.includes(trigger.atSeconds) &&
           (config.countUp ? remaining >= trigger.atSeconds : remaining <= trigger.atSeconds)
 
         if (shouldFire) {
-          this.emitBusEvent("countdown-module:timer.trigger", { atSeconds: trigger.atSeconds, triggerType: trigger.type, remaining })
+          this.emitBusEvent("countdown-module:timer.trigger", {
+            atSeconds: trigger.atSeconds,
+            triggerType: trigger.type,
+            remaining,
+          })
           if (trigger.type === "change-text") {
-            updatedConfig = { ...updatedConfig, preText: trigger.preText, postText: trigger.postText }
+            updatedConfig = {
+              ...updatedConfig,
+              preText: trigger.preText,
+              postText: trigger.postText,
+            }
           } else if (trigger.type === "warning-chime") {
             void playSelectedSound(trigger.sound, _hostFs)
           } else if (trigger.type === "queue.next") {
@@ -284,8 +328,13 @@ export class TimerEngine {
             _player?.play(trigger.itemId)
           } else if (trigger.type === "send-webhook") {
             this.postWebhook(
-              { event: "timer.trigger", atSeconds: trigger.atSeconds, triggerType: trigger.type, remaining },
-              config.behavior.webhookUrl,
+              {
+                event: "timer.trigger",
+                atSeconds: trigger.atSeconds,
+                triggerType: trigger.type,
+                remaining,
+              },
+              config.behavior.webhookUrl
             )
           }
           newFiredTriggers.push(trigger.atSeconds)
@@ -294,18 +343,30 @@ export class TimerEngine {
 
       this.postWebhook(
         { event: "timer.tick", remaining, total: config.totalSeconds, countUp: config.countUp },
-        config.behavior.webhookUrl,
+        config.behavior.webhookUrl
       )
-      this.emitBusEvent("countdown-module:timer.tick", { remaining, total: config.totalSeconds, countUp: config.countUp })
+      this.emitBusEvent("countdown-module:timer.tick", {
+        remaining,
+        total: config.totalSeconds,
+        countUp: config.countUp,
+      })
 
       if (updatedConfig !== config) {
         this.api.set((s) => ({
           config: updatedConfig,
-          timerState: { ...s.timerState, remainingSeconds: remaining, firedTriggers: newFiredTriggers },
+          timerState: {
+            ...s.timerState,
+            remainingSeconds: remaining,
+            firedTriggers: newFiredTriggers,
+          },
         }))
       } else {
         this.api.set((s) => ({
-          timerState: { ...s.timerState, remainingSeconds: remaining, firedTriggers: newFiredTriggers },
+          timerState: {
+            ...s.timerState,
+            remainingSeconds: remaining,
+            firedTriggers: newFiredTriggers,
+          },
         }))
       }
 
@@ -314,7 +375,15 @@ export class TimerEngine {
   }
 
   startTimer() {
-    const { timerState, config, _presenter, _overlay, isOverlayActive, profileBackground, _isExternalBackdropActive } = this.api.get()
+    const {
+      timerState,
+      config,
+      _presenter,
+      _overlay,
+      isOverlayActive,
+      profileBackground,
+      _isExternalBackdropActive,
+    } = this.api.get()
     const externalBackdropActive = _isExternalBackdropActive?.() ?? false
     if (timerState.status === "running") return
 
@@ -334,17 +403,32 @@ export class TimerEngine {
       const durationMs = (config.totalSeconds - startValue) * 1000
 
       const newState = resuming
-        ? { ...timerState, status: "running" as const, pausedAt: null, firedTriggers: [], completionSoundStarted: soundResumed }
-        : { status: "running" as const, remainingSeconds: 0, startedAt: null, pausedAt: null, firedTriggers: [], completionSoundStarted: false }
+        ? {
+            ...timerState,
+            status: "running" as const,
+            pausedAt: null,
+            firedTriggers: [],
+            completionSoundStarted: soundResumed,
+          }
+        : {
+            status: "running" as const,
+            remainingSeconds: 0,
+            startedAt: null,
+            pausedAt: null,
+            firedTriggers: [],
+            completionSoundStarted: false,
+          }
 
-      this.api.set({ timerState: newState } as Record<string, unknown>)
+      this.api.set({ timerState: newState })
 
       const targetObj = { value: startValue }
       this.animation = animate(targetObj, {
         value: [startValue, config.totalSeconds],
         duration: durationMs,
         ease: "linear",
-        onUpdate: () => { this.onAnimationUpdate(targetObj.value) },
+        onUpdate: () => {
+          this.onAnimationUpdate(targetObj.value)
+        },
         onComplete: () => {
           this.animation = null
           this.lastTickSecond = null
@@ -353,41 +437,81 @@ export class TimerEngine {
       })
 
       if (isOverlayActive) {
-        _overlay?.project(PRESENTER_PANEL_ID, projectionProps(config, newState, profileBackground, externalBackdropActive))
+        _overlay?.project(
+          PRESENTER_PANEL_ID,
+          projectionProps(config, newState, profileBackground, externalBackdropActive)
+        )
       } else {
-        _presenter?.project(PRESENTER_PANEL_ID, projectionProps(config, newState, profileBackground, externalBackdropActive))
-        this.api.set({ isPresenterActive: true } as Record<string, unknown>)
+        _presenter?.project(
+          PRESENTER_PANEL_ID,
+          projectionProps(config, newState, profileBackground, externalBackdropActive)
+        )
+        this.api.set({ isPresenterActive: true })
       }
 
-      this.emitTick(newState.remainingSeconds, "running", config, profileBackground, externalBackdropActive)
-      this.emitBusEvent("countdown-module:timer.started", { remaining: startValue, total: config.totalSeconds, countUp: true, preText: config.preText, postText: config.postText })
+      this.emitTick(
+        newState.remainingSeconds,
+        "running",
+        config,
+        profileBackground,
+        externalBackdropActive
+      )
+      this.emitBusEvent("countdown-module:timer.started", {
+        remaining: startValue,
+        total: config.totalSeconds,
+        countUp: true,
+        preText: config.preText,
+        postText: config.postText,
+      })
       this.postWebhook(
-        { event: "timer.started", remaining: startValue, total: config.totalSeconds, countUp: true, preText: config.preText, postText: config.postText },
-        config.behavior.webhookUrl,
+        {
+          event: "timer.started",
+          remaining: startValue,
+          total: config.totalSeconds,
+          countUp: true,
+          preText: config.preText,
+          postText: config.postText,
+        },
+        config.behavior.webhookUrl
       )
       if (!soundResumed) this.scheduleCompletionSound(durationMs)
       return
     }
 
     const remainingSeconds = resuming ? timerState.remainingSeconds : config.totalSeconds
-    const endValue = config.allowNegative ? -(config.totalSeconds) : 0
+    const endValue = config.allowNegative ? -config.totalSeconds : 0
     const durationMs = config.allowNegative
       ? (remainingSeconds + config.totalSeconds) * 1000
       : remainingSeconds * 1000
     const soundDurationMs = remainingSeconds * 1000
 
     const newState = resuming
-      ? { ...timerState, status: "running" as const, pausedAt: null, firedTriggers: [], completionSoundStarted: soundResumed }
-      : { status: "running" as const, remainingSeconds: config.totalSeconds, startedAt: null, pausedAt: null, firedTriggers: [], completionSoundStarted: false }
+      ? {
+          ...timerState,
+          status: "running" as const,
+          pausedAt: null,
+          firedTriggers: [],
+          completionSoundStarted: soundResumed,
+        }
+      : {
+          status: "running" as const,
+          remainingSeconds: config.totalSeconds,
+          startedAt: null,
+          pausedAt: null,
+          firedTriggers: [],
+          completionSoundStarted: false,
+        }
 
-    this.api.set({ timerState: newState } as Record<string, unknown>)
+    this.api.set({ timerState: newState })
 
     const targetObj = { value: remainingSeconds }
     this.animation = animate(targetObj, {
       value: [remainingSeconds, endValue],
       duration: durationMs,
       ease: "linear",
-      onUpdate: () => { this.onAnimationUpdate(targetObj.value) },
+      onUpdate: () => {
+        this.onAnimationUpdate(targetObj.value)
+      },
       onComplete: () => {
         this.animation = null
         this.lastTickSecond = null
@@ -396,17 +520,42 @@ export class TimerEngine {
     })
 
     if (isOverlayActive) {
-      _overlay?.project(PRESENTER_PANEL_ID, projectionProps(config, newState, profileBackground, externalBackdropActive))
+      _overlay?.project(
+        PRESENTER_PANEL_ID,
+        projectionProps(config, newState, profileBackground, externalBackdropActive)
+      )
     } else {
-      _presenter?.project(PRESENTER_PANEL_ID, projectionProps(config, newState, profileBackground, externalBackdropActive))
-      this.api.set({ isPresenterActive: true } as Record<string, unknown>)
+      _presenter?.project(
+        PRESENTER_PANEL_ID,
+        projectionProps(config, newState, profileBackground, externalBackdropActive)
+      )
+      this.api.set({ isPresenterActive: true })
     }
 
-    this.emitTick(newState.remainingSeconds, "running", config, profileBackground, externalBackdropActive)
-    this.emitBusEvent("countdown-module:timer.started", { remaining: remainingSeconds, total: config.totalSeconds, countUp: false, preText: config.preText, postText: config.postText })
+    this.emitTick(
+      newState.remainingSeconds,
+      "running",
+      config,
+      profileBackground,
+      externalBackdropActive
+    )
+    this.emitBusEvent("countdown-module:timer.started", {
+      remaining: remainingSeconds,
+      total: config.totalSeconds,
+      countUp: false,
+      preText: config.preText,
+      postText: config.postText,
+    })
     this.postWebhook(
-      { event: "timer.started", remaining: remainingSeconds, total: config.totalSeconds, countUp: false, preText: config.preText, postText: config.postText },
-      config.behavior.webhookUrl,
+      {
+        event: "timer.started",
+        remaining: remainingSeconds,
+        total: config.totalSeconds,
+        countUp: false,
+        preText: config.preText,
+        postText: config.postText,
+      },
+      config.behavior.webhookUrl
     )
     if (!soundResumed) this.scheduleCompletionSound(soundDurationMs)
   }
@@ -417,10 +566,19 @@ export class TimerEngine {
     const { timerState, config, profileBackground, _isExternalBackdropActive } = this.api.get()
     const externalBackdropActive = _isExternalBackdropActive?.() ?? false
     const newState = { ...timerState, status: "paused" as const, pausedAt: Date.now() }
-    this.api.set({ timerState: newState } as Record<string, unknown>)
-    this.emitTick(newState.remainingSeconds, "paused", config, profileBackground, externalBackdropActive)
+    this.api.set({ timerState: newState })
+    this.emitTick(
+      newState.remainingSeconds,
+      "paused",
+      config,
+      profileBackground,
+      externalBackdropActive
+    )
     this.emitBusEvent("countdown-module:timer.paused", { remaining: newState.remainingSeconds })
-    this.postWebhook({ event: "timer.paused", remaining: newState.remainingSeconds }, config.behavior.webhookUrl)
+    this.postWebhook(
+      { event: "timer.paused", remaining: newState.remainingSeconds },
+      config.behavior.webhookUrl
+    )
   }
 
   resetTimer() {
@@ -436,12 +594,21 @@ export class TimerEngine {
       firedTriggers: [],
       completionSoundStarted: false,
     }
-    this.api.set({ timerState: newState } as Record<string, unknown>)
-    this.emitTick(newState.remainingSeconds, "idle", config, profileBackground, externalBackdropActive)
-    this.emitBusEvent("countdown-module:timer.reset", { remaining: config.totalSeconds, total: config.totalSeconds })
+    this.api.set({ timerState: newState })
+    this.emitTick(
+      newState.remainingSeconds,
+      "idle",
+      config,
+      profileBackground,
+      externalBackdropActive
+    )
+    this.emitBusEvent("countdown-module:timer.reset", {
+      remaining: config.totalSeconds,
+      total: config.totalSeconds,
+    })
     this.postWebhook(
       { event: "timer.reset", remaining: config.totalSeconds, total: config.totalSeconds },
-      config.behavior.webhookUrl,
+      config.behavior.webhookUrl
     )
   }
 }

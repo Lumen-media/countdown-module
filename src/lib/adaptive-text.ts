@@ -3,7 +3,12 @@ import { mix, rgba, saturate } from "polished"
 import type { BackgroundConfig } from "../types.js"
 
 type AdaptiveTextOptions = {
-  appearance: { timerColor: string; prePostColor: string; textShadowGlow?: number; background: BackgroundConfig }
+  appearance: {
+    timerColor: string
+    prePostColor: string
+    textShadowGlow?: number
+    background: BackgroundConfig
+  }
 }
 
 type AdaptiveTextResult = {
@@ -30,10 +35,16 @@ function resolveStaticSample(background: BackgroundConfig) {
   return null
 }
 
-function buildTextShadow(textColor: string, glowColor: string, glowStrength: number, compact = false) {
-  const outlineColor = textColor.toUpperCase() === "#FFFFFF"
-    ? rgba("#000000", compact ? 0.62 : 0.72)
-    : rgba("#FFFFFF", compact ? 0.22 : 0.28)
+function buildTextShadow(
+  textColor: string,
+  glowColor: string,
+  glowStrength: number,
+  compact = false
+) {
+  const outlineColor =
+    textColor.toUpperCase() === "#FFFFFF"
+      ? rgba("#000000", compact ? 0.62 : 0.72)
+      : rgba("#FFFFFF", compact ? 0.22 : 0.28)
   const nearBlur = compact ? 6 : 10
   const farBlur = compact ? 14 : 26
   const nearOpacity = compact ? 0.18 + glowStrength * 0.18 : 0.22 + glowStrength * 0.24
@@ -46,9 +57,7 @@ function buildTextShadow(textColor: string, glowColor: string, glowStrength: num
   ].join(", ")
 }
 
-export function useAdaptiveTextAppearance({
-  appearance,
-}: AdaptiveTextOptions): AdaptiveTextResult {
+export function useAdaptiveTextAppearance({ appearance }: AdaptiveTextOptions): AdaptiveTextResult {
   const sampledColor = resolveStaticSample(appearance.background)
   const timerColor = appearance.timerColor
   const prePostColor = appearance.prePostColor
@@ -57,15 +66,20 @@ export function useAdaptiveTextAppearance({
     ? saturate(0.18, mix(0.55, timerColor, sampledColor))
     : timerColor
 
-  return useMemo(() => ({
-    timerColor,
-    prePostColor,
-    timerShadow: glowStrength > 0
-      ? buildTextShadow(timerColor, resolvedGlowColor, glowStrength, false)
-      : `0 1px 3px ${timerColor.toUpperCase() === "#FFFFFF" ? rgba("#000000", 0.72) : rgba("#FFFFFF", 0.28)}`,
-    subShadow: glowStrength > 0
-      ? buildTextShadow(prePostColor, resolvedGlowColor, glowStrength * 0.72, true)
-      : `0 1px 2px ${prePostColor.toUpperCase() === "#FFFFFF" ? rgba("#000000", 0.58) : rgba("#FFFFFF", 0.22)}`,
-    sampledColor,
-  }), [timerColor, prePostColor, glowStrength, resolvedGlowColor, sampledColor])
+  return useMemo(
+    () => ({
+      timerColor,
+      prePostColor,
+      timerShadow:
+        glowStrength > 0
+          ? buildTextShadow(timerColor, resolvedGlowColor, glowStrength, false)
+          : `0 1px 3px ${timerColor.toUpperCase() === "#FFFFFF" ? rgba("#000000", 0.72) : rgba("#FFFFFF", 0.28)}`,
+      subShadow:
+        glowStrength > 0
+          ? buildTextShadow(prePostColor, resolvedGlowColor, glowStrength * 0.72, true)
+          : `0 1px 2px ${prePostColor.toUpperCase() === "#FFFFFF" ? rgba("#000000", 0.58) : rgba("#FFFFFF", 0.22)}`,
+      sampledColor,
+    }),
+    [timerColor, prePostColor, glowStrength, resolvedGlowColor, sampledColor]
+  )
 }

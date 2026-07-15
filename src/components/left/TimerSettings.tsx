@@ -1,10 +1,10 @@
-import { useRef, useState } from "react"
-import { Save, Trash2, Upload } from "lucide-react"
 import { Button, ScrollArea } from "@lumen-media/module-sdk/ui"
+import { Save, Trash2, Upload } from "lucide-react"
+import { type RefObject, useRef, useState } from "react"
+import { useEventListener } from "usehooks-ts"
+import { t } from "../../i18n.js"
 import { useCountdownStore } from "../../store.js"
 import type { HotkeyAction } from "../../types.js"
-import { t } from "../../i18n.js"
-import { useEventListener } from "usehooks-ts"
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -47,31 +47,40 @@ export function TimerSettings() {
   const [presetName, setPresetName] = useState("")
   const [recordingHotkey, setRecordingHotkey] = useState<HotkeyAction | null>(null)
 
-  useEventListener("keydown", (event) => {
-    if (!recordingHotkey) return
-    event.preventDefault()
-    event.stopPropagation()
-    const parts: string[] = []
-    if (event.ctrlKey) parts.push("Ctrl")
-    if (event.shiftKey) parts.push("Shift")
-    const code = event.code === "Space" ? "Space" : event.code.startsWith("Key") ? event.code : event.code
-    parts.push(code)
+  useEventListener(
+    "keydown",
+    (event) => {
+      if (!recordingHotkey) return
+      event.preventDefault()
+      event.stopPropagation()
+      const parts: string[] = []
+      if (event.ctrlKey) parts.push("Ctrl")
+      if (event.shiftKey) parts.push("Shift")
+      const code =
+        event.code === "Space" ? "Space" : event.code.startsWith("Key") ? event.code : event.code
+      parts.push(code)
 
-    const nextHotkey = parts.join("+")
-    const previousHotkey = config.hotkeys[recordingHotkey]
-    const duplicateAction = HOTKEY_ACTIONS.find(({ action }) => (
-      action !== recordingHotkey && config.hotkeys[action] === nextHotkey
-    ))?.action
+      const nextHotkey = parts.join("+")
+      const previousHotkey = config.hotkeys[recordingHotkey]
+      const duplicateAction = HOTKEY_ACTIONS.find(
+        ({ action }) => action !== recordingHotkey && config.hotkeys[action] === nextHotkey
+      )?.action
 
-    updateHotkeys({
-      [recordingHotkey]: nextHotkey,
-      ...(duplicateAction ? { [duplicateAction]: previousHotkey } : {}),
-    })
-    setRecordingHotkey(null)
-  }, rootRef)
+      updateHotkeys({
+        [recordingHotkey]: nextHotkey,
+        ...(duplicateAction ? { [duplicateAction]: previousHotkey } : {}),
+      })
+      setRecordingHotkey(null)
+    },
+    rootRef as RefObject<HTMLDivElement>
+  )
 
   return (
-    <div ref={rootRef} tabIndex={-1} className="flex flex-col gap-4 min-w-64 select-none outline-none">
+    <div
+      ref={rootRef}
+      tabIndex={-1}
+      className="flex flex-col gap-4 min-w-64 select-none outline-none"
+    >
       <div>
         <SectionLabel>{t("configure.section.timerPresets")}</SectionLabel>
         <div className="flex flex-col gap-2">
@@ -81,14 +90,22 @@ export function TimerSettings() {
               value={presetName}
               onChange={(e) => setPresetName(e.target.value)}
               placeholder={t("configure.timerPresets.namePlaceholder")}
-              onKeyDown={(e) => { if (e.key === "Enter") { saveTimerPreset(presetName || `Preset ${timerPresets.length + 1}`); setPresetName("") } }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  saveTimerPreset(presetName || `Preset ${timerPresets.length + 1}`)
+                  setPresetName("")
+                }
+              }}
               className="flex-1 bg-background border border-border rounded-lg px-2 py-1.5 text-xs outline-none text-foreground placeholder:text-muted-foreground"
             />
             <Button
               variant="outline"
               size="xs"
               disabled={timerRunning}
-              onClick={() => { saveTimerPreset(presetName || `Preset ${timerPresets.length + 1}`); setPresetName("") }}
+              onClick={() => {
+                saveTimerPreset(presetName || `Preset ${timerPresets.length + 1}`)
+                setPresetName("")
+              }}
               className="shrink-0 h-auto"
             >
               <Save size={11} />
@@ -96,12 +113,17 @@ export function TimerSettings() {
             </Button>
           </div>
           {timerPresets.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-2">{t("configure.timerPresets.noPresets")}</p>
+            <p className="text-xs text-muted-foreground text-center py-2">
+              {t("configure.timerPresets.noPresets")}
+            </p>
           ) : (
             <ScrollArea className="flex flex-col max-h-40">
               <div className="flex flex-col flex-1 gap-1 pr-3">
                 {timerPresets.map((p) => (
-                  <div key={p.id} className="flex items-center gap-1.5 bg-background rounded-lg px-2 py-1.5">
+                  <div
+                    key={p.id}
+                    className="flex items-center gap-1.5 bg-background rounded-lg px-2 py-1.5"
+                  >
                     <span className="flex-1 text-xs text-foreground truncate">{p.name}</span>
                     <button
                       type="button"
@@ -134,7 +156,9 @@ export function TimerSettings() {
           <input
             type="text"
             value={config.behavior.webhookUrl}
-            onChange={(event) => setConfig({ behavior: { ...config.behavior, webhookUrl: event.target.value } })}
+            onChange={(event) =>
+              setConfig({ behavior: { ...config.behavior, webhookUrl: event.target.value } })
+            }
             placeholder="https://example.com/webhook"
             className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs outline-none text-foreground placeholder:text-muted-foreground"
           />
@@ -145,17 +169,22 @@ export function TimerSettings() {
         <SectionLabel>{t("configure.section.hotkeys")}</SectionLabel>
         <div className="flex flex-col gap-1.5">
           {HOTKEY_ACTIONS.map(({ action, labelKey }) => (
-            <div key={action} className="flex items-center gap-2 bg-background rounded-lg px-2 py-1.5">
+            <div
+              key={action}
+              className="flex items-center gap-2 bg-background rounded-lg px-2 py-1.5"
+            >
               <span className="flex-1 text-xs text-foreground">{t(labelKey)}</span>
               <button
                 type="button"
                 onClick={() => setRecordingHotkey(recordingHotkey === action ? null : action)}
                 className={`text-xs font-mono font-semibold px-2 py-0.5 rounded border bg-transparent cursor-pointer transition-colors min-w-[4rem] text-center ${recordingHotkey === action
-                  ? "border-primary text-primary"
-                  : "border-border text-muted-foreground hover:text-foreground"
+                    ? "border-primary text-primary"
+                    : "border-border text-muted-foreground hover:text-foreground"
                   }`}
               >
-                {recordingHotkey === action ? t("configure.hotkeys.record") : formatHotkey(config.hotkeys[action])}
+                {recordingHotkey === action
+                  ? t("configure.hotkeys.record")
+                  : formatHotkey(config.hotkeys[action])}
               </button>
             </div>
           ))}

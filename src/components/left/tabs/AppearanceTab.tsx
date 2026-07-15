@@ -2,14 +2,32 @@ import { useEffect, useRef, useState } from "react"
 import { useEventListener } from "usehooks-ts"
 import { HexColorPicker } from "react-colorful"
 import { Info, MoveDownLeft, MoveDownRight, MoveUpLeft, MoveUpRight } from "lucide-react"
-import { Combobox, HoverCard, Input, Popover, Select, Slider, Switch, ToggleGroup } from "@lumen-media/module-sdk/ui"
+import {
+  Combobox,
+  HoverCard,
+  Input,
+  Popover,
+  Select,
+  Slider,
+  Switch,
+  ToggleGroup,
+} from "@lumen-media/module-sdk/ui"
 import { cn } from "../../../lib/utils.js"
 import { useLocalFonts } from "../../../hooks/useLocalFonts.js"
 import { t } from "../../../i18n.js"
 import { useCountdownStore } from "../../../store.js"
 import type { BackgroundConfig, CountdownConfig } from "../../../types.js"
 
-const FONT_WEIGHTS = ["Thin", "Light", "Regular", "Medium", "Semi Bold", "Bold", "Extra Bold", "Black"]
+const FONT_WEIGHTS = [
+  "Thin",
+  "Light",
+  "Regular",
+  "Medium",
+  "Semi Bold",
+  "Bold",
+  "Extra Bold",
+  "Black",
+]
 const BG_TYPES = ["solid", "gradient"] as const
 
 type EditableBgType = (typeof BG_TYPES)[number]
@@ -31,7 +49,10 @@ function InfoHint({ children }: { children: React.ReactNode }) {
       <HoverCard.HoverCardTrigger className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground">
         <Info size={13} />
       </HoverCard.HoverCardTrigger>
-      <HoverCard.HoverCardContent className="w-64 p-3 text-xs leading-relaxed text-muted-foreground" align="start">
+      <HoverCard.HoverCardContent
+        className="w-64 p-3 text-xs leading-relaxed text-muted-foreground"
+        align="start"
+      >
         {children}
       </HoverCard.HoverCardContent>
     </HoverCard>
@@ -175,7 +196,13 @@ function SliderRow({
         <span>{label}</span>
         <span>{format(value)}</span>
       </div>
-      <Slider value={[value]} min={min} max={max} step={step} onValueChange={([v]) => onChange(v)} />
+      <Slider
+        value={[value]}
+        min={min}
+        max={max}
+        step={step}
+        onValueChange={([v]) => onChange(v)}
+      />
     </div>
   )
 }
@@ -255,8 +282,16 @@ function GradientEditor({ value, onChange }: { value: string; onChange: (v: stri
 
   return (
     <div className="flex flex-col gap-2">
-      <ColorRow label={t("appearance.background.color1")} color={color1} onChange={(c) => update({ color1: c })} />
-      <ColorRow label={t("appearance.background.color2")} color={color2} onChange={(c) => update({ color2: c })} />
+      <ColorRow
+        label={t("appearance.background.color1")}
+        color={color1}
+        onChange={(c) => update({ color1: c })}
+      />
+      <ColorRow
+        label={t("appearance.background.color2")}
+        color={color2}
+        onChange={(c) => update({ color2: c })}
+      />
       <div className="flex items-center justify-between rounded-md bg-background px-3 py-2.5">
         <span className="text-sm text-foreground">{t("appearance.background.angle")}</span>
         <RotationKnob value={angle} onChange={(v) => update({ angle: v })} />
@@ -277,7 +312,10 @@ export function AppearanceTab() {
       <div>
         <SectionLabel>{t("appearance.section.typography")}</SectionLabel>
         <div className="flex flex-col gap-2">
-          <Combobox value={appearance.font} onValueChange={(value) => updateAppearance({ font: value })}>
+          <Combobox
+            value={appearance.font}
+            onValueChange={(value) => updateAppearance({ font: value })}
+          >
             <Combobox.ComboboxInput
               placeholder={t("appearance.searchFont")}
               className="bg-background px-1 dark:bg-background"
@@ -295,7 +333,10 @@ export function AppearanceTab() {
           </Combobox>
 
           <div className="flex gap-2">
-            <Select value={appearance.fontWeight} onValueChange={(value) => updateAppearance({ fontWeight: value })}>
+            <Select
+              value={appearance.fontWeight}
+              onValueChange={(value) => updateAppearance({ fontWeight: value })}
+            >
               <Select.SelectTrigger className="flex-1 bg-background dark:bg-background">
                 <Select.SelectValue>{appearance.fontWeight}</Select.SelectValue>
               </Select.SelectTrigger>
@@ -308,7 +349,10 @@ export function AppearanceTab() {
               </Select.SelectContent>
             </Select>
 
-            <FontSizeInput value={appearance.fontSize} onChange={(value) => updateAppearance({ fontSize: value })} />
+            <FontSizeInput
+              value={appearance.fontSize}
+              onChange={(value) => updateAppearance({ fontSize: value })}
+            />
           </div>
         </div>
       </div>
@@ -352,7 +396,10 @@ export function AppearanceTab() {
               <ToggleGroup.ToggleGroupItem
                 key={bgLayerType}
                 value={bgLayerType}
-                className={cn("flex-1 text-xs capitalize aria-pressed:bg-card", bgType === bgLayerType && "bg-card shadow-sm")}
+                className={cn(
+                  "flex-1 text-xs capitalize aria-pressed:bg-card",
+                  bgType === bgLayerType && "bg-card shadow-sm"
+                )}
               >
                 {t(`appearance.background.${bgLayerType}`)}
               </ToggleGroup.ToggleGroupItem>
@@ -368,7 +415,10 @@ export function AppearanceTab() {
           )}
 
           {bg.type === "gradient" && (
-            <GradientEditor value={bg.value} onChange={(value) => updateAppearance({ background: { ...bg, value } })} />
+            <GradientEditor
+              value={bg.value}
+              onChange={(value) => updateAppearance({ background: { ...bg, value } })}
+            />
           )}
         </div>
       </div>
@@ -388,11 +438,15 @@ export function AppearanceTab() {
         <SectionLabel>{t("appearance.section.animations")}</SectionLabel>
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-2">
-            <span className="text-xs text-muted-foreground">{t("appearance.animation.digitTransition")}</span>
+            <span className="text-xs text-muted-foreground">
+              {t("appearance.animation.digitTransition")}
+            </span>
             <ToggleGroup
               value={[appearance.digitAnimation]}
               onValueChange={(values) => {
-                const value = values[values.length - 1] as CountdownConfig["appearance"]["digitAnimation"] | undefined
+                const value = values[values.length - 1] as
+                  | CountdownConfig["appearance"]["digitAnimation"]
+                  | undefined
                 if (value) updateAppearance({ digitAnimation: value })
               }}
               className="w-full rounded-lg bg-background p-1"
@@ -403,7 +457,7 @@ export function AppearanceTab() {
                   value={anim}
                   className={cn(
                     "flex-1 text-xs capitalize aria-pressed:bg-card",
-                    appearance.digitAnimation === anim && "bg-card shadow-sm",
+                    appearance.digitAnimation === anim && "bg-card shadow-sm"
                   )}
                 >
                   {t(`appearance.animation.${anim}`)}
@@ -414,12 +468,20 @@ export function AppearanceTab() {
 
           <div className="flex items-center justify-between rounded-md bg-background px-3 py-2.5">
             <span className="text-sm text-foreground">{t("appearance.animation.pulseEffect")}</span>
-            <Switch checked={appearance.pulseEffect} onCheckedChange={(checked) => updateAppearance({ pulseEffect: checked })} />
+            <Switch
+              checked={appearance.pulseEffect}
+              onCheckedChange={(checked) => updateAppearance({ pulseEffect: checked })}
+            />
           </div>
 
           <div className="flex items-center justify-between rounded-md bg-background px-3 py-2.5">
-            <span className="text-sm text-foreground">{t("appearance.animation.showProgressBar")}</span>
-            <Switch checked={appearance.showProgressBar} onCheckedChange={(checked) => updateAppearance({ showProgressBar: checked })} />
+            <span className="text-sm text-foreground">
+              {t("appearance.animation.showProgressBar")}
+            </span>
+            <Switch
+              checked={appearance.showProgressBar}
+              onCheckedChange={(checked) => updateAppearance({ showProgressBar: checked })}
+            />
           </div>
 
           {appearance.showProgressBar && (
@@ -433,31 +495,35 @@ export function AppearanceTab() {
       </div>
 
       <div>
-        <SectionLabel
-          info={(
-            <InfoHint>{t("appearance.displayMode.info")}</InfoHint>
-          )}
-        >
+        <SectionLabel info={<InfoHint>{t("appearance.displayMode.info")}</InfoHint>}>
           {t("appearance.section.displayMode")}
         </SectionLabel>
         <div className="flex flex-col gap-2">
           <ToggleGroup
             value={[appearance.overlayMode]}
             onValueChange={(values) => {
-              const value = values[values.length - 1] as CountdownConfig["appearance"]["overlayMode"] | undefined
+              const value = values[values.length - 1] as
+                | CountdownConfig["appearance"]["overlayMode"]
+                | undefined
               if (value) updateAppearance({ overlayMode: value })
             }}
             className="w-full rounded-lg bg-background p-1"
           >
             <ToggleGroup.ToggleGroupItem
               value="fullscreen"
-              className={cn("flex-1 text-xs aria-pressed:bg-card", appearance.overlayMode === "fullscreen" && "bg-card shadow-sm")}
+              className={cn(
+                "flex-1 text-xs aria-pressed:bg-card",
+                appearance.overlayMode === "fullscreen" && "bg-card shadow-sm"
+              )}
             >
               {t("appearance.displayMode.fullscreen")}
             </ToggleGroup.ToggleGroupItem>
             <ToggleGroup.ToggleGroupItem
               value="corner"
-              className={cn("flex-1 text-xs aria-pressed:bg-card", appearance.overlayMode === "corner" && "bg-card shadow-sm")}
+              className={cn(
+                "flex-1 text-xs aria-pressed:bg-card",
+                appearance.overlayMode === "corner" && "bg-card shadow-sm"
+              )}
             >
               {t("appearance.displayMode.corner")}
             </ToggleGroup.ToggleGroupItem>
@@ -467,27 +533,49 @@ export function AppearanceTab() {
             <ToggleGroup
               value={[appearance.cornerPosition]}
               onValueChange={(values) => {
-                const value = values[values.length - 1] as CountdownConfig["appearance"]["cornerPosition"] | undefined
+                const value = values[values.length - 1] as
+                  | CountdownConfig["appearance"]["cornerPosition"]
+                  | undefined
                 if (value) updateAppearance({ cornerPosition: value })
               }}
               className="grid w-full grid-cols-2 gap-1 rounded-lg bg-background p-1"
             >
-              {(["top-left", "top-right", "bottom-left", "bottom-right"] as const).map((position) => (
-                <ToggleGroup.ToggleGroupItem
-                  key={position}
-                  value={position}
-                  className={cn(
-                    "rounded-md py-1.5 text-xs aria-pressed:bg-card",
-                    appearance.cornerPosition === position && "bg-card shadow-sm",
-                    position === "top-left" || position === "bottom-left" ? "justify-start pl-3" : "justify-end pr-3",
-                  )}
-                >
-                  {position === "top-left" && <><MoveUpLeft size={13} /> {t("appearance.displayMode.topLeft")}</>}
-                  {position === "top-right" && <>{t("appearance.displayMode.topRight")} <MoveUpRight size={13} /></>}
-                  {position === "bottom-left" && <><MoveDownLeft size={13} /> {t("appearance.displayMode.bottomLeft")}</>}
-                  {position === "bottom-right" && <>{t("appearance.displayMode.bottomRight")} <MoveDownRight size={13} /></>}
-                </ToggleGroup.ToggleGroupItem>
-              ))}
+              {(["top-left", "top-right", "bottom-left", "bottom-right"] as const).map(
+                (position) => (
+                  <ToggleGroup.ToggleGroupItem
+                    key={position}
+                    value={position}
+                    className={cn(
+                      "rounded-md py-1.5 text-xs aria-pressed:bg-card",
+                      appearance.cornerPosition === position && "bg-card shadow-sm",
+                      position === "top-left" || position === "bottom-left"
+                        ? "justify-start pl-3"
+                        : "justify-end pr-3"
+                    )}
+                  >
+                    {position === "top-left" && (
+                      <>
+                        <MoveUpLeft size={13} /> {t("appearance.displayMode.topLeft")}
+                      </>
+                    )}
+                    {position === "top-right" && (
+                      <>
+                        {t("appearance.displayMode.topRight")} <MoveUpRight size={13} />
+                      </>
+                    )}
+                    {position === "bottom-left" && (
+                      <>
+                        <MoveDownLeft size={13} /> {t("appearance.displayMode.bottomLeft")}
+                      </>
+                    )}
+                    {position === "bottom-right" && (
+                      <>
+                        {t("appearance.displayMode.bottomRight")} <MoveDownRight size={13} />
+                      </>
+                    )}
+                  </ToggleGroup.ToggleGroupItem>
+                )
+              )}
             </ToggleGroup>
           )}
         </div>

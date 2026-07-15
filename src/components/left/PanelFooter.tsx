@@ -88,12 +88,22 @@ export function PanelFooter() {
         <Button
           variant="ghost"
           className="text-xs"
-          onClick={isOverlayActive ? clearOverlay : isPresenterActive ? clearPresenter : sendToPresenter}
+          onClick={
+            isOverlayActive ? clearOverlay : isPresenterActive ? clearPresenter : sendToPresenter
+          }
         >
           {isOverlayActive || isPresenterActive ? <EyeOff size={13} /> : <Eye size={13} />}
-          {isOverlayActive ? t("footer.closeOverlay") : isPresenterActive ? t("footer.exit") : t("footer.preview")}
+          {isOverlayActive
+            ? t("footer.closeOverlay")
+            : isPresenterActive
+              ? t("footer.exit")
+              : t("footer.preview")}
         </Button>
-        <Button variant="ghost" className="text-xs" onClick={isOverlayActive ? clearOverlay : sendToOverlay}>
+        <Button
+          variant="ghost"
+          className="text-xs"
+          onClick={isOverlayActive ? clearOverlay : sendToOverlay}
+        >
           <ExternalLink size={13} />
           {isOverlayActive ? t("footer.overlayActive") : t("footer.overlay")}
         </Button>

@@ -1,24 +1,45 @@
 import { create } from "zustand"
-import { TimerEngine, projectionProps } from "./lib/timer-engine.js"
+import { TimerEngine, projectionProps, type TimerEngineStoreAPI } from "./lib/timer-engine.js"
 import { DEFAULT_WARNING_SOUND_ID } from "./lib/sounds.js"
 import { persistentBackgroundSrc, type PickedBackground } from "./lib/persist-background.js"
 import { t } from "./i18n.js"
-import type { BackgroundConfig, BackgroundPreset, CountdownConfig, CountdownState, EndAction, HotkeyAction, HotkeyConfig, TimerPreset } from "./types.js"
+import type {
+  BackgroundConfig,
+  BackgroundPreset,
+  CountdownConfig,
+  CountdownState,
+  EndAction,
+  HotkeyAction,
+  HotkeyConfig,
+  TimerPreset,
+} from "./types.js"
 
-type PresenterAPI = { project: (viewId: string, props?: unknown) => void; clear: () => void; onStateChange?: (handler: (state: "idle" | "live") => void) => { dispose(): void } }
-type OverlayAPI = { project: (viewId: string, props?: unknown) => void; clear: () => void; onStateChange?: (handler: (state: "idle" | "live") => void) => { dispose(): void } }
+type PresenterAPI = {
+  project: (viewId: string, props?: unknown) => void
+  clear: () => void
+  onStateChange?: (handler: (state: "idle" | "live") => void) => { dispose(): void }
+}
+type OverlayAPI = {
+  project: (viewId: string, props?: unknown) => void
+  clear: () => void
+  onStateChange?: (handler: (state: "idle" | "live") => void) => { dispose(): void }
+}
 type QueueAPI = { next: () => void; previous: () => void; goTo: (index: number) => void }
 type PlayerAPI = { nextSlide: () => void; play: (itemId: string) => void }
 type LibraryItem = { id: string; title: string; type: string; thumbnail?: string }
 type LibraryLookupItem = { id: string; path: string; name: string; type: string }
-type LibraryLookupAPI = { list: (type?: string, query?: string) => Promise<LibraryLookupItem[]>; get: (id: string) => Promise<LibraryLookupItem | null> }
-
-type ProfileBackground = CountdownStore["profileBackground"]
+type LibraryLookupAPI = {
+  list: (type?: string, query?: string) => Promise<LibraryLookupItem[]>
+  get: (id: string) => Promise<LibraryLookupItem | null>
+}
 
 const PRESENTER_PANEL_ID = "countdown.presenter"
 
-const PRESET_CONFIGS: Record<Exclude<BackgroundPreset, "custom">, Pick<CountdownConfig["appearance"], "background" | "timerColor" | "prePostColor">> = {
-  "default": {
+const PRESET_CONFIGS: Record<
+  Exclude<BackgroundPreset, "custom">,
+  Pick<CountdownConfig["appearance"], "background" | "timerColor" | "prePostColor">
+> = {
+  default: {
     background: { type: "profile" },
     timerColor: "#FFFFFF",
     prePostColor: "#FFFFFF",
@@ -104,7 +125,9 @@ type CountdownStore = {
   _openBackgroundPicker: ((cb: (bg: PickedBackground) => void) => void) | null
   setOpenBackgroundPicker: (fn: (cb: (bg: PickedBackground) => void) => void) => void
   profileBackground: { src: string; thumb?: string; type: "theme" | "image" | "video" } | null
-  setProfileBackground: (bg: { src: string; thumb?: string; type: "theme" | "image" | "video" } | null) => void
+  setProfileBackground: (
+    bg: { src: string; thumb?: string; type: "theme" | "image" | "video" } | null
+  ) => void
   _hostFs: { read: (path: string) => Promise<Uint8Array> } | null
   setHostFs: (fs: { read: (path: string) => Promise<Uint8Array> }) => void
   _presenter: PresenterAPI | null
@@ -137,7 +160,10 @@ type CountdownStore = {
 }
 
 export const useCountdownStore = create<CountdownStore>((set, get) => {
-  const engine = new TimerEngine({ get, set: set as (fn: (state: Record<string, unknown>) => Record<string, unknown>) => void })
+  const engine = new TimerEngine({
+    get,
+    set: set as unknown as TimerEngineStoreAPI["set"],
+  })
 
   return {
     config: DEFAULT_CONFIG,
@@ -186,17 +212,43 @@ export const useCountdownStore = create<CountdownStore>((set, get) => {
     setBus: (bus) => set({ _bus: bus }),
 
     sendToPresenter: () => {
-      const { _presenter, _overlay, timerState, config, isOverlayActive, profileBackground, _isExternalBackdropActive } = get()
+      const {
+        _presenter,
+        _overlay,
+        timerState,
+        config,
+        isOverlayActive,
+        profileBackground,
+        _isExternalBackdropActive,
+      } = get()
       const externalBackdropActive = _isExternalBackdropActive?.() ?? false
       if (isOverlayActive) {
         if (!_overlay) return
-        _overlay.project(PRESENTER_PANEL_ID, projectionProps(config, timerState, profileBackground, externalBackdropActive))
-        engine.emitTick(timerState.remainingSeconds, timerState.status, config, profileBackground, externalBackdropActive)
+        _overlay.project(
+          PRESENTER_PANEL_ID,
+          projectionProps(config, timerState, profileBackground, externalBackdropActive)
+        )
+        engine.emitTick(
+          timerState.remainingSeconds,
+          timerState.status,
+          config,
+          profileBackground,
+          externalBackdropActive
+        )
         return
       }
-      _presenter?.project(PRESENTER_PANEL_ID, projectionProps(config, timerState, profileBackground, externalBackdropActive))
+      _presenter?.project(
+        PRESENTER_PANEL_ID,
+        projectionProps(config, timerState, profileBackground, externalBackdropActive)
+      )
       set({ isPresenterActive: true })
-      engine.emitTick(timerState.remainingSeconds, timerState.status, config, profileBackground, externalBackdropActive)
+      engine.emitTick(
+        timerState.remainingSeconds,
+        timerState.status,
+        config,
+        profileBackground,
+        externalBackdropActive
+      )
     },
 
     clearPresenter: () => {
@@ -209,9 +261,18 @@ export const useCountdownStore = create<CountdownStore>((set, get) => {
       const { _overlay, timerState, config, profileBackground, _isExternalBackdropActive } = get()
       const externalBackdropActive = _isExternalBackdropActive?.() ?? false
       if (!_overlay) return
-      _overlay.project(PRESENTER_PANEL_ID, projectionProps(config, timerState, profileBackground, externalBackdropActive))
+      _overlay.project(
+        PRESENTER_PANEL_ID,
+        projectionProps(config, timerState, profileBackground, externalBackdropActive)
+      )
       set({ isOverlayActive: true })
-      engine.emitTick(timerState.remainingSeconds, timerState.status, config, profileBackground, externalBackdropActive)
+      engine.emitTick(
+        timerState.remainingSeconds,
+        timerState.status,
+        config,
+        profileBackground,
+        externalBackdropActive
+      )
     },
 
     clearOverlay: () => {
@@ -223,7 +284,13 @@ export const useCountdownStore = create<CountdownStore>((set, get) => {
     rebroadcast: () => {
       const { timerState, config, profileBackground, _isExternalBackdropActive } = get()
       const externalBackdropActive = _isExternalBackdropActive?.() ?? false
-      engine.emitTick(timerState.remainingSeconds, timerState.status, config, profileBackground, externalBackdropActive)
+      engine.emitTick(
+        timerState.remainingSeconds,
+        timerState.status,
+        config,
+        profileBackground,
+        externalBackdropActive
+      )
     },
 
     setConfig: (update) =>
@@ -231,10 +298,14 @@ export const useCountdownStore = create<CountdownStore>((set, get) => {
         const merged = {
           ...s.config,
           ...update,
-          appearance: update.appearance ? { ...s.config.appearance, ...update.appearance } : s.config.appearance,
+          appearance: update.appearance
+            ? { ...s.config.appearance, ...update.appearance }
+            : s.config.appearance,
           hotkeys: update.hotkeys ? { ...s.config.hotkeys, ...update.hotkeys } : s.config.hotkeys,
           actions: update.actions ? { ...s.config.actions, ...update.actions } : s.config.actions,
-          behavior: update.behavior ? { ...s.config.behavior, ...update.behavior } : s.config.behavior,
+          behavior: update.behavior
+            ? { ...s.config.behavior, ...update.behavior }
+            : s.config.behavior,
         }
         if ("countUp" in update && update.countUp) merged.allowNegative = false
         if ("allowNegative" in update && update.allowNegative) {
@@ -270,9 +341,8 @@ export const useCountdownStore = create<CountdownStore>((set, get) => {
         if (!_openBackgroundPicker) return
         _openBackgroundPicker((bg) => {
           const applyBackground = (src: string) => {
-            const background: BackgroundConfig = bg.type === "video"
-              ? { type: "video", value: src }
-              : { type: "image", value: src }
+            const background: BackgroundConfig =
+              bg.type === "video" ? { type: "video", value: src } : { type: "image", value: src }
             set((s) => ({
               config: {
                 ...s.config,

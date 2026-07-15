@@ -2,7 +2,15 @@ import { memo, useEffect, useRef, useState } from "react"
 import { animate } from "animejs"
 import { formatTime } from "../lib/format-time.js"
 
-function AnimatedChar({ char, animation, skip }: { char: string; animation: string; skip: boolean }) {
+function AnimatedChar({
+  char,
+  animation,
+  skip,
+}: {
+  char: string
+  animation: string
+  skip: boolean
+}) {
   const ref = useRef<HTMLSpanElement>(null)
   const prevRef = useRef(char)
   const lastAnimRef = useRef<ReturnType<typeof animate> | null>(null)
@@ -49,7 +57,12 @@ function AnimatedChar({ char, animation, skip }: { char: string; animation: stri
       })
     } else if (animation === "blur") {
       setDisplayChar(char)
-      animate(el, { filter: ["blur(4px)", "blur(0px)"], opacity: [0, 1], duration: 250, ease: "outSine" })
+      animate(el, {
+        filter: ["blur(4px)", "blur(0px)"],
+        opacity: [0, 1],
+        duration: 250,
+        ease: "outSine",
+      })
     } else {
       setDisplayChar(char)
       animate(el, { scale: [0.7, 1], opacity: [0.3, 1], duration: 250, ease: "outBack" })
@@ -98,7 +111,9 @@ export const DigitDisplay = memo(function DigitDisplay({
       loop: true,
       ease: "inOutSine",
     })
-    return () => { anim.cancel() }
+    return () => {
+      anim.cancel()
+    }
   }, [pulseEffect])
 
   return (

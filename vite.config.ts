@@ -1,9 +1,9 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
-import tailwindcss from "@tailwindcss/postcss";
-import { defineConfig } from "vite";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { resolve } from "node:path"
+import tailwindcss from "@tailwindcss/postcss"
+import { defineConfig } from "vite"
 
-const HOST_EXTERNALS = ["react", "react-dom", "@lumen-media/ui", "@lumen-media/module-sdk"];
+const HOST_EXTERNALS = ["react", "react-dom", "@lumen-media/ui", "@lumen-media/module-sdk"]
 
 export default defineConfig({
   css: {
@@ -15,18 +15,21 @@ export default defineConfig({
     {
       name: "lumen-module-assets",
       closeBundle() {
-        const cwd = process.cwd();
-        const out = resolve(cwd, "dist");
-        mkdirSync(out, { recursive: true });
+        const cwd = process.cwd()
+        const out = resolve(cwd, "dist")
+        mkdirSync(out, { recursive: true })
 
-        const manifest = JSON.parse(readFileSync(resolve(cwd, "manifest.json"), "utf8"));
-        const pkgPath = resolve(cwd, "package.json");
+        const manifest = JSON.parse(readFileSync(resolve(cwd, "manifest.json"), "utf8"))
+        const pkgPath = resolve(cwd, "package.json")
         if (existsSync(pkgPath)) {
-          const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as { version?: string; description?: string };
-          if (pkg.version) manifest.version = pkg.version;
-          if (pkg.description) manifest.description = pkg.description;
+          const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as {
+            version?: string
+            description?: string
+          }
+          if (pkg.version) manifest.version = pkg.version
+          if (pkg.description) manifest.description = pkg.description
         }
-        writeFileSync(resolve(out, "manifest.json"), JSON.stringify(manifest, null, 2));
+        writeFileSync(resolve(out, "manifest.json"), JSON.stringify(manifest, null, 2))
       },
     },
   ],
@@ -37,8 +40,7 @@ export default defineConfig({
       fileName: () => "main.js",
     },
     rollupOptions: {
-      external: (id: string) =>
-        HOST_EXTERNALS.some((e) => id === e || id.startsWith(`${e}/`)),
+      external: (id: string) => HOST_EXTERNALS.some((e) => id === e || id.startsWith(`${e}/`)),
     },
     sourcemap: true,
     emptyOutDir: true,
@@ -51,4 +53,4 @@ export default defineConfig({
     jsxFragment: "React.Fragment",
     jsxInject: "import React from 'react'",
   },
-});
+})

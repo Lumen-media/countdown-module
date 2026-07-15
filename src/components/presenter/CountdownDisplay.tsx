@@ -46,25 +46,36 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
       }
       setTick(payload)
     })
-    emit("countdown:display-ready").catch((err) => console.warn("[countdown-module] display ready", err))
+    emit("countdown:display-ready").catch((err) =>
+      console.warn("[countdown-module] display ready", err)
+    )
     return () => {
-      unlistenPromise.then((dispose) => void dispose()).catch((err) => console.warn("[countdown-module] unlisten", err))
+      unlistenPromise
+        .then((dispose) => void dispose())
+        .catch((err) => console.warn("[countdown-module] unlisten", err))
     }
   }, [])
 
   const config = tick?.config ?? cachedConfigRef.current
 
   if (!tick || !config) {
-    return <div data-countdown-stage style={{ width: "100%", height: "100%", background: "black" }} />
+    return (
+      <div data-countdown-stage style={{ width: "100%", height: "100%", background: "black" }} />
+    )
   }
 
   const { remaining, cornerActive, renderConfiguredBackground } = tick
   const { appearance, preText, postText } = config
   const bgStyle = renderConfiguredBackground ? bgToStyle(config) : {}
+  // biome-ignore lint/correctness/useHookAtTopLevel: the display cannot derive appearance until a tick/config exists.
   const { timerColor, prePostColor, timerShadow, subShadow } = useAdaptiveTextAppearance({
     appearance,
   })
-  const subColor = `${prePostColor ?? "#ffffff"}${Math.round((appearance.prePostOpacity ?? 0.8) * 255).toString(16).padStart(2, "0")}`
+  const subColor = `${prePostColor ?? "#ffffff"}${Math.round(
+    (appearance.prePostOpacity ?? 0.8) * 255
+  )
+    .toString(16)
+    .padStart(2, "0")}`
 
   return (
     <div
@@ -77,10 +88,35 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
       }}
     >
       {renderConfiguredBackground && !imgError && appearance.background.type === "image" && (
-        <img src={appearance.background.value} alt="" decoding="async" onError={() => setImgError(true)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+        <img
+          src={appearance.background.value}
+          alt=""
+          decoding="async"
+          onError={() => setImgError(true)}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+          }}
+        />
       )}
       {renderConfiguredBackground && appearance.background.type === "video" && (
-        <video src={appearance.background.value} autoPlay loop muted playsInline style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+        <video
+          src={appearance.background.value}
+          autoPlay
+          loop
+          muted
+          playsInline
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+          }}
+        />
       )}
 
       <div
@@ -123,33 +159,36 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
             justifyContent: "center",
           }}
         >
-          {appearance.showProgressBar && (() => {
-            const isFlipClock = appearance.digitAnimation === "flip"
-            const ringSize = cornerActive
-              ? (isFlipClock ? 118 : 90)
-              : Math.max(appearance.fontSize * (isFlipClock ? 4.6 : 3.5), 200)
-            return (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                  width: ringSize,
-                  height: ringSize,
-                  pointerEvents: "none",
-                  zIndex: 0,
-                }}
-              >
-                <CircularProgress
-                  remaining={remaining}
-                  total={config.totalSeconds}
-                  color={appearance.progressBarColor}
-                  size={ringSize}
-                />
-              </div>
-            )
-          })()}
+          {appearance.showProgressBar &&
+            (() => {
+              const isFlipClock = appearance.digitAnimation === "flip"
+              const ringSize = cornerActive
+                ? isFlipClock
+                  ? 118
+                  : 90
+                : Math.max(appearance.fontSize * (isFlipClock ? 4.6 : 3.5), 200)
+              return (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    width: ringSize,
+                    height: ringSize,
+                    pointerEvents: "none",
+                    zIndex: 0,
+                  }}
+                >
+                  <CircularProgress
+                    remaining={remaining}
+                    total={config.totalSeconds}
+                    color={appearance.progressBarColor}
+                    size={ringSize}
+                  />
+                </div>
+              )
+            })()}
           <span
             style={{
               position: "relative",
@@ -157,7 +196,10 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
               fontSize: cornerActive ? "48px" : `${appearance.fontSize}px`,
               fontWeight: 900,
               color: timerColor,
-              fontFamily: appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font,
+              fontFamily:
+                appearance.font === "Inter (System Default)"
+                  ? "system-ui, sans-serif"
+                  : appearance.font,
               textShadow: timerShadow,
               lineHeight: 1,
               whiteSpace: "nowrap",
@@ -168,11 +210,19 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
               <FlipClockDisplay
                 seconds={remaining}
                 color={timerColor}
-                fontFamily={appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font}
+                fontFamily={
+                  appearance.font === "Inter (System Default)"
+                    ? "system-ui, sans-serif"
+                    : appearance.font
+                }
                 fontSize={cornerActive ? 48 : appearance.fontSize}
               />
             ) : (
-              <DigitDisplay seconds={remaining} animation={appearance.digitAnimation} pulseEffect={appearance.pulseEffect && remaining <= 60} />
+              <DigitDisplay
+                seconds={remaining}
+                animation={appearance.digitAnimation}
+                pulseEffect={appearance.pulseEffect && remaining <= 60}
+              />
             )}
           </span>
         </div>

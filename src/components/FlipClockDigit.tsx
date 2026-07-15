@@ -35,7 +35,9 @@ function HalfDigit({
         alignItems: "center",
         justifyContent: "center",
         color,
-        fontFamily: fontFamily.includes("system-ui") ? "\"Jersey 15\", Roboto Mono, Menlo, SFMono-Regular, Lucida Console, Consolas, monospace" : fontFamily,
+        fontFamily: fontFamily.includes("system-ui")
+          ? '"Jersey 15", Roboto Mono, Menlo, SFMono-Regular, Lucida Console, Consolas, monospace'
+          : fontFamily,
         fontSize,
         fontWeight: 400,
         fontVariantNumeric: "tabular-nums",
@@ -220,12 +222,32 @@ export function FlipClockDisplay({ seconds, color, fontFamily, fontSize }: FlipC
               color,
             }}
           >
-            <div style={{ width: colonSize, height: colonSize, borderRadius: "50%", background: color }} />
-            <div style={{ width: colonSize, height: colonSize, borderRadius: "50%", background: color }} />
+            <div
+              style={{
+                width: colonSize,
+                height: colonSize,
+                borderRadius: "50%",
+                background: color,
+              }}
+            />
+            <div
+              style={{
+                width: colonSize,
+                height: colonSize,
+                borderRadius: "50%",
+                background: color,
+              }}
+            />
           </div>
         ) : (
-          <FlipClockDigit key={i} digit={char} color={color} fontFamily={fontFamily} fontSize={fontSize} />
-        ),
+          <FlipClockDigit
+            key={i}
+            digit={char}
+            color={color}
+            fontFamily={fontFamily}
+            fontSize={fontSize}
+          />
+        )
       )}
     </div>
   )

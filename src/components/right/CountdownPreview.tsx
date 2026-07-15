@@ -74,7 +74,11 @@ export function CountdownPreview() {
 
   const timerFs = cornerActive ? 54 : Math.min(appearance.fontSize, 80)
   const textFs = cornerActive ? 14 : Math.round(timerFs * 0.2)
-  const subColor = `${prePostColor ?? "#ffffff"}${Math.round((appearance.prePostOpacity ?? 0.8) * 255).toString(16).padStart(2, "0")}`
+  const subColor = `${prePostColor ?? "#ffffff"}${Math.round(
+    (appearance.prePostOpacity ?? 0.8) * 255
+  )
+    .toString(16)
+    .padStart(2, "0")}`
   const bg = appearance.background
 
   return (
@@ -86,9 +90,21 @@ export function CountdownPreview() {
       {bg.type === "profile" ? (
         <ProfileBg />
       ) : bg.type === "image" ? (
-        <img src={bg.value} alt="" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
+        <img
+          src={bg.value}
+          alt=""
+          decoding="async"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
       ) : bg.type === "video" ? (
-        <video src={bg.value} autoPlay loop muted playsInline className="absolute inset-0 h-full w-full object-cover" />
+        <video
+          src={bg.value}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 h-full w-full object-cover"
+        />
       ) : null}
 
       <div
@@ -96,7 +112,8 @@ export function CountdownPreview() {
         style={{
           gap: cornerActive ? "6px" : "10px",
           width: cornerActive ? "min(24%, 180px)" : "min(70%, 620px)",
-          transition: "top 260ms ease, left 260ms ease, transform 260ms ease, gap 260ms ease, width 260ms ease",
+          transition:
+            "top 260ms ease, left 260ms ease, transform 260ms ease, gap 260ms ease, width 260ms ease",
           ...displayAnchor(appearance.cornerPosition, cornerActive),
         }}
       >
@@ -117,31 +134,37 @@ export function CountdownPreview() {
         <div
           className={`relative flex items-center justify-center ${cornerActive ? "my-0" : "my-1"}`}
         >
-          {appearance.showProgressBar && (() => {
-            const isFlipClock = appearance.digitAnimation === "flip"
-            const ringSize = cornerActive
-              ? (isFlipClock ? 132 : 110)
-              : Math.round(timerFs * (isFlipClock ? 5 : 4.2))
-            return (
-              <div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0"
-                style={{ width: ringSize, height: ringSize }}
-              >
-                <CircularProgress
-                  remaining={previewSeconds}
-                  total={config.totalSeconds}
-                  color={appearance.progressBarColor}
-                  size={ringSize}
-                />
-              </div>
-            )
-          })()}
+          {appearance.showProgressBar &&
+            (() => {
+              const isFlipClock = appearance.digitAnimation === "flip"
+              const ringSize = cornerActive
+                ? isFlipClock
+                  ? 132
+                  : 110
+                : Math.round(timerFs * (isFlipClock ? 5 : 4.2))
+              return (
+                <div
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0"
+                  style={{ width: ringSize, height: ringSize }}
+                >
+                  <CircularProgress
+                    remaining={previewSeconds}
+                    total={config.totalSeconds}
+                    color={appearance.progressBarColor}
+                    size={ringSize}
+                  />
+                </div>
+              )
+            })()}
           <span
             className="relative block text-center leading-none font-black whitespace-nowrap z-10"
             style={{
               fontSize: `${timerFs}px`,
               color: timerColor,
-              fontFamily: appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font,
+              fontFamily:
+                appearance.font === "Inter (System Default)"
+                  ? "system-ui, sans-serif"
+                  : appearance.font,
               textShadow: timerShadow,
               transition: "font-size 260ms ease",
             }}
@@ -150,11 +173,19 @@ export function CountdownPreview() {
               <FlipClockDisplay
                 seconds={previewSeconds}
                 color={timerColor}
-                fontFamily={appearance.font === "Inter (System Default)" ? "system-ui, sans-serif" : appearance.font}
+                fontFamily={
+                  appearance.font === "Inter (System Default)"
+                    ? "system-ui, sans-serif"
+                    : appearance.font
+                }
                 fontSize={timerFs}
               />
             ) : (
-              <DigitDisplay seconds={previewSeconds} animation={appearance.digitAnimation} pulseEffect={false} />
+              <DigitDisplay
+                seconds={previewSeconds}
+                animation={appearance.digitAnimation}
+                pulseEffect={false}
+              />
             )}
           </span>
         </div>

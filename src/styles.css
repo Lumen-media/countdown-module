@@ -10,9 +10,8 @@
   font-display: swap;
 }
 
-
 [data-countdown-ui],
-[data-countdown-ui] * ,
+[data-countdown-ui] *,
 [data-countdown-stage],
 [data-countdown-stage] * {
   -webkit-user-select: none;

@@ -9,22 +9,40 @@ import { CountdownHeaderStatus } from "./components/CountdownHeaderStatus.js"
 import { CountdownCommanderApp } from "./components/CountdownCommanderApp.js"
 import { CountdownDisplay } from "./components/presenter/CountdownDisplay.js"
 import { ErrorBoundary } from "./components/presenter/ErrorBoundary.js"
-import { QueueTriggerConfigComponent, CountdownSummary, type QueueTriggerConfig } from "./components/QueueTriggerConfig.js"
+import {
+  QueueTriggerConfigComponent,
+  CountdownSummary,
+  type QueueTriggerConfig,
+} from "./components/QueueTriggerConfig.js"
 import { useCountdownStore } from "./store.js"
 import type { CountdownConfig, TimerPreset } from "./types.js"
 import { setupI18n, t } from "./i18n.js"
 
 type HostExt = {
   fs?: { read: (path: string) => Promise<Uint8Array> }
-  library?: { list?: (type?: string, query?: string) => Promise<{ id: string; path: string; name: string; type: string }[]>; get?: (id: string) => Promise<{ id: string; path: string; name: string; type: string } | null> }
-  presentation?: { onStateChange?: (handler: (state: "idle" | "live") => void) => { dispose(): void } }
-  overlay?: { project: (viewId: string, props?: unknown) => void; clear: () => void; onStateChange?: (handler: (state: "idle" | "live") => void) => { dispose(): void } }
+  library?: {
+    list?: (
+      type?: string,
+      query?: string
+    ) => Promise<{ id: string; path: string; name: string; type: string }[]>
+    get?: (id: string) => Promise<{ id: string; path: string; name: string; type: string } | null>
+  }
+  presentation?: {
+    onStateChange?: (handler: (state: "idle" | "live") => void) => { dispose(): void }
+  }
+  overlay?: {
+    project: (viewId: string, props?: unknown) => void
+    clear: () => void
+    onStateChange?: (handler: (state: "idle" | "live") => void) => { dispose(): void }
+  }
   player?: { current?: () => unknown; state?: () => "playing" | "paused" | "idle" }
   lyrics?: { currentSlide?: () => unknown | null }
   sceneSwitcher?: (sceneId: string) => void
   overlayOpener?: (overlayId: string) => void
   themes: {
-    onDefaultBackgroundChange?: (handler: (bg: { src: string; type: string; name: string } | null) => void) => { dispose(): void }
+    onDefaultBackgroundChange?: (
+      handler: (bg: { src: string; type: string; name: string } | null) => void
+    ) => { dispose(): void }
   }
 }
 
@@ -48,7 +66,12 @@ export default class CountdownPlugin extends LumenPlugin {
     host.panels.add({
       id: "countdown.presenter",
       slot: "presenter.content",
-      component: (props) => createElement(ErrorBoundary, null, createElement(CountdownDisplay, props as ComponentProps<typeof CountdownDisplay>)),
+      component: (props) =>
+        createElement(
+          ErrorBoundary,
+          null,
+          createElement(CountdownDisplay, props as ComponentProps<typeof CountdownDisplay>)
+        ),
     })
 
     if (host.window === "presenter") return
@@ -67,9 +90,10 @@ export default class CountdownPlugin extends LumenPlugin {
     host.panels.add({
       id: "countdown.header-status",
       slot: "app.header.trailing" as never,
-      component: () => createElement(CountdownHeaderStatus, {
-        onOpen: () => host.ui.openDialog("countdown.dialog"),
-      }),
+      component: () =>
+        createElement(CountdownHeaderStatus, {
+          onOpen: () => host.ui.openDialog("countdown.dialog"),
+        }),
     })
 
     host.menus.addItem("tools", {
@@ -119,22 +143,28 @@ export default class CountdownPlugin extends LumenPlugin {
 
     useCountdownStore.getState().setBus(host.bus)
     useCountdownStore.getState().setPresenter(host.presentation)
-    const presentationState = (host.presentation as HostExt["presentation"])?.onStateChange?.((state) => {
-      if (state === "idle") useCountdownStore.getState().setPresenterActive(false)
-    })
+    const presentationState = (host.presentation as HostExt["presentation"])?.onStateChange?.(
+      (state) => {
+        if (state === "idle") useCountdownStore.getState().setPresenterActive(false)
+      }
+    )
     this.presentationStateDispose = presentationState ? () => presentationState.dispose() : null
     useCountdownStore.getState().setQueue(host.queue)
     useCountdownStore.getState().setPlayer(host.player)
 
     const hostExt = host as unknown as HostExt
     useCountdownStore.getState().setExternalBackdropActivityReader(() => {
-      const playerActive = Boolean(hostExt.player?.current?.()) && hostExt.player?.state?.() !== "idle"
+      const playerActive =
+        Boolean(hostExt.player?.current?.()) && hostExt.player?.state?.() !== "idle"
       const lyricsActive = Boolean(hostExt.lyrics?.currentSlide?.())
       return playerActive || lyricsActive
     })
 
     if (hostExt.fs) useCountdownStore.getState().setHostFs(hostExt.fs)
-    if (hostExt.library?.list && hostExt.library?.get) useCountdownStore.getState().setLibrary({ list: hostExt.library.list, get: hostExt.library.get })
+    if (hostExt.library?.list && hostExt.library?.get)
+      useCountdownStore
+        .getState()
+        .setLibrary({ list: hostExt.library.list, get: hostExt.library.get })
     if (hostExt.sceneSwitcher) useCountdownStore.getState().setSceneSwitcher(hostExt.sceneSwitcher)
     if (hostExt.overlayOpener) useCountdownStore.getState().setOverlayOpener(hostExt.overlayOpener)
     if (hostExt.overlay) {
@@ -162,31 +192,39 @@ export default class CountdownPlugin extends LumenPlugin {
       this.persistTimer = setTimeout(() => {
         this.persistTimer = null
         const state = useCountdownStore.getState()
-        host.data.json.set("config", state.config).catch((err) => console.warn("[countdown-module] save config", err))
-        host.data.json.set("timerPresets", state.timerPresets).catch((err) => console.warn("[countdown-module] save timerPresets", err))
+        host.data.json
+          .set("config", state.config)
+          .catch((err) => console.warn("[countdown-module] save config", err))
+        host.data.json
+          .set("timerPresets", state.timerPresets)
+          .catch((err) => console.warn("[countdown-module] save timerPresets", err))
       }, 800)
     })
 
-    const applyProfileBg = (bg: { src: string; thumb?: string; type: string; name: string } | null) => {
+    const applyProfileBg = (
+      bg: { src: string; thumb?: string; type: string; name: string } | null
+    ) => {
       if (!bg) {
         useCountdownStore.getState().setProfileBackground(null)
         return
       }
-      useCountdownStore.getState().setProfileBackground(
-        bg as { src: string; thumb?: string; type: "theme" | "image" | "video"; name: string }
-      )
+      useCountdownStore
+        .getState()
+        .setProfileBackground(
+          bg as { src: string; thumb?: string; type: "theme" | "image" | "video"; name: string }
+        )
     }
 
     const themeBgListener = hostExt.themes.onDefaultBackgroundChange?.(applyProfileBg)
     this.themeBgDispose = themeBgListener ? () => themeBgListener.dispose() : null
 
     useCountdownStore.getState().setSaveImmediate(() => {
-      host.data.json.set("config", useCountdownStore.getState().config).catch((err) => console.warn("[countdown-module]", err))
+      host.data.json
+        .set("config", useCountdownStore.getState().config)
+        .catch((err) => console.warn("[countdown-module]", err))
     })
 
-    useCountdownStore.getState().setOpenBackgroundPicker(
-      (cb) => host.ui.openBackgroundPicker(cb)
-    )
+    useCountdownStore.getState().setOpenBackgroundPicker((cb) => host.ui.openBackgroundPicker(cb))
 
     const savedPresets = await host.data.json.get<TimerPreset[] | undefined>("timerPresets")
     if (savedPresets) useCountdownStore.getState().setTimerPresets(savedPresets)

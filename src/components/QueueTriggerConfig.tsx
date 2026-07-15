@@ -15,10 +15,13 @@ export function CountdownSummary({
   return (
     <button
       type="button"
-      onClick={(e) => { e.stopPropagation(); onEdit() }}
+      onClick={(e) => {
+        e.stopPropagation()
+        onEdit()
+      }}
       className="text-sm font-mono font-semibold text-primary tabular-nums hover:underline cursor-pointer bg-transparent border-none p-0"
     >
-      {mins}:{String(secs).padStart(2, '0')}
+      {mins}:{String(secs).padStart(2, "0")}
     </button>
   )
 }
@@ -43,9 +46,7 @@ export function QueueTriggerConfigComponent({
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-muted-foreground">
-        {t("queue.wait.description")}
-      </p>
+      <p className="text-sm text-muted-foreground">{t("queue.wait.description")}</p>
       <div className="flex items-center gap-2">
         <div className="flex flex-col gap-1 flex-1">
           <label className="text-xs text-muted-foreground">{t("queue.wait.minutes")}</label>

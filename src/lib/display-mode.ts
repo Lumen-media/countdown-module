@@ -15,7 +15,10 @@ export type CountdownTickPayload = {
   renderConfiguredBackground: boolean
 }
 
-export function hasConfiguredBackdrop(config: CountdownConfig, profileBackground: ProfileBackground): boolean {
+export function hasConfiguredBackdrop(
+  config: CountdownConfig,
+  profileBackground: ProfileBackground
+): boolean {
   const bg = config.appearance.background
 
   if (bg.type === "profile") return Boolean(profileBackground?.src)
@@ -27,14 +30,14 @@ export function hasConfiguredBackdrop(config: CountdownConfig, profileBackground
 export function isCornerActive(
   config: CountdownConfig,
   profileBackground: ProfileBackground,
-  externalBackdropActive = false,
+  externalBackdropActive = false
 ): boolean {
   return config.appearance.overlayMode === "corner" && externalBackdropActive
 }
 
 export function displayAnchor(
   position: CountdownConfig["appearance"]["cornerPosition"],
-  cornerActive: boolean,
+  cornerActive: boolean
 ): CSSProperties {
   if (!cornerActive) {
     return {

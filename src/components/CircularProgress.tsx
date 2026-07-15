@@ -28,10 +28,10 @@ export function CircularProgress({
       duration: 1000,
       ease: "linear",
     })
-  }, [remaining, total])
+  }, [remaining, total, circumference])
 
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100">
+    <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
       <circle
         cx="50"
         cy="50"

@@ -51,7 +51,8 @@ const ptBR: Record<string, string> = {
   "appearance.animation.pulseEffect": "Efeito pulsar",
   "appearance.animation.showProgressBar": "Barra de progresso",
   "appearance.animation.progressBarColor": "Cor da barra",
-  "appearance.displayMode.info": "O modo canto só move o timer para o canto selecionado quando já existe mídia ou letra ativa atrás dele no Lumen. Caso contrário, ele permanece centralizado e usa o fundo configurado da contagem.",
+  "appearance.displayMode.info":
+    "O modo canto só move o timer para o canto selecionado quando já existe mídia ou letra ativa atrás dele no Lumen. Caso contrário, ele permanece centralizado e usa o fundo configurado da contagem.",
   "appearance.displayMode.fullscreen": "Tela cheia",
   "appearance.displayMode.corner": "Canto",
   "appearance.displayMode.topLeft": "Superior esquerdo",
@@ -63,7 +64,8 @@ const ptBR: Record<string, string> = {
   "actions.section.timeTriggers": "Triggers de tempo",
   "actions.section.behavior": "Comportamento",
   "actions.autoAdvance.title": "Avanço automático",
-  "actions.autoAdvance.description": "Dispara automaticamente uma ação quando o timer chegar a zero.",
+  "actions.autoAdvance.description":
+    "Dispara automaticamente uma ação quando o timer chegar a zero.",
   "actions.option.changeText": "Trocar texto",
   "actions.option.playSound": "Tocar áudio",
   "actions.option.nextInQueue": "Próximo da fila",

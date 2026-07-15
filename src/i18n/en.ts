@@ -51,7 +51,8 @@ const en: Record<string, string> = {
   "appearance.animation.pulseEffect": "Pulse Effect",
   "appearance.animation.showProgressBar": "Progress Bar",
   "appearance.animation.progressBarColor": "Bar Color",
-  "appearance.displayMode.info": "Corner mode only moves the timer into the selected corner when media or lyrics are already active behind it in Lumen. Otherwise it stays centered and uses the configured countdown background.",
+  "appearance.displayMode.info":
+    "Corner mode only moves the timer into the selected corner when media or lyrics are already active behind it in Lumen. Otherwise it stays centered and uses the configured countdown background.",
   "appearance.displayMode.fullscreen": "Fullscreen",
   "appearance.displayMode.corner": "Corner",
   "appearance.displayMode.topLeft": "Top Left",

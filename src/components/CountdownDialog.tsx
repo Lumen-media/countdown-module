@@ -32,7 +32,12 @@ export function CountdownDialog() {
       tabIndex={-1}
       className="aspect-16/10 h-[80dvh] flex bg-background p-4 outline-none"
     >
-      <Card className={cn("basis-1/4 h-full p-0 gap-0 border-0 overflow-hidden", isPreviewExpanded && "hidden")}>
+      <Card
+        className={cn(
+          "basis-1/4 h-full p-0 gap-0 border-0 overflow-hidden",
+          isPreviewExpanded && "hidden"
+        )}
+      >
         <Tabs defaultValue="configure" className="flex flex-col h-full overflow-hidden">
           <Card.CardContent className="flex-1 flex flex-col p-0 overflow-hidden gap-0 min-h-0">
             <div className="px-4 pt-4 pb-3 shrink-0">
@@ -42,15 +47,34 @@ export function CountdownDialog() {
                   <Popover.PopoverTrigger className="text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-1 rounded-md hover:bg-card">
                     <Settings2 size={16} />
                   </Popover.PopoverTrigger>
-                  <Popover.PopoverContent className="p-3 bg-card border border-border rounded-xl shadow-lg" align="end" sideOffset={6}>
+                  <Popover.PopoverContent
+                    className="p-3 bg-card border border-border rounded-xl shadow-lg"
+                    align="end"
+                    sideOffset={6}
+                  >
                     <TimerSettings />
                   </Popover.PopoverContent>
                 </Popover>
               </div>
               <Tabs.TabsList className="w-full bg-background rounded-lg p-1">
-                <Tabs.TabsTrigger value="configure" className="flex-1 data-[state=active]:bg-card data-[state=active]:shadow-sm">{t("dialog.tab.configure")}</Tabs.TabsTrigger>
-                <Tabs.TabsTrigger value="appearance" className="flex-1 data-[state=active]:bg-card data-[state=active]:shadow-sm">{t("dialog.tab.appearance")}</Tabs.TabsTrigger>
-                <Tabs.TabsTrigger value="actions" className="flex-1 data-[state=active]:bg-card data-[state=active]:shadow-sm">{t("dialog.tab.actions")}</Tabs.TabsTrigger>
+                <Tabs.TabsTrigger
+                  value="configure"
+                  className="flex-1 data-[state=active]:bg-card data-[state=active]:shadow-sm"
+                >
+                  {t("dialog.tab.configure")}
+                </Tabs.TabsTrigger>
+                <Tabs.TabsTrigger
+                  value="appearance"
+                  className="flex-1 data-[state=active]:bg-card data-[state=active]:shadow-sm"
+                >
+                  {t("dialog.tab.appearance")}
+                </Tabs.TabsTrigger>
+                <Tabs.TabsTrigger
+                  value="actions"
+                  className="flex-1 data-[state=active]:bg-card data-[state=active]:shadow-sm"
+                >
+                  {t("dialog.tab.actions")}
+                </Tabs.TabsTrigger>
               </Tabs.TabsList>
             </div>
 
@@ -77,7 +101,12 @@ export function CountdownDialog() {
         </Tabs>
       </Card>
 
-      <Card className={cn("p-0 gap-0 border-0 bg-transparent overflow-hidden", isPreviewExpanded ? "basis-full rounded-l-xl" : "basis-3/4 rounded-l-none")}>
+      <Card
+        className={cn(
+          "p-0 gap-0 border-0 bg-transparent overflow-hidden",
+          isPreviewExpanded ? "basis-full rounded-l-xl" : "basis-3/4 rounded-l-none"
+        )}
+      >
         <RightPanel />
       </Card>
     </div>
