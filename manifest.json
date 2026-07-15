@@ -1,7 +1,7 @@
 {
   "id": "com.example.countdown-module",
   "name": "Countdown Module",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "api": "^0.1.0",
   "minLumenVersion": "0.0.0",
   "description": "Countdown timer module for Lumen with presenter/overlay output, live styling preview, time triggers, bundled & library audio, queue integration, corner/fullscreen modes, timer presets, and Commander quick controls. Supports English and Portuguese (pt-BR).",
