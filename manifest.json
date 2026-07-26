@@ -1,5 +1,5 @@
 {
-  "id": "com.example.countdown-module",
+  "id": "com.countdown-module",
   "name": "Countdown Module",
   "version": "1.5.2",
   "api": "^0.1.0",
