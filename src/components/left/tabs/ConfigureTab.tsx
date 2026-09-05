@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useDebounceValue } from "usehooks-ts"
 import { t } from "../../../i18n.js"
 import { cn } from "../../../lib/utils.js"
+import { formatTime } from "../../../lib/format-time.js"
 import { useCountdownStore } from "../../../store.js"
 import type { BackgroundPreset } from "../../../types.js"
 
@@ -30,6 +31,7 @@ const PRESET_STYLES: Record<BackgroundPreset, string> = {
 }
 
 function PresetThumbnail({ preset }: { preset: BackgroundPreset }) {
+  const totalSeconds = useCountdownStore((s) => s.config.totalSeconds)
   const profileBackground = useCountdownStore((s) => s.profileBackground)
   const customBackground = useCountdownStore((s) =>
     s.config.appearance.preset === "custom" ? s.config.appearance.background : null
@@ -38,6 +40,7 @@ function PresetThumbnail({ preset }: { preset: BackgroundPreset }) {
   const [customImgError, setCustomImgError] = useState(false)
   const base =
     "w-full rounded-md overflow-hidden aspect-video flex items-center justify-center text-xs font-extrabold tracking-tight relative"
+  const timeLabel = formatTime(totalSeconds)
 
   if (preset === "default") {
     const isReady =
@@ -63,7 +66,7 @@ function PresetThumbnail({ preset }: { preset: BackgroundPreset }) {
               onError={() => setDefaultImgError(true)}
             />
           ))}
-        <span className="relative drop-shadow text-white">05:00</span>
+        <span className="relative drop-shadow text-white">{timeLabel}</span>
       </div>
     )
   }
@@ -91,7 +94,7 @@ function PresetThumbnail({ preset }: { preset: BackgroundPreset }) {
             />
           ))}
         {hasMedia ? (
-          <span className="relative drop-shadow text-white">05:00</span>
+          <span className="relative drop-shadow text-white">{timeLabel}</span>
         ) : (
           <>
             <Video size={14} />
@@ -102,7 +105,7 @@ function PresetThumbnail({ preset }: { preset: BackgroundPreset }) {
     )
   }
 
-  return <div className={cn(base, PRESET_STYLES[preset])}>05:00</div>
+  return <div className={cn(base, PRESET_STYLES[preset])}>{timeLabel}</div>
 }
 
 export function ConfigureTab() {

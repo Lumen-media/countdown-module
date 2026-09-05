@@ -13,6 +13,7 @@ export type CountdownTickPayload = {
   config?: CountdownConfig
   cornerActive: boolean
   renderConfiguredBackground: boolean
+  instanceId?: string
 }
 
 export function hasConfiguredBackdrop(

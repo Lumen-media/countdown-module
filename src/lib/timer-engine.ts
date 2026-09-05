@@ -9,6 +9,7 @@ type ProfileBackground = { src: string; thumb?: string; type: "theme" | "image" 
 type StoreState = {
   config: CountdownConfig
   timerState: CountdownState
+  _instanceId: string
   profileBackground: ProfileBackground
   isOverlayActive: boolean
   isPresenterActive: boolean
@@ -192,6 +193,7 @@ export class TimerEngine {
       remaining,
       status,
       ...(configChanged ? { config } : {}),
+      instanceId: this.api.get()._instanceId,
       ...presentationFlags,
     }
     emit("countdown:tick", payload).catch((err) => console.warn("[countdown-module]", err))

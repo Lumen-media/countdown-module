@@ -1,4 +1,5 @@
 import { create } from "zustand"
+import type { CountdownTickPayload } from "./lib/display-mode.js"
 import { TimerEngine, projectionProps, type TimerEngineStoreAPI } from "./lib/timer-engine.js"
 import { DEFAULT_WARNING_SOUND_ID } from "./lib/sounds.js"
 import { persistentBackgroundSrc, type PickedBackground } from "./lib/persist-background.js"
@@ -157,6 +158,33 @@ type CountdownStore = {
   _bus: { emit: (topic: string, payload?: unknown) => void } | null
   setBus: (bus: { emit: (topic: string, payload?: unknown) => void }) => void
   setOverlayOpener: (fn: (overlayId: string) => void) => void
+
+  _instanceId: string
+  setInstanceId: (id: string) => void
+  _speakAction: ((cmd: SyncCommand) => void) | null
+  setSpeakAction: (fn: ((cmd: SyncCommand) => void) | null) => void
+  _adoptTick: (payload: CountdownTickPayload) => void
+  _adoptAction: (cmd: SyncCommand) => void
+}
+
+type SyncCommand = "start" | "pause" | "reset"
+
+const REMOTE_CONTROLLER_STALE_MS = 5000
+
+let instanceId = ""
+let remoteControllerId: string | null = null
+let lastRemoteTickAt = -1
+
+function isRemoteControllerLive() {
+  return (
+    remoteControllerId != null &&
+    remoteControllerId !== instanceId &&
+    Date.now() - lastRemoteTickAt < REMOTE_CONTROLLER_STALE_MS
+  )
+}
+
+function shallowEqualConfig(a: CountdownConfig, b: CountdownConfig) {
+  return JSON.stringify(a) === JSON.stringify(b)
 }
 
 export const useCountdownStore = create<CountdownStore>((set, get) => {
@@ -210,6 +238,60 @@ export const useCountdownStore = create<CountdownStore>((set, get) => {
     setOverlayOpener: (fn) => set({ _overlayOpener: fn }),
     _bus: null,
     setBus: (bus) => set({ _bus: bus }),
+
+    _instanceId: "",
+    setInstanceId: (id) => {
+      instanceId = id
+      set({ _instanceId: id })
+    },
+    _speakAction: null,
+    setSpeakAction: (fn) => set({ _speakAction: fn }),
+    _adoptTick: (payload) => {
+      const selfId = instanceId
+      const from = payload.instanceId
+      if (!from) return
+      if (from === selfId) {
+        remoteControllerId = selfId
+        lastRemoteTickAt = Date.now()
+        return
+      }
+      remoteControllerId = from
+      lastRemoteTickAt = Date.now()
+
+      const { timerState, config } = get()
+      const stateChanged =
+        payload.status !== timerState.status || payload.remaining !== timerState.remainingSeconds
+      if (!stateChanged && !payload.config) return
+
+      const next: CountdownState = {
+        ...timerState,
+        status: payload.status,
+        remainingSeconds: payload.status === "idle" ? (payload.config?.totalSeconds ?? payload.remaining) : payload.remaining,
+      }
+      if (payload.status === "idle") {
+        next.startedAt = null
+        next.pausedAt = null
+        next.firedTriggers = []
+        next.completionSoundStarted = false
+      }
+      set({
+        timerState: next,
+        ...(payload.config && !shallowEqualConfig(payload.config, config)
+          ? { config: payload.config }
+          : {}),
+      })
+    },
+    _adoptAction: (cmd) => {
+      if (remoteControllerId !== instanceId) return
+      if (cmd === "start") {
+        engine.startTimer()
+        get()._saveImmediate?.()
+      } else if (cmd === "pause") {
+        engine.pauseTimer()
+      } else if (cmd === "reset") {
+        engine.resetTimer()
+      }
+    },
 
     sendToPresenter: () => {
       const {
@@ -282,6 +364,7 @@ export const useCountdownStore = create<CountdownStore>((set, get) => {
     },
 
     rebroadcast: () => {
+      if (isRemoteControllerLive()) return
       const {
         _presenter,
         _overlay,
@@ -412,9 +495,28 @@ export const useCountdownStore = create<CountdownStore>((set, get) => {
       engine.emitTick(clamped, ts.status, cfg, profileBackground, externalBackdropActive)
     },
 
-    startTimer: () => engine.startTimer(),
-    pauseTimer: () => engine.pauseTimer(),
-    resetTimer: () => engine.resetTimer(),
+    startTimer: () => {
+      if (isRemoteControllerLive()) {
+        get()._speakAction?.("start")
+        return
+      }
+      engine.startTimer()
+      get()._saveImmediate?.()
+    },
+    pauseTimer: () => {
+      if (isRemoteControllerLive()) {
+        get()._speakAction?.("pause")
+        return
+      }
+      engine.pauseTimer()
+    },
+    resetTimer: () => {
+      if (isRemoteControllerLive()) {
+        get()._speakAction?.("reset")
+        return
+      }
+      engine.resetTimer()
+    },
 
     handleHotkey: (action) => {
       const { timerState, config, startTimer, pauseTimer, resetTimer } = get()

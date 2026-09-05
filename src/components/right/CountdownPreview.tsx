@@ -64,8 +64,18 @@ const ProfileBg = memo(function ProfileBg_() {
 
 export function CountdownPreview() {
   const config = useCountdownStore((s) => s.config)
+  const timerState = useCountdownStore((s) => s.timerState)
   const { appearance, preText, postText } = config
-  const previewSeconds = config.countUp ? 0 : config.totalSeconds
+  const previewSeconds =
+    timerState.status === "running" || timerState.status === "paused"
+      ? timerState.remainingSeconds
+      : timerState.status === "finished"
+        ? config.countUp
+          ? config.totalSeconds
+          : 0
+        : config.countUp
+          ? 0
+          : config.totalSeconds
   const cornerActive = appearance.overlayMode === "corner"
 
   const { timerColor, prePostColor, timerShadow, subShadow } = useAdaptiveTextAppearance({

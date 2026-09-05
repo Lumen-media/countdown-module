@@ -1,5 +1,6 @@
 import { type LumenHost, LumenPlugin } from "@lumen-media/module-sdk"
-import { listen } from "@tauri-apps/api/event"
+import { emit, listen } from "@tauri-apps/api/event"
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { Timer } from "lucide-react"
 import { type ComponentProps, createElement } from "react"
 import jersey15FontUrl from "../assets/fonts/Jersey15-Regular.ttf?url"
@@ -14,9 +15,46 @@ import {
   QueueTriggerConfigComponent,
 } from "./components/QueueTriggerConfig.js"
 import { setupI18n, t } from "./i18n.js"
+import type { CountdownTickPayload } from "./lib/display-mode.js"
 import { useCountdownStore } from "./store.js"
 import css from "./styles.css?inline"
 import type { CountdownConfig, TimerPreset } from "./types.js"
+
+type SyncCommand = "start" | "pause" | "reset"
+type SyncActionMessage = { cmd: SyncCommand; instanceId?: string }
+
+const WINDOW_REGISTRY_KEY = "__lumen_countdown_registry"
+
+type WindowHostRegistry = { ordered: string[] }
+
+function getWindowRegistry(): WindowHostRegistry {
+  const w = window as unknown as Record<string, WindowHostRegistry | undefined>
+  let registry = w[WINDOW_REGISTRY_KEY]
+  if (!registry) {
+    registry = { ordered: [] }
+    w[WINDOW_REGISTRY_KEY] = registry
+  }
+  return registry
+}
+
+const LOCAL_STORAGE_PREFIX = "countdown-module:"
+
+function readLocal<T>(key: string): T | undefined {
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_PREFIX + key)
+    return raw ? (JSON.parse(raw) as T) : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function writeLocal(key: string, value: unknown): void {
+  try {
+    localStorage.setItem(LOCAL_STORAGE_PREFIX + key, JSON.stringify(value))
+  } catch {
+    // storage unavailable — ignore
+  }
+}
 
 interface StageBackdropChangeDetail {
   active: boolean
@@ -57,6 +95,10 @@ type HostExt = {
 export default class CountdownPlugin extends LumenPlugin {
   private styleEl: HTMLStyleElement | null = null
   private displayReadyUnlisten: (() => void) | null = null
+  private tickUnlisten: (() => void) | null = null
+  private actionUnlisten: (() => void) | null = null
+  private instanceId = ""
+  private isPrimary = false
   private presentationStateDispose: (() => void) | null = null
   private overlayStateDispose: (() => void) | null = null
   private themeBgDispose: (() => void) | null = null
@@ -83,6 +125,46 @@ export default class CountdownPlugin extends LumenPlugin {
     })
 
     if (host.window === "presenter") return
+
+    const instanceId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+    this.instanceId = instanceId
+
+    const windowRegistry = getWindowRegistry()
+    if (!windowRegistry.ordered.includes(instanceId)) windowRegistry.ordered.push(instanceId)
+    this.isPrimary = windowRegistry.ordered[0] === instanceId
+
+    let windowLabel = "unknown"
+    try {
+      windowLabel = getCurrentWebviewWindow().label
+    } catch {
+      // label unavailable outside a Tauri webview
+    }
+    console.info("[countdown-module] boot", {
+      version: "1.5.3-sync",
+      instanceId,
+      primary: this.isPrimary,
+      primaryId: windowRegistry.ordered[0],
+      instanceCount: windowRegistry.ordered.length,
+      path: window.location.pathname,
+      hostWindow: host.window,
+      windowLabel,
+    })
+    if (!this.isPrimary) return
+
+    useCountdownStore.getState().setInstanceId(instanceId)
+
+    this.tickUnlisten = await listen<CountdownTickPayload>("countdown:tick", (event) => {
+      useCountdownStore.getState()._adoptTick(event.payload)
+    })
+    this.actionUnlisten = await listen<SyncActionMessage>("countdown-module:action", (event) => {
+      const payload = event.payload
+      if (payload.instanceId && payload.instanceId !== instanceId) {
+        useCountdownStore.getState()._adoptAction(payload.cmd)
+      }
+    })
+    useCountdownStore.getState().setSpeakAction((cmd) => {
+      void emit("countdown-module:action", { cmd, instanceId })
+    })
 
     this.displayReadyUnlisten = await listen("countdown:display-ready", () => {
       useCountdownStore.getState().rebroadcast()
@@ -115,29 +197,6 @@ export default class CountdownPlugin extends LumenPlugin {
       id: "countdown.open",
       title: t("main.command.open"),
       run: () => host.ui.openDialog("countdown.dialog"),
-    })
-
-    host.commands.add({
-      id: "countdown.start",
-      title: t("main.command.start"),
-      keywords: ["timer", "play"],
-      run: () => useCountdownStore.getState().startTimer(),
-    })
-    host.commands.add({
-      id: "countdown.pause",
-      title: t("main.command.pause"),
-      keywords: ["timer", "stop"],
-      run: () => {
-        const s = useCountdownStore.getState()
-        if (s.timerState.status === "paused") s.startTimer()
-        else s.pauseTimer()
-      },
-    })
-    host.commands.add({
-      id: "countdown.reset",
-      title: t("main.command.reset"),
-      keywords: ["timer", "clear"],
-      run: () => useCountdownStore.getState().resetTimer(),
     })
 
     host.commands.add({
@@ -185,14 +244,46 @@ export default class CountdownPlugin extends LumenPlugin {
     }
 
     const saved = await host.data.json.get<Partial<CountdownConfig> | undefined>("config")
-    if (saved) {
-      useCountdownStore.getState().setConfig(saved)
+    const restored = saved ?? readLocal<Partial<CountdownConfig>>("config")
+    if (restored) {
+      useCountdownStore.getState().setConfig(restored)
     } else {
       useCountdownStore.getState().setConfig({
         preText: t("configure.default.preText"),
         postText: t("configure.default.postText"),
       })
     }
+    console.info("[countdown-module] restore", {
+      fromHost: Boolean(saved),
+      fromCache: Boolean(saved ? false : restored),
+      totalSeconds: useCountdownStore.getState().config.totalSeconds,
+    })
+    const recordDebug = (payload: Record<string, unknown>) => {
+      void host.data.json
+        .get<{ totalSecondsHistory?: { at: number }[] }>("__debug")
+        .then((prev) => {
+          const history = prev?.totalSecondsHistory ?? []
+          history.push({ ...payload, at: Date.now() })
+          while (history.length > 30) history.shift()
+          return history
+        })
+        .then((history) => host.data.json.set("__debug", { totalSecondsHistory: history }))
+        .catch(() => {})
+    }
+    recordDebug({
+      step: "restore",
+      fromHost: Boolean(saved),
+      fromCache: Boolean(saved ? false : restored),
+      totalSeconds: useCountdownStore.getState().config.totalSeconds,
+    })
+    let lastLoggedTotal = useCountdownStore.getState().config.totalSeconds
+    useCountdownStore.subscribe((state) => {
+      if (state.config.totalSeconds !== lastLoggedTotal) {
+        lastLoggedTotal = state.config.totalSeconds
+        console.info("[countdown-module] config.totalSeconds ->", state.config.totalSeconds)
+        recordDebug({ step: "totalChanged", to: state.config.totalSeconds })
+      }
+    })
 
     this.persistUnsubscribe = useCountdownStore.subscribe((state, prevState) => {
       if (state.config === prevState.config && state.timerPresets === prevState.timerPresets) return
@@ -207,6 +298,8 @@ export default class CountdownPlugin extends LumenPlugin {
         host.data.json
           .set("timerPresets", state.timerPresets)
           .catch((err) => console.warn("[countdown-module] save timerPresets", err))
+        writeLocal("config", state.config)
+        writeLocal("timerPresets", state.timerPresets)
       }, 800)
     })
 
@@ -228,14 +321,18 @@ export default class CountdownPlugin extends LumenPlugin {
     this.themeBgDispose = themeBgListener ? () => themeBgListener.dispose() : null
 
     useCountdownStore.getState().setSaveImmediate(() => {
+      const config = useCountdownStore.getState().config
       host.data.json
-        .set("config", useCountdownStore.getState().config)
+        .set("config", config)
         .catch((err) => console.warn("[countdown-module]", err))
+      writeLocal("config", config)
     })
 
     useCountdownStore.getState().setOpenBackgroundPicker((cb) => host.ui.openBackgroundPicker(cb))
 
-    const savedPresets = await host.data.json.get<TimerPreset[] | undefined>("timerPresets")
+    const savedPresets =
+      (await host.data.json.get<TimerPreset[] | undefined>("timerPresets")) ??
+      readLocal<TimerPreset[]>("timerPresets")
     if (savedPresets) useCountdownStore.getState().setTimerPresets(savedPresets)
 
     host.queue.registerTrigger<QueueTriggerConfig>({
@@ -269,6 +366,20 @@ export default class CountdownPlugin extends LumenPlugin {
     this.styleEl = null
     this.displayReadyUnlisten?.()
     this.displayReadyUnlisten = null
+    this.tickUnlisten?.()
+    this.tickUnlisten = null
+    this.actionUnlisten?.()
+    this.actionUnlisten = null
+    if (this.isPrimary) {
+      useCountdownStore.getState().setSpeakAction(null)
+      const windowRegistry = getWindowRegistry()
+      const idx = windowRegistry.ordered.indexOf(this.instanceId)
+      if (idx >= 0) windowRegistry.ordered.splice(idx, 1)
+      if (windowRegistry.ordered.length === 0) {
+        const w = window as unknown as Record<string, WindowHostRegistry | undefined>
+        delete w[WINDOW_REGISTRY_KEY]
+      }
+    }
     this.presentationStateDispose?.()
     this.presentationStateDispose = null
     this.overlayStateDispose?.()
