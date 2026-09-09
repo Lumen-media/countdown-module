@@ -1,10 +1,14 @@
 {
-  "id": "com.countdown-module",
+  "id": "com.lumenmedia.countdown",
   "name": "Countdown Module",
   "version": "1.5.2",
   "api": "^0.1.0",
   "minLumenVersion": "0.0.0",
   "description": "Countdown timer module for Lumen with presenter/overlay output, live styling preview, time triggers, bundled & library audio, queue integration, corner/fullscreen modes, timer presets, and Commander quick controls.",
+  "author": {
+    "name": "Lumen Media",
+    "url": "https://github.com/Lumen-media"
+  },
   "entry": "main.js",
   "license": "MIT"
 }
