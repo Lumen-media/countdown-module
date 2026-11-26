@@ -1,3 +1,4 @@
+import { BackgroundSurface } from "@lumen-media/module-sdk/ui"
 import { emit, listen } from "@tauri-apps/api/event"
 import { useEffect, useRef, useState } from "react"
 import { useAdaptiveTextAppearance } from "../../lib/adaptive-text.js"
@@ -27,7 +28,6 @@ function bgToStyle(config: CountdownConfig): React.CSSProperties {
 export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickPayload }) {
   const [tick, setTick] = useState<CountdownTickPayload | null>(initialTick ?? null)
   const cachedConfigRef = useRef<CountdownConfig | null>(initialTick?.config ?? null)
-  const [imgError, setImgError] = useState(false)
 
   useEffect(() => {
     if (!initialTick) return
@@ -35,7 +35,6 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
       cachedConfigRef.current = initialTick.config
     }
     setTick(initialTick)
-    setImgError(false)
   }, [initialTick])
 
   useEffect(() => {
@@ -67,10 +66,12 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
   const { remaining, cornerActive, renderConfiguredBackground } = tick
   const { appearance, preText, postText } = config
   const bgStyle = renderConfiguredBackground ? bgToStyle(config) : {}
-  const backgroundMediaValue =
-    appearance.background.type === "image" || appearance.background.type === "video"
-      ? appearance.background.value
-      : ""
+  const configuredBg =
+    appearance.background.type === "video"
+      ? { type: "video" as const, src: appearance.background.value, name: "" }
+      : appearance.background.type === "image"
+        ? appearance.background.value
+        : null
   // biome-ignore lint/correctness/useHookAtTopLevel: the display cannot derive appearance until a tick/config exists.
   const { timerColor, prePostColor, timerShadow, subShadow } = useAdaptiveTextAppearance({
     appearance,
@@ -91,42 +92,9 @@ export function CountdownDisplay({ initialTick }: { initialTick?: CountdownTickP
         ...bgStyle,
       }}
     >
-      {renderConfiguredBackground &&
-        !imgError &&
-        appearance.background.type === "image" &&
-        backgroundMediaValue.length > 0 && (
-          <img
-            src={backgroundMediaValue}
-            alt=""
-            decoding="async"
-            onError={() => setImgError(true)}
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
-          />
-        )}
-      {renderConfiguredBackground &&
-        appearance.background.type === "video" &&
-        backgroundMediaValue.length > 0 && (
-          <video
-            src={backgroundMediaValue}
-            autoPlay
-            loop
-            muted
-            playsInline
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
-          />
-        )}
+      {renderConfiguredBackground && configuredBg ? (
+        <BackgroundSurface background={configuredBg} />
+      ) : null}
 
       <div
         style={{

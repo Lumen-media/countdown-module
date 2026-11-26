@@ -1,4 +1,5 @@
-import { memo, useState } from "react"
+import { BackgroundSurface } from "@lumen-media/module-sdk/ui"
+import { memo } from "react"
 import { displayAnchor } from "../../lib/display-mode.js"
 import { useAdaptiveTextAppearance } from "../../lib/adaptive-text.js"
 import { useCountdownStore } from "../../store.js"
@@ -25,41 +26,12 @@ function bgToStyle(bg: BackgroundConfig): React.CSSProperties {
 
 const ProfileBg = memo(function ProfileBg_() {
   const profileBackground = useCountdownStore((s) => s.profileBackground)
-  const [imgError, setImgError] = useState(false)
 
   if (!profileBackground) {
     return <div className="absolute inset-0 bg-background" />
   }
 
-  const { src, type } = profileBackground
-  const isReady = src.startsWith("blob:") || src.startsWith("http") || src.startsWith("data:")
-
-  if (!isReady || imgError) {
-    return <div className="absolute inset-0 bg-background" />
-  }
-
-  if (type === "video") {
-    return (
-      <video
-        src={src}
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="absolute inset-0 h-full w-full object-cover"
-      />
-    )
-  }
-
-  return (
-    <img
-      src={src}
-      alt=""
-      decoding="async"
-      className="absolute inset-0 h-full w-full object-cover"
-      onError={() => setImgError(true)}
-    />
-  )
+  return <BackgroundSurface background={profileBackground} />
 })
 
 export function CountdownPreview() {
@@ -90,7 +62,12 @@ export function CountdownPreview() {
     .toString(16)
     .padStart(2, "0")}`
   const bg = appearance.background
-  const backgroundMediaValue = bg.type === "image" || bg.type === "video" ? bg.value : ""
+  const configuredBg =
+    bg.type === "video"
+      ? { type: "video" as const, src: bg.value, name: "" }
+      : bg.type === "image"
+        ? bg.value
+        : null
 
   return (
     <div
@@ -100,22 +77,8 @@ export function CountdownPreview() {
     >
       {bg.type === "profile" ? (
         <ProfileBg />
-      ) : bg.type === "image" && backgroundMediaValue.length > 0 ? (
-        <img
-          src={backgroundMediaValue}
-          alt=""
-          decoding="async"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-      ) : bg.type === "video" && backgroundMediaValue.length > 0 ? (
-        <video
-          src={backgroundMediaValue}
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+      ) : configuredBg ? (
+        <BackgroundSurface background={configuredBg} />
       ) : null}
 
       <div

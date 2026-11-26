@@ -1,4 +1,11 @@
-import { Button, Input, ScrollArea, Select, TextEditor } from "@lumen-media/module-sdk/ui"
+import {
+  BackgroundSurface,
+  Button,
+  Input,
+  ScrollArea,
+  Select,
+  TextEditor,
+} from "@lumen-media/module-sdk/ui"
 import { Clock, RotateCcw, Video } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useDebounceValue } from "usehooks-ts"
@@ -36,64 +43,38 @@ function PresetThumbnail({ preset }: { preset: BackgroundPreset }) {
   const customBackground = useCountdownStore((s) =>
     s.config.appearance.preset === "custom" ? s.config.appearance.background : null
   )
-  const [defaultImgError, setDefaultImgError] = useState(false)
-  const [customImgError, setCustomImgError] = useState(false)
   const base =
     "w-full rounded-md overflow-hidden aspect-video flex items-center justify-center text-xs font-extrabold tracking-tight relative"
   const timeLabel = formatTime(totalSeconds)
 
   if (preset === "default") {
-    const isReady =
-      !defaultImgError &&
-      profileBackground?.src &&
-      (profileBackground.src.startsWith("blob:") ||
-        profileBackground.src.startsWith("http") ||
-        profileBackground.src.startsWith("data:"))
     return (
-      <div className={cn(base, !isReady && PRESET_STYLES.default)}>
-        {isReady &&
-          (profileBackground!.type === "video" ? (
-            <video
-              src={profileBackground!.src}
-              className="absolute inset-0 w-full h-full object-cover"
-              muted
-            />
-          ) : (
-            <img
-              src={profileBackground!.thumb ?? profileBackground!.src}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-              onError={() => setDefaultImgError(true)}
-            />
-          ))}
+      <div className={cn(base, !profileBackground && PRESET_STYLES.default)}>
+        {profileBackground && (
+          <BackgroundSurface
+            background={profileBackground}
+            variant="thumbnail"
+            animated={false}
+          />
+        )}
         <span className="relative drop-shadow text-white">{timeLabel}</span>
       </div>
     )
   }
 
   if (preset === "custom") {
-    const hasMedia =
-      !customImgError &&
-      customBackground &&
-      (customBackground.type === "image" || customBackground.type === "video")
+    const customBg =
+      customBackground?.type === "video"
+        ? { type: "video" as const, src: customBackground.value, name: "" }
+        : customBackground?.type === "image"
+          ? customBackground.value
+          : null
     return (
-      <div className={cn(base, !hasMedia && PRESET_STYLES.custom)}>
-        {hasMedia &&
-          (customBackground.type === "video" ? (
-            <video
-              src={customBackground.value}
-              className="absolute inset-0 w-full h-full object-cover"
-              muted
-            />
-          ) : (
-            <img
-              src={customBackground.value}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-              onError={() => setCustomImgError(true)}
-            />
-          ))}
-        {hasMedia ? (
+      <div className={cn(base, !customBg && PRESET_STYLES.custom)}>
+        {customBg && (
+          <BackgroundSurface background={customBg} variant="thumbnail" animated={false} />
+        )}
+        {customBg ? (
           <span className="relative drop-shadow text-white">{timeLabel}</span>
         ) : (
           <>
