@@ -18,7 +18,7 @@ import { setupI18n, t } from "./i18n.js"
 import type { CountdownTickPayload } from "./lib/display-mode.js"
 import { useCountdownStore } from "./store.js"
 import css from "./styles.css?inline"
-import type { CountdownConfig, TimerPreset } from "./types.js"
+import type { CountdownConfig, ProfileBackground, TimerPreset } from "./types.js"
 
 type SyncCommand = "start" | "pause" | "reset"
 type SyncActionMessage = { cmd: SyncCommand; instanceId?: string }
@@ -86,9 +86,8 @@ type HostExt = {
   sceneSwitcher?: (sceneId: string) => void
   overlayOpener?: (overlayId: string) => void
   themes: {
-    onDefaultBackgroundChange?: (
-      handler: (bg: { src: string; type: string; name: string } | null) => void
-    ) => { dispose(): void }
+    defaultBackground?: () => ProfileBackground
+    onDefaultBackgroundChange?: (handler: (bg: ProfileBackground) => void) => { dispose(): void }
   }
 }
 
@@ -303,22 +302,19 @@ export default class CountdownPlugin extends LumenPlugin {
       }, 800)
     })
 
-    const applyProfileBg = (
-      bg: { src: string; thumb?: string; type: string; name: string } | null
-    ) => {
-      if (!bg) {
-        useCountdownStore.getState().setProfileBackground(null)
-        return
-      }
-      useCountdownStore
-        .getState()
-        .setProfileBackground(
-          bg as { src: string; thumb?: string; type: "theme" | "image" | "video"; name: string }
-        )
+    const applyProfileBg = (bg: ProfileBackground) => {
+      useCountdownStore.getState().setProfileBackground(bg)
     }
 
     const themeBgListener = hostExt.themes.onDefaultBackgroundChange?.(applyProfileBg)
     this.themeBgDispose = themeBgListener ? () => themeBgListener.dispose() : null
+
+    void Promise.resolve(hostExt.themes.defaultBackground?.())
+      .then((bg) => {
+        const state = useCountdownStore.getState()
+        if (bg && !state.profileBackground) state.setProfileBackground(bg)
+      })
+      .catch(() => {})
 
     useCountdownStore.getState().setSaveImmediate(() => {
       const config = useCountdownStore.getState().config
