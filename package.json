@@ -32,7 +32,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.2",
     "@lumen-media/module-cli": "^0.3.3",
-    "@lumen-media/module-sdk": "^0.9.0",
+    "@lumen-media/module-sdk": "^0.17.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.20.1",
     "@types/react": "^19.2.18",
