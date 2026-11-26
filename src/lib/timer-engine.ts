@@ -1,10 +1,13 @@
 import { emit } from "@tauri-apps/api/event"
 import { animate } from "animejs"
-import type { CountdownConfig, CountdownState, WebhookEvent } from "../types.js"
+import type {
+  CountdownConfig,
+  CountdownState,
+  ProfileBackground,
+  WebhookEvent,
+} from "../types.js"
 import { type CountdownTickPayload, isCornerActive } from "./display-mode.js"
 import { getBundledSoundDuration, playBundledSound, playSelectedSound } from "./sounds.js"
-
-type ProfileBackground = { src: string; thumb?: string; type: "theme" | "image" | "video" } | null
 
 type StoreState = {
   config: CountdownConfig

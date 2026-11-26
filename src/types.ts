@@ -1,3 +1,7 @@
+import type { SelectedBackground } from "@lumen-media/module-sdk"
+
+export type ProfileBackground = (SelectedBackground & { thumb?: string }) | null
+
 export type CountdownSoundSelection = {
   source: "bundled" | "library"
   value: string

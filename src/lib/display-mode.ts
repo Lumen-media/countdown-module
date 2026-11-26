@@ -1,11 +1,5 @@
 import type { CSSProperties } from "react"
-import type { CountdownConfig, CountdownStatus } from "../types.js"
-
-type ProfileBackground = {
-  src: string
-  thumb?: string
-  type: "theme" | "image" | "video"
-} | null
+import type { CountdownConfig, CountdownStatus, ProfileBackground } from "../types.js"
 
 export type CountdownTickPayload = {
   remaining: number

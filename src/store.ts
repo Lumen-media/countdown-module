@@ -12,6 +12,7 @@ import type {
   EndAction,
   HotkeyAction,
   HotkeyConfig,
+  ProfileBackground,
   TimerPreset,
 } from "./types.js"
 
@@ -125,10 +126,8 @@ type CountdownStore = {
   deleteTimerPreset: (id: string) => void
   _openBackgroundPicker: ((cb: (bg: PickedBackground) => void) => void) | null
   setOpenBackgroundPicker: (fn: (cb: (bg: PickedBackground) => void) => void) => void
-  profileBackground: { src: string; thumb?: string; type: "theme" | "image" | "video" } | null
-  setProfileBackground: (
-    bg: { src: string; thumb?: string; type: "theme" | "image" | "video" } | null
-  ) => void
+  profileBackground: ProfileBackground
+  setProfileBackground: (bg: ProfileBackground) => void
   _hostFs: { read: (path: string) => Promise<Uint8Array> } | null
   setHostFs: (fs: { read: (path: string) => Promise<Uint8Array> }) => void
   _presenter: PresenterAPI | null
